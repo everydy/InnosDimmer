@@ -30,6 +30,9 @@
 		AA000000000000000000004D /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000051 /* MenuBarPopoverView.swift */; };
 		AA000000000000000000004E /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000052 /* SettingsWindowController.swift */; };
 		AA000000000000000000004F /* BrightnessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000053 /* BrightnessController.swift */; };
+		AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000055 /* DisplayTargetStoreTests.swift */; };
+		AA0000000000000000000056 /* DisplayTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000058 /* DisplayTargetResolver.swift */; };
+		AA0000000000000000000057 /* DisplayInventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000059 /* DisplayInventory.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +72,9 @@
 		AA0000000000000000000051 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000052 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000053 /* BrightnessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000055 /* DisplayTargetStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetStoreTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000058 /* DisplayTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetResolver.swift; sourceTree = "<group>"; };
+		AA0000000000000000000059 /* DisplayInventory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayInventory.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,6 +157,8 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000053 /* BrightnessController.swift */,
+				AA0000000000000000000059 /* DisplayInventory.swift */,
+				AA0000000000000000000058 /* DisplayTargetResolver.swift */,
 				AA0000000000000000000045 /* DisplayTargetStore.swift */,
 			);
 			path = Services;
@@ -164,6 +172,7 @@
 				AA000000000000000000002A /* ScheduleEntryTests.swift */,
 				AA0000000000000000000049 /* SettingsSnapshotTests.swift */,
 				AA000000000000000000004B /* MenuBarStateTests.swift */,
+				AA0000000000000000000055 /* DisplayTargetStoreTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -292,6 +301,8 @@
 				AA0000000000000000000038 /* SettingsSnapshot.swift in Sources */,
 				AA0000000000000000000036 /* ShortcutBinding.swift in Sources */,
 				AA000000000000000000004F /* BrightnessController.swift in Sources */,
+				AA0000000000000000000057 /* DisplayInventory.swift in Sources */,
+				AA0000000000000000000056 /* DisplayTargetResolver.swift in Sources */,
 				AA000000000000000000003A /* DisplayTargetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -305,6 +316,7 @@
 				AA0000000000000000000028 /* ScheduleEntryTests.swift in Sources */,
 				AA0000000000000000000048 /* SettingsSnapshotTests.swift in Sources */,
 				AA000000000000000000004A /* MenuBarStateTests.swift in Sources */,
+				AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

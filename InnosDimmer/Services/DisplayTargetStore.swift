@@ -23,4 +23,8 @@ final class DisplayTargetStore {
         let data = try encoder.encode(snapshot)
         defaults.set(data, forKey: key)
     }
+
+    func resolveSelectedDisplay(from candidates: [DisplayIdentity]) -> DisplayIdentity? {
+        DisplayTargetResolver.resolve(saved: load().selectedDisplay, candidates: candidates)
+    }
 }
