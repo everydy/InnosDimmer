@@ -33,6 +33,10 @@
 		AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000055 /* DisplayTargetStoreTests.swift */; };
 		AA0000000000000000000056 /* DisplayTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000058 /* DisplayTargetResolver.swift */; };
 		AA0000000000000000000057 /* DisplayInventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000059 /* DisplayInventory.swift */; };
+		AA000000000000000000005A /* SoftwareDimmingControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */; };
+		AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000005F /* SoftwareDimmingController.swift */; };
+		AA000000000000000000005D /* OverlayWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000060 /* OverlayWindowManager.swift */; };
+		AA000000000000000000005E /* GammaDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000061 /* GammaDimmingController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -75,6 +79,10 @@
 		AA0000000000000000000055 /* DisplayTargetStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetStoreTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000058 /* DisplayTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetResolver.swift; sourceTree = "<group>"; };
 		AA0000000000000000000059 /* DisplayInventory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayInventory.swift; sourceTree = "<group>"; };
+		AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareDimmingControllerTests.swift; sourceTree = "<group>"; };
+		AA000000000000000000005F /* SoftwareDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareDimmingController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000060 /* OverlayWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindowManager.swift; sourceTree = "<group>"; };
+		AA0000000000000000000061 /* GammaDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaDimmingController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +168,9 @@
 				AA0000000000000000000059 /* DisplayInventory.swift */,
 				AA0000000000000000000058 /* DisplayTargetResolver.swift */,
 				AA0000000000000000000045 /* DisplayTargetStore.swift */,
+				AA0000000000000000000061 /* GammaDimmingController.swift */,
+				AA0000000000000000000060 /* OverlayWindowManager.swift */,
+				AA000000000000000000005F /* SoftwareDimmingController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -173,6 +184,7 @@
 				AA0000000000000000000049 /* SettingsSnapshotTests.swift */,
 				AA000000000000000000004B /* MenuBarStateTests.swift */,
 				AA0000000000000000000055 /* DisplayTargetStoreTests.swift */,
+				AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -304,6 +316,9 @@
 				AA0000000000000000000057 /* DisplayInventory.swift in Sources */,
 				AA0000000000000000000056 /* DisplayTargetResolver.swift in Sources */,
 				AA000000000000000000003A /* DisplayTargetStore.swift in Sources */,
+				AA000000000000000000005E /* GammaDimmingController.swift in Sources */,
+				AA000000000000000000005D /* OverlayWindowManager.swift in Sources */,
+				AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -317,6 +332,7 @@
 				AA0000000000000000000048 /* SettingsSnapshotTests.swift in Sources */,
 				AA000000000000000000004A /* MenuBarStateTests.swift in Sources */,
 				AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */,
+				AA000000000000000000005A /* SoftwareDimmingControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,80 @@
+import AppKit
+
+struct OverlayAppearance: Equatable {
+    var blackOpacity: CGFloat
+    var warmOpacity: CGFloat
+
+    static func make(brightness: Int, warmth: Int) -> OverlayAppearance {
+        let clampedBrightness = Clamped.percent(brightness)
+        let clampedWarmth = Clamped.percent(warmth)
+        return OverlayAppearance(
+            blackOpacity: CGFloat(100 - clampedBrightness) / 130.0,
+            warmOpacity: CGFloat(clampedWarmth) / 180.0
+        )
+    }
+}
+
+final class OverlayWindowManager {
+    private var panelsByDisplayID: [UInt32: NSPanel] = [:]
+
+    static func configureOverlayPanel(_ panel: NSPanel, for frame: CGRect) {
+        panel.setFrame(frame, display: true)
+        panel.level = .screenSaver
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        panel.ignoresMouseEvents = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+    }
+
+    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) {
+        let panel = panelsByDisplayID[display.cgDisplayID] ?? makePanel()
+        panelsByDisplayID[display.cgDisplayID] = panel
+        let appearance = OverlayAppearance.make(brightness: brightness, warmth: warmth)
+        updateLayers(for: panel, appearance: appearance)
+        panel.alphaValue = 1.0
+        panel.orderFrontRegardless()
+    }
+
+    func clear(display: DisplayIdentity) {
+        panelsByDisplayID[display.cgDisplayID]?.orderOut(nil)
+        panelsByDisplayID.removeValue(forKey: display.cgDisplayID)
+    }
+
+    private func makePanel() -> NSPanel {
+        let panel = NSPanel(contentRect: .zero, styleMask: .borderless, backing: .buffered, defer: false)
+        panel.contentView = NSView(frame: .zero)
+        panel.contentView?.wantsLayer = true
+        Self.configureOverlayPanel(panel, for: .zero)
+        installOverlayLayers(in: panel)
+        return panel
+    }
+
+    private func installOverlayLayers(in panel: NSPanel) {
+        guard let contentView = panel.contentView else {
+            return
+        }
+
+        let dimLayer = CALayer()
+        dimLayer.name = "InnosDimmer.dim"
+        let warmLayer = CALayer()
+        warmLayer.name = "InnosDimmer.warm"
+        contentView.layer?.addSublayer(dimLayer)
+        contentView.layer?.addSublayer(warmLayer)
+    }
+
+    private func updateLayers(for panel: NSPanel, appearance: OverlayAppearance) {
+        guard let contentView = panel.contentView, let rootLayer = contentView.layer else {
+            return
+        }
+
+        rootLayer.sublayers?.forEach { layer in
+            layer.frame = contentView.bounds
+            if layer.name == "InnosDimmer.dim" {
+                layer.backgroundColor = NSColor.black.withAlphaComponent(appearance.blackOpacity).cgColor
+            } else if layer.name == "InnosDimmer.warm" {
+                layer.backgroundColor = NSColor(calibratedRed: 1.0, green: 0.64, blue: 0.32, alpha: appearance.warmOpacity).cgColor
+            }
+        }
+    }
+}
