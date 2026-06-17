@@ -37,6 +37,10 @@
 		AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000005F /* SoftwareDimmingController.swift */; };
 		AA000000000000000000005D /* OverlayWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000060 /* OverlayWindowManager.swift */; };
 		AA000000000000000000005E /* GammaDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000061 /* GammaDimmingController.swift */; };
+		AA0000000000000000000062 /* HardwareDDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000063 /* HardwareDDCControllerTests.swift */; };
+		AA0000000000000000000064 /* HardwareDDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000068 /* HardwareDDCController.swift */; };
+		AA0000000000000000000065 /* CapabilityProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000069 /* CapabilityProbe.swift */; };
+		AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006A /* DiagnosticsExporter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +87,10 @@
 		AA000000000000000000005F /* SoftwareDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareDimmingController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000060 /* OverlayWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindowManager.swift; sourceTree = "<group>"; };
 		AA0000000000000000000061 /* GammaDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaDimmingController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000063 /* HardwareDDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDDCControllerTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000068 /* HardwareDDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDDCController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000069 /* CapabilityProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityProbe.swift; sourceTree = "<group>"; };
+		AA000000000000000000006A /* DiagnosticsExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsExporter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,8 +127,18 @@
 				AA0000000000000000000026 /* UI */,
 				AA0000000000000000000046 /* Domain */,
 				AA0000000000000000000047 /* Services */,
+				AA0000000000000000000067 /* Diagnostics */,
 			);
 			path = InnosDimmer;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000067 /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000069 /* CapabilityProbe.swift */,
+				AA000000000000000000006A /* DiagnosticsExporter.swift */,
+			);
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 		AA000000000000000000000E /* App */ = {
@@ -169,6 +187,7 @@
 				AA0000000000000000000058 /* DisplayTargetResolver.swift */,
 				AA0000000000000000000045 /* DisplayTargetStore.swift */,
 				AA0000000000000000000061 /* GammaDimmingController.swift */,
+				AA0000000000000000000068 /* HardwareDDCController.swift */,
 				AA0000000000000000000060 /* OverlayWindowManager.swift */,
 				AA000000000000000000005F /* SoftwareDimmingController.swift */,
 			);
@@ -185,6 +204,7 @@
 				AA000000000000000000004B /* MenuBarStateTests.swift */,
 				AA0000000000000000000055 /* DisplayTargetStoreTests.swift */,
 				AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */,
+				AA0000000000000000000063 /* HardwareDDCControllerTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -319,6 +339,9 @@
 				AA000000000000000000005E /* GammaDimmingController.swift in Sources */,
 				AA000000000000000000005D /* OverlayWindowManager.swift in Sources */,
 				AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */,
+				AA0000000000000000000064 /* HardwareDDCController.swift in Sources */,
+				AA0000000000000000000065 /* CapabilityProbe.swift in Sources */,
+				AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,6 +356,7 @@
 				AA000000000000000000004A /* MenuBarStateTests.swift in Sources */,
 				AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */,
 				AA000000000000000000005A /* SoftwareDimmingControllerTests.swift in Sources */,
+				AA0000000000000000000062 /* HardwareDDCControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
