@@ -49,6 +49,8 @@
 		AA0000000000000000000075 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000076 /* DiagnosticsStore.swift */; };
 		AA0000000000000000000077 /* LoginItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000078 /* LoginItemController.swift */; };
 		AA0000000000000000000079 /* DiagnosticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007A /* DiagnosticsStoreTests.swift */; };
+		AA000000000000000000007B /* VerificationMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007C /* VerificationMatrix.swift */; };
+		AA000000000000000000007D /* VerificationMatrixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007E /* VerificationMatrixTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +109,8 @@
 		AA0000000000000000000076 /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000078 /* LoginItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemController.swift; sourceTree = "<group>"; };
 		AA000000000000000000007A /* DiagnosticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStoreTests.swift; sourceTree = "<group>"; };
+		AA000000000000000000007C /* VerificationMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrix.swift; sourceTree = "<group>"; };
+		AA000000000000000000007E /* VerificationMatrixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrixTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,6 +158,7 @@
 				AA0000000000000000000069 /* CapabilityProbe.swift */,
 				AA0000000000000000000076 /* DiagnosticsStore.swift */,
 				AA000000000000000000006A /* DiagnosticsExporter.swift */,
+				AA000000000000000000007C /* VerificationMatrix.swift */,
 			);
 			path = Diagnostics;
 			sourceTree = "<group>";
@@ -229,6 +234,7 @@
 				AA0000000000000000000070 /* ScheduleEngineTests.swift */,
 				AA0000000000000000000074 /* HotkeyBindingTests.swift */,
 				AA000000000000000000007A /* DiagnosticsStoreTests.swift */,
+				AA000000000000000000007E /* VerificationMatrixTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -370,6 +376,7 @@
 				AA0000000000000000000071 /* HotkeyManager.swift in Sources */,
 				AA0000000000000000000077 /* LoginItemController.swift in Sources */,
 				AA0000000000000000000075 /* DiagnosticsStore.swift in Sources */,
+				AA000000000000000000007B /* VerificationMatrix.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -389,6 +396,7 @@
 				AA000000000000000000006F /* ScheduleEngineTests.swift in Sources */,
 				AA0000000000000000000073 /* HotkeyBindingTests.swift in Sources */,
 				AA0000000000000000000079 /* DiagnosticsStoreTests.swift in Sources */,
+				AA000000000000000000007D /* VerificationMatrixTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

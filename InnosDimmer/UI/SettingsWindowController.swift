@@ -6,6 +6,7 @@ final class SettingsWindowController: NSWindowController {
     private let shortcutSummary = NSTextField(labelWithString: HotkeyManager.summary(for: ShortcutBinding.defaultBindings))
     private let loginItemSummary = NSTextField(labelWithString: "Launch at login: configurable")
     private let diagnosticsSummary = NSTextField(labelWithString: "Diagnostics: local export available")
+    private let matrixSummary = NSTextField(labelWithString: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
 
     convenience init() {
         let window = NSWindow(
@@ -40,7 +41,8 @@ final class SettingsWindowController: NSWindowController {
             shortcutSummary,
             loginItemSummary,
             diagnosticsLabel,
-            diagnosticsSummary
+            diagnosticsSummary,
+            matrixSummary
         ])
         stack.orientation = .vertical
         stack.alignment = .leading

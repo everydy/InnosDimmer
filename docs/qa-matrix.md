@@ -30,3 +30,9 @@ This matrix tracks requested dimming contexts. Commit 5 only implements the inac
 - Enabled duplicate shortcuts are validation errors; disabled duplicates are ignored.
 - Unsafe bindings without an anchor modifier plus Shift are rejected before registration.
 - Native brightness/media key interception remains out of MVP scope.
+
+## Commit 11 Checks
+
+- Verification matrix rows cover general desktop, full-screen Spaces, presentation, browser full-screen video, DRM/protected playback, screen sharing/recording, sleep/wake, HDMI reconnect, shortcut conflict, and schedule boundary.
+- `platformBlocked` is not treated as pass; it can count as handled only with a visible explanatory note.
+- The app must not claim every requested context is handled while any row is `notTested` or `fail`.
