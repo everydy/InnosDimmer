@@ -48,6 +48,20 @@ final class HardwareDDCControllerTests: XCTestCase {
             $0.kind == .restoreOriginalValue && $0.outcome == .failed(reason: "restore original brightness failed")
         })
     }
+
+    func testApplyHardwareWritesRequestedBrightness() throws {
+        let adapter = FakeDDCAdapter(currentBrightness: 50)
+        let controller = HardwareDDCController(adapter: adapter)
+
+        try controller.applyHardware(BrightnessCommand(
+            display: .fixture(),
+            brightness: 42,
+            warmth: 15,
+            source: .menuSlider
+        ))
+
+        XCTAssertEqual(adapter.currentBrightness, 42)
+    }
 }
 
 private final class FakeDDCAdapter: DDCAdapter {

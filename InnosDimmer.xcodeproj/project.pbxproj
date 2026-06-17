@@ -41,6 +41,7 @@
 		AA0000000000000000000064 /* HardwareDDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000068 /* HardwareDDCController.swift */; };
 		AA0000000000000000000065 /* CapabilityProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000069 /* CapabilityProbe.swift */; };
 		AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006A /* DiagnosticsExporter.swift */; };
+		AA000000000000000000006B /* BrightnessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006C /* BrightnessControllerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +92,7 @@
 		AA0000000000000000000068 /* HardwareDDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDDCController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000069 /* CapabilityProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityProbe.swift; sourceTree = "<group>"; };
 		AA000000000000000000006A /* DiagnosticsExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsExporter.swift; sourceTree = "<group>"; };
+		AA000000000000000000006C /* BrightnessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessControllerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -205,6 +207,7 @@
 				AA0000000000000000000055 /* DisplayTargetStoreTests.swift */,
 				AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */,
 				AA0000000000000000000063 /* HardwareDDCControllerTests.swift */,
+				AA000000000000000000006C /* BrightnessControllerTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -357,6 +360,7 @@
 				AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */,
 				AA000000000000000000005A /* SoftwareDimmingControllerTests.swift in Sources */,
 				AA0000000000000000000062 /* HardwareDDCControllerTests.swift in Sources */,
+				AA000000000000000000006B /* BrightnessControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

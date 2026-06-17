@@ -37,7 +37,7 @@ struct ProbeResult: Codable, Equatable {
     var shouldRetryAutomatically: Bool
 }
 
-final class HardwareDDCController {
+final class HardwareDDCController: HardwareBrightnessStrategy {
     private let adapter: DDCAdapter
     private let now: () -> Date
 
@@ -122,6 +122,10 @@ final class HardwareDDCController {
                 shouldRetryAutomatically: false
             )
         }
+    }
+
+    func applyHardware(_ command: BrightnessCommand) throws {
+        try adapter.writeBrightness(command.brightness, display: command.display)
     }
 
     static func reversibleProbeValue(current: Int, range: ClosedRange<Int>) -> Int {
