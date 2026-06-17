@@ -3,6 +3,7 @@ import AppKit
 final class SettingsWindowController: NSWindowController {
     private let displayPicker = NSPopUpButton(frame: .zero, pullsDown: false)
     private let scheduleSummary = NSTextField(labelWithString: "Schedule: 09:00 80%/12, 19:00 45%/32, 23:00 25%/58")
+    private let shortcutSummary = NSTextField(labelWithString: HotkeyManager.summary(for: ShortcutBinding.defaultBindings))
 
     convenience init() {
         let window = NSWindow(
@@ -26,7 +27,8 @@ final class SettingsWindowController: NSWindowController {
     private func installContent() {
         let label = NSTextField(labelWithString: "Target display")
         let scheduleLabel = NSTextField(labelWithString: "Automation")
-        let stack = NSStackView(views: [label, displayPicker, scheduleLabel, scheduleSummary])
+        let shortcutLabel = NSTextField(labelWithString: "Global shortcuts")
+        let stack = NSStackView(views: [label, displayPicker, scheduleLabel, scheduleSummary, shortcutLabel, shortcutSummary])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8

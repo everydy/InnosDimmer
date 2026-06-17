@@ -41,5 +41,6 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.schemaVersion, SettingsSnapshot.currentSchemaVersion)
         XCTAssertFalse(snapshot.state.isForcedSoftwareModeForTesting)
         XCTAssertEqual(snapshot.schedule, ScheduleEntry.defaultSchedule)
+        XCTAssertEqual(snapshot.shortcuts, ShortcutBinding.defaultBindings)
     }
 }

@@ -8,7 +8,7 @@ struct MenuBarViewModel: Equatable {
     var scheduleSummary: String
     var shortcutSummary: String
 
-    init(state: BrightnessState) {
+    init(state: BrightnessState, shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings) {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
         brightnessLabel = "\(state.targetBrightness)%"
         warmthLabel = "\(state.targetWarmth)%"
@@ -20,7 +20,7 @@ struct MenuBarViewModel: Equatable {
             automationTitle = "Automation active"
         }
         scheduleSummary = "Schedule: 09:00 / 19:00 / 23:00"
-        shortcutSummary = "Shortcuts: customizable"
+        shortcutSummary = HotkeyManager.summary(for: shortcuts)
     }
 
     private static func timeLabel(for minuteOfDay: Int) -> String {

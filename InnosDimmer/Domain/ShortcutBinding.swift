@@ -24,3 +24,35 @@ struct ShortcutBinding: Codable, Equatable {
     var modifiers: ShortcutModifiers
     var isEnabled: Bool
 }
+
+struct ShortcutSignature: Codable, Equatable, Hashable, Comparable {
+    var keyCode: UInt16
+    var modifiers: ShortcutModifiers
+
+    static func < (lhs: ShortcutSignature, rhs: ShortcutSignature) -> Bool {
+        if lhs.keyCode == rhs.keyCode {
+            return lhs.modifiers.rawValue < rhs.modifiers.rawValue
+        }
+        return lhs.keyCode < rhs.keyCode
+    }
+}
+
+struct HotkeyValidationReport: Equatable {
+    var duplicateSignatures: [ShortcutSignature]
+    var unsafeBindings: [ShortcutBinding]
+
+    var isValid: Bool {
+        duplicateSignatures.isEmpty && unsafeBindings.isEmpty
+    }
+}
+
+extension ShortcutBinding {
+    static let defaultBindings: [ShortcutBinding] = [
+        ShortcutBinding(action: .brightnessUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .brightnessDown, keyCode: 125, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .warmthUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .warmthDown, keyCode: 123, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .quickDisableOverlay, keyCode: 29, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .restorePreviousDimming, keyCode: 15, modifiers: [.option, .shift], isEnabled: true)
+    ]
+}

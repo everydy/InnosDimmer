@@ -15,7 +15,7 @@ struct SettingsSnapshot: Codable, Equatable {
             selectedDisplay: nil,
             state: .defaultState(),
             schedule: ScheduleEntry.defaultSchedule,
-            shortcuts: []
+            shortcuts: ShortcutBinding.defaultBindings
         )
     }
 }
