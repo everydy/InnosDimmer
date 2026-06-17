@@ -25,6 +25,11 @@
 		AA0000000000000000000039 /* Clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000044 /* Clamped.swift */; };
 		AA000000000000000000003A /* DisplayTargetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000045 /* DisplayTargetStore.swift */; };
 		AA0000000000000000000048 /* SettingsSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000049 /* SettingsSnapshotTests.swift */; };
+		AA000000000000000000004A /* MenuBarStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000004B /* MenuBarStateTests.swift */; };
+		AA000000000000000000004C /* StatusBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000050 /* StatusBadgeView.swift */; };
+		AA000000000000000000004D /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000051 /* MenuBarPopoverView.swift */; };
+		AA000000000000000000004E /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000052 /* SettingsWindowController.swift */; };
+		AA000000000000000000004F /* BrightnessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000053 /* BrightnessController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +64,11 @@
 		AA0000000000000000000044 /* Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clamped.swift; sourceTree = "<group>"; };
 		AA0000000000000000000045 /* DisplayTargetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetStore.swift; sourceTree = "<group>"; };
 		AA0000000000000000000049 /* SettingsSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSnapshotTests.swift; sourceTree = "<group>"; };
+		AA000000000000000000004B /* MenuBarStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStateTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000050 /* StatusBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBadgeView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000051 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000052 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000053 /* BrightnessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +123,9 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000025 /* MenuBarController.swift */,
+				AA0000000000000000000051 /* MenuBarPopoverView.swift */,
+				AA0000000000000000000052 /* SettingsWindowController.swift */,
+				AA0000000000000000000050 /* StatusBadgeView.swift */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -137,6 +150,7 @@
 		AA0000000000000000000047 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				AA0000000000000000000053 /* BrightnessController.swift */,
 				AA0000000000000000000045 /* DisplayTargetStore.swift */,
 			);
 			path = Services;
@@ -149,6 +163,7 @@
 				AA0000000000000000000029 /* BrightnessStateTests.swift */,
 				AA000000000000000000002A /* ScheduleEntryTests.swift */,
 				AA0000000000000000000049 /* SettingsSnapshotTests.swift */,
+				AA000000000000000000004B /* MenuBarStateTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -263,6 +278,9 @@
 				AA0000000000000000000020 /* InnosDimmerApp.swift in Sources */,
 				AA0000000000000000000021 /* AppDelegate.swift in Sources */,
 				AA0000000000000000000022 /* MenuBarController.swift in Sources */,
+				AA000000000000000000004D /* MenuBarPopoverView.swift in Sources */,
+				AA000000000000000000004E /* SettingsWindowController.swift in Sources */,
+				AA000000000000000000004C /* StatusBadgeView.swift in Sources */,
 				AA0000000000000000000039 /* Clamped.swift in Sources */,
 				AA0000000000000000000033 /* BrightnessCommand.swift in Sources */,
 				AA0000000000000000000034 /* BrightnessState.swift in Sources */,
@@ -273,6 +291,7 @@
 				AA0000000000000000000035 /* ScheduleEntry.swift in Sources */,
 				AA0000000000000000000038 /* SettingsSnapshot.swift in Sources */,
 				AA0000000000000000000036 /* ShortcutBinding.swift in Sources */,
+				AA000000000000000000004F /* BrightnessController.swift in Sources */,
 				AA000000000000000000003A /* DisplayTargetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -285,6 +304,7 @@
 				AA0000000000000000000027 /* BrightnessStateTests.swift in Sources */,
 				AA0000000000000000000028 /* ScheduleEntryTests.swift in Sources */,
 				AA0000000000000000000048 /* SettingsSnapshotTests.swift in Sources */,
+				AA000000000000000000004A /* MenuBarStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
