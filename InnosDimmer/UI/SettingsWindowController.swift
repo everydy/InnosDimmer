@@ -4,6 +4,8 @@ final class SettingsWindowController: NSWindowController {
     private let displayPicker = NSPopUpButton(frame: .zero, pullsDown: false)
     private let scheduleSummary = NSTextField(labelWithString: "Schedule: 09:00 80%/12, 19:00 45%/32, 23:00 25%/58")
     private let shortcutSummary = NSTextField(labelWithString: HotkeyManager.summary(for: ShortcutBinding.defaultBindings))
+    private let loginItemSummary = NSTextField(labelWithString: "Launch at login: configurable")
+    private let diagnosticsSummary = NSTextField(labelWithString: "Diagnostics: local export available")
 
     convenience init() {
         let window = NSWindow(
@@ -28,7 +30,18 @@ final class SettingsWindowController: NSWindowController {
         let label = NSTextField(labelWithString: "Target display")
         let scheduleLabel = NSTextField(labelWithString: "Automation")
         let shortcutLabel = NSTextField(labelWithString: "Global shortcuts")
-        let stack = NSStackView(views: [label, displayPicker, scheduleLabel, scheduleSummary, shortcutLabel, shortcutSummary])
+        let diagnosticsLabel = NSTextField(labelWithString: "Diagnostics")
+        let stack = NSStackView(views: [
+            label,
+            displayPicker,
+            scheduleLabel,
+            scheduleSummary,
+            shortcutLabel,
+            shortcutSummary,
+            loginItemSummary,
+            diagnosticsLabel,
+            diagnosticsSummary
+        ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8

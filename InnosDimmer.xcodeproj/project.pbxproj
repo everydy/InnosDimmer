@@ -46,6 +46,9 @@
 		AA000000000000000000006F /* ScheduleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000070 /* ScheduleEngineTests.swift */; };
 		AA0000000000000000000071 /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000072 /* HotkeyManager.swift */; };
 		AA0000000000000000000073 /* HotkeyBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000074 /* HotkeyBindingTests.swift */; };
+		AA0000000000000000000075 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000076 /* DiagnosticsStore.swift */; };
+		AA0000000000000000000077 /* LoginItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000078 /* LoginItemController.swift */; };
+		AA0000000000000000000079 /* DiagnosticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007A /* DiagnosticsStoreTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +104,9 @@
 		AA0000000000000000000070 /* ScheduleEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEngineTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000072 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		AA0000000000000000000074 /* HotkeyBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBindingTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000076 /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000000078 /* LoginItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemController.swift; sourceTree = "<group>"; };
+		AA000000000000000000007A /* DiagnosticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000069 /* CapabilityProbe.swift */,
+				AA0000000000000000000076 /* DiagnosticsStore.swift */,
 				AA000000000000000000006A /* DiagnosticsExporter.swift */,
 			);
 			path = Diagnostics;
@@ -199,6 +206,7 @@
 				AA0000000000000000000061 /* GammaDimmingController.swift */,
 				AA0000000000000000000068 /* HardwareDDCController.swift */,
 				AA0000000000000000000072 /* HotkeyManager.swift */,
+				AA0000000000000000000078 /* LoginItemController.swift */,
 				AA0000000000000000000060 /* OverlayWindowManager.swift */,
 				AA000000000000000000006E /* ScheduleEngine.swift */,
 				AA000000000000000000005F /* SoftwareDimmingController.swift */,
@@ -220,6 +228,7 @@
 				AA000000000000000000006C /* BrightnessControllerTests.swift */,
 				AA0000000000000000000070 /* ScheduleEngineTests.swift */,
 				AA0000000000000000000074 /* HotkeyBindingTests.swift */,
+				AA000000000000000000007A /* DiagnosticsStoreTests.swift */,
 			);
 			path = InnosDimmerTests;
 			sourceTree = "<group>";
@@ -359,6 +368,8 @@
 				AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */,
 				AA000000000000000000006D /* ScheduleEngine.swift in Sources */,
 				AA0000000000000000000071 /* HotkeyManager.swift in Sources */,
+				AA0000000000000000000077 /* LoginItemController.swift in Sources */,
+				AA0000000000000000000075 /* DiagnosticsStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -377,6 +388,7 @@
 				AA000000000000000000006B /* BrightnessControllerTests.swift in Sources */,
 				AA000000000000000000006F /* ScheduleEngineTests.swift in Sources */,
 				AA0000000000000000000073 /* HotkeyBindingTests.swift in Sources */,
+				AA0000000000000000000079 /* DiagnosticsStoreTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -32,5 +32,6 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 09:00 / 19:00 / 23:00")
         XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 6 enabled")
+        XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active, DDC unsupported: DDC unavailable")
     }
 }

@@ -7,6 +7,7 @@ struct MenuBarViewModel: Equatable {
     var automationTitle: String
     var scheduleSummary: String
     var shortcutSummary: String
+    var diagnosticsSummary: String
 
     init(state: BrightnessState, shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings) {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
@@ -21,11 +22,31 @@ struct MenuBarViewModel: Equatable {
         }
         scheduleSummary = "Schedule: 09:00 / 19:00 / 23:00"
         shortcutSummary = HotkeyManager.summary(for: shortcuts)
+        diagnosticsSummary = "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(Self.hardwareSummary(for: state.hardwareCapability))"
     }
 
     private static func timeLabel(for minuteOfDay: Int) -> String {
         let minute = max(0, min(1_439, minuteOfDay))
         return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+
+    private static func hardwareSummary(for capability: HardwareCapability) -> String {
+        switch capability {
+        case .notProbed:
+            return "DDC not probed"
+        case .probing:
+            return "DDC probing"
+        case .readSupported:
+            return "DDC read-only"
+        case .writeReadbackSupported:
+            return "DDC verified"
+        case .unsupported(let reason):
+            return "DDC unsupported: \(reason)"
+        case .blockedByPlatform(let reason):
+            return "Platform blocked: \(reason)"
+        case .failedWithError(let message):
+            return "DDC failed: \(message)"
+        }
     }
 }
 
@@ -36,6 +57,7 @@ final class MenuBarPopoverView: NSView {
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
     private let shortcutSummaryLabel = NSTextField(labelWithString: "")
+    private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
 
     init(state: BrightnessState) {
         modeBadge = StatusBadgeView(mode: state.activeMode)
@@ -56,6 +78,7 @@ final class MenuBarPopoverView: NSView {
         automationLabel.stringValue = viewModel.automationTitle
         scheduleSummaryLabel.stringValue = viewModel.scheduleSummary
         shortcutSummaryLabel.stringValue = viewModel.shortcutSummary
+        diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
     }
 
     private func buildLayout() {
@@ -78,6 +101,7 @@ final class MenuBarPopoverView: NSView {
             automationLabel,
             scheduleSummaryLabel,
             shortcutSummaryLabel,
+            diagnosticsSummaryLabel,
             row(label: brightnessDownButton, value: brightnessUpButton),
             probeButton,
             pauseButton,
