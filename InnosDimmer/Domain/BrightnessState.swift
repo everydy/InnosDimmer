@@ -7,6 +7,8 @@ struct BrightnessState: Codable, Equatable {
     var activeMode: DimmingMode
     var hardwareCapability: HardwareCapability
     var automationPausedUntilNextBoundary: Bool
+    var automationPausedAtMinuteOfDay: Int?
+    var automationResumeMinuteOfDay: Int?
     var lastAppliedCommandSource: BrightnessCommandSource?
     var isForcedSoftwareModeForTesting: Bool
 
@@ -17,6 +19,8 @@ struct BrightnessState: Codable, Equatable {
         activeMode: DimmingMode,
         hardwareCapability: HardwareCapability,
         automationPausedUntilNextBoundary: Bool,
+        automationPausedAtMinuteOfDay: Int? = nil,
+        automationResumeMinuteOfDay: Int? = nil,
         lastAppliedCommandSource: BrightnessCommandSource?,
         isForcedSoftwareModeForTesting: Bool
     ) {
@@ -26,6 +30,8 @@ struct BrightnessState: Codable, Equatable {
         self.activeMode = activeMode
         self.hardwareCapability = hardwareCapability
         self.automationPausedUntilNextBoundary = automationPausedUntilNextBoundary
+        self.automationPausedAtMinuteOfDay = automationPausedAtMinuteOfDay.map { max(0, min(1_439, $0)) }
+        self.automationResumeMinuteOfDay = automationResumeMinuteOfDay.map { max(0, min(1_439, $0)) }
         self.lastAppliedCommandSource = lastAppliedCommandSource
         self.isForcedSoftwareModeForTesting = isForcedSoftwareModeForTesting
     }
@@ -38,6 +44,8 @@ struct BrightnessState: Codable, Equatable {
             activeMode: .unknown,
             hardwareCapability: .notProbed,
             automationPausedUntilNextBoundary: false,
+            automationPausedAtMinuteOfDay: nil,
+            automationResumeMinuteOfDay: nil,
             lastAppliedCommandSource: nil,
             isForcedSoftwareModeForTesting: false
         )

@@ -2,6 +2,7 @@ import AppKit
 
 final class SettingsWindowController: NSWindowController {
     private let displayPicker = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let scheduleSummary = NSTextField(labelWithString: "Schedule: 09:00 80%/12, 19:00 45%/32, 23:00 25%/58")
 
     convenience init() {
         let window = NSWindow(
@@ -24,7 +25,8 @@ final class SettingsWindowController: NSWindowController {
 
     private func installContent() {
         let label = NSTextField(labelWithString: "Target display")
-        let stack = NSStackView(views: [label, displayPicker])
+        let scheduleLabel = NSTextField(labelWithString: "Automation")
+        let stack = NSStackView(views: [label, displayPicker, scheduleLabel, scheduleSummary])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 8

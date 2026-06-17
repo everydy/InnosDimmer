@@ -18,6 +18,8 @@ final class MenuBarStateTests: XCTestCase {
             activeMode: .overlay,
             hardwareCapability: .unsupported(reason: "DDC unavailable"),
             automationPausedUntilNextBoundary: true,
+            automationPausedAtMinuteOfDay: 1_000,
+            automationResumeMinuteOfDay: 1_140,
             lastAppliedCommandSource: .menuSlider,
             isForcedSoftwareModeForTesting: false
         )
@@ -27,7 +29,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.modeTitle, "Overlay active")
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.warmthLabel, "32%")
-        XCTAssertEqual(viewModel.automationTitle, "Automation paused until next schedule boundary")
+        XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 09:00 / 19:00 / 23:00")
         XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: customizable")
     }

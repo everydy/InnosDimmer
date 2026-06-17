@@ -10,6 +10,8 @@ final class BrightnessStateTests: XCTestCase {
             activeMode: .unknown,
             hardwareCapability: .notProbed,
             automationPausedUntilNextBoundary: false,
+            automationPausedAtMinuteOfDay: nil,
+            automationResumeMinuteOfDay: nil,
             lastAppliedCommandSource: nil,
             isForcedSoftwareModeForTesting: false
         )
@@ -28,5 +30,23 @@ final class BrightnessStateTests: XCTestCase {
 
         XCTAssertFalse(state.isForcedSoftwareModeForTesting)
         XCTAssertEqual(state.activeMode, .unknown)
+    }
+
+    func testAutomationResumeMinuteIsBoundedToDay() {
+        let state = BrightnessState(
+            display: nil,
+            targetBrightness: 80,
+            targetWarmth: 12,
+            activeMode: .unknown,
+            hardwareCapability: .notProbed,
+            automationPausedUntilNextBoundary: true,
+            automationPausedAtMinuteOfDay: -50,
+            automationResumeMinuteOfDay: 2_000,
+            lastAppliedCommandSource: nil,
+            isForcedSoftwareModeForTesting: false
+        )
+
+        XCTAssertEqual(state.automationPausedAtMinuteOfDay, 0)
+        XCTAssertEqual(state.automationResumeMinuteOfDay, 1_439)
     }
 }

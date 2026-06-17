@@ -12,11 +12,20 @@ struct MenuBarViewModel: Equatable {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
         brightnessLabel = "\(state.targetBrightness)%"
         warmthLabel = "\(state.targetWarmth)%"
-        automationTitle = state.automationPausedUntilNextBoundary
-            ? "Automation paused until next schedule boundary"
-            : "Automation active"
+        if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
+            automationTitle = "Automation paused until \(Self.timeLabel(for: resumeMinute))"
+        } else if state.automationPausedUntilNextBoundary {
+            automationTitle = "Automation paused until next schedule boundary"
+        } else {
+            automationTitle = "Automation active"
+        }
         scheduleSummary = "Schedule: 09:00 / 19:00 / 23:00"
         shortcutSummary = "Shortcuts: customizable"
+    }
+
+    private static func timeLabel(for minuteOfDay: Int) -> String {
+        let minute = max(0, min(1_439, minuteOfDay))
+        return String(format: "%02d:%02d", minute / 60, minute % 60)
     }
 }
 
