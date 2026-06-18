@@ -195,6 +195,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
         )
@@ -221,6 +222,37 @@ final class ScheduleRuntimeTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarControllerDoesNotMarkFailedScheduleCommandApplied() {
+        let currentMinute = 1_130
+        let factory = RecordingScheduleTimerFactory()
+        let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
+        var state = BrightnessState.defaultState()
+        state.display = .scheduleRuntimeTestDisplay
+        let software = RecordingScheduleSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(404))
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            diagnosticsStore: diagnosticsStore,
+            scheduleTimerController: scheduleTimer,
+            currentMinuteOfDay: { currentMinute }
+        )
+
+        menuBarController.start()
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertEqual(brightnessController.state.targetBrightness, 80)
+        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
+        XCTAssertFalse(diagnosticsStore.events.contains { event in
+            event.message == "Applied scheduled brightness 80% warmth 12%"
+        })
+        XCTAssertEqual(diagnosticsStore.latestEvent?.category, .softwareDimming)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .error)
+    }
+
+    @MainActor
     func testManualCommandPausesScheduleUntilNextBoundaryThenTimerResumesAutomation() {
         var currentMinute = 1_000
         let factory = RecordingScheduleTimerFactory()
@@ -231,6 +263,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
         )
@@ -272,6 +305,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let brightnessController = BrightnessController(state: state)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
             hotkeyRegistrationBackend: hotkeyBackend,
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
@@ -341,11 +375,39 @@ private final class ScheduleRuntimeHotkeyRegistrationBackend: HotkeyRegistration
     }
 }
 
+private final class RecordingScheduleDisplayInventory: DisplayInventoryProviding {
+    var displays: [DisplayIdentity]
+
+    init(displays: [DisplayIdentity]) {
+        self.displays = displays
+    }
+
+    func activeDisplays() -> [DisplayIdentity] {
+        displays
+    }
+
+    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+        DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: candidates,
+            mainDisplayID: 999
+        )
+    }
+}
+
 @MainActor
 private final class RecordingScheduleSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
+    var error: Error?
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
 
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+        if let error {
+            throw error
+        }
         appliedCommands.append(command)
     }
 

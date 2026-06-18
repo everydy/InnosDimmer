@@ -213,7 +213,8 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
                 savedShortcuts = shortcuts
                 return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
             },
-            setLaunchAtLogin: { _ in .success(.notRegistered) }
+            setLaunchAtLogin: { _ in .success(.notRegistered) },
+            exportDiagnostics: { .success(Data()) }
         )
         let controller = SettingsWindowController(actions: actions)
         controller.configure(
@@ -255,7 +256,8 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
                 savedShortcuts = shortcuts
                 return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
             },
-            setLaunchAtLogin: { _ in .success(.notRegistered) }
+            setLaunchAtLogin: { _ in .success(.notRegistered) },
+            exportDiagnostics: { .success(Data()) }
         )
         let controller = SettingsWindowController(actions: actions)
         controller.configure(

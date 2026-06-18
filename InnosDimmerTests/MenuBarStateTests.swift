@@ -213,6 +213,56 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarControllerRecordsSoftwareFailureInsteadOfAppliedCommand() {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(404))
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(diagnosticsStore.latestEvent?.category, .softwareDimming)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .error)
+        XCTAssertEqual(
+            diagnosticsStore.latestEvent?.message,
+            "Software dimming failed for INNOS 27QA100M: Display 404 is not currently available for software dimming."
+        )
+        XCTAssertFalse(diagnosticsStore.events.contains { event in
+            event.message.contains("Applied brightness 75%")
+        })
+    }
+
+    @MainActor
+    func testMenuBarControllerExportsDiagnosticsSnapshot() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            diagnosticsStore: diagnosticsStore
+        )
+
+        let result = menuBarController.exportDiagnosticsForTesting()
+
+        guard case .success(let data) = result else {
+            XCTFail("Expected diagnostics export to succeed")
+            return
+        }
+        let snapshot = try JSONDecoder().decode(DiagnosticsSnapshot.self, from: data)
+        XCTAssertEqual(snapshot.selectedDisplay, .menuBarTestDisplay)
+        XCTAssertEqual(snapshot.activeMode, .unknown)
+        XCTAssertTrue(snapshot.events.contains { event in
+            event.message == "Prepared diagnostics export"
+        })
+    }
+
+    @MainActor
     func testMenuBarControllerResolvesStaleDisplayBeforeApplyingCommand() throws {
         let staleDisplay = DisplayIdentity.menuBarTestDisplay
         let activeDisplay = DisplayIdentity(
@@ -278,8 +328,16 @@ final class MenuBarStateTests: XCTestCase {
 @MainActor
 private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
+    var error: Error?
+
+    init(error: Error? = nil) {
+        self.error = error
+    }
 
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+        if let error {
+            throw error
+        }
         appliedCommands.append(command)
     }
 

@@ -1,16 +1,19 @@
 import AppKit
+import UniformTypeIdentifiers
 
 struct SettingsActions {
     var selectDisplay: @MainActor (DisplayIdentity?) -> Result<SettingsSnapshot, Error>
     var updateSchedule: @MainActor ([ScheduleEntry]) -> Result<SettingsSnapshot, Error>
     var updateShortcuts: @MainActor ([ShortcutBinding]) -> Result<SettingsSnapshot, Error>
     var setLaunchAtLogin: @MainActor (Bool) -> Result<LoginItemStatus, Error>
+    var exportDiagnostics: @MainActor () -> Result<Data, Error>
 
     static let noop = SettingsActions(
         selectDisplay: { _ in .success(.defaultSnapshot()) },
         updateSchedule: { _ in .success(.defaultSnapshot()) },
         updateShortcuts: { _ in .success(.defaultSnapshot()) },
-        setLaunchAtLogin: { _ in .success(.notRegistered) }
+        setLaunchAtLogin: { _ in .success(.notRegistered) },
+        exportDiagnostics: { .success(Data()) }
     )
 }
 
@@ -128,6 +131,9 @@ final class SettingsWindowController: NSWindowController {
         loginItemCheckbox.target = self
         loginItemCheckbox.action = #selector(loginItemToggled)
 
+        let exportDiagnosticsButton = NSButton(title: "Export diagnostics", target: self, action: #selector(exportDiagnosticsPressed))
+        exportDiagnosticsButton.bezelStyle = .rounded
+
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byWordWrapping
         statusLabel.maximumNumberOfLines = 2
@@ -151,6 +157,7 @@ final class SettingsWindowController: NSWindowController {
             sectionLabel("Diagnostics"),
             diagnosticsSummary,
             matrixSummary,
+            exportDiagnosticsButton,
             statusLabel
         ])
         stack.orientation = .vertical
@@ -451,6 +458,42 @@ final class SettingsWindowController: NSWindowController {
         case .failure(let error):
             renderLoginItem()
             report(error.localizedDescription, isError: true)
+        }
+    }
+
+    @objc private func exportDiagnosticsPressed() {
+        switch actions.exportDiagnostics() {
+        case .success(let data):
+            presentDiagnosticsSavePanel(data: data)
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+        }
+    }
+
+    func exportDiagnosticsForTesting() -> Result<Data, Error> {
+        actions.exportDiagnostics()
+    }
+
+    private func presentDiagnosticsSavePanel(data: Data) {
+        guard let window else {
+            report("Settings window is unavailable.", isError: true)
+            return
+        }
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "innos-diagnostics.json"
+        panel.allowedContentTypes = [.json]
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let url = panel.url else {
+                return
+            }
+
+            do {
+                try data.write(to: url, options: .atomic)
+                self?.report("Diagnostics exported.")
+            } catch {
+                self?.report(error.localizedDescription, isError: true)
+            }
         }
     }
 

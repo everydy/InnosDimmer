@@ -229,6 +229,9 @@ final class MenuBarController: NSObject {
             },
             setLaunchAtLogin: { [weak self] enabled in
                 self?.setLaunchAtLogin(enabled) ?? .failure(SettingsRuntimeError.unavailable)
+            },
+            exportDiagnostics: { [weak self] in
+                self?.exportDiagnosticsData() ?? .failure(SettingsRuntimeError.unavailable)
             }
         )
     }
@@ -309,6 +312,25 @@ final class MenuBarController: NSObject {
         }
     }
 
+    func exportDiagnosticsForTesting() -> Result<Data, Error> {
+        exportDiagnosticsData()
+    }
+
+    private func exportDiagnosticsData() -> Result<Data, Error> {
+        do {
+            record(.appLifecycle, "Prepared diagnostics export")
+            let snapshot = diagnosticsStore.snapshot(
+                selectedDisplay: brightnessController.state.display,
+                state: brightnessController.state,
+                matrixSummary: VerificationMatrix.summary(for: VerificationMatrix.defaultRows)
+            )
+            return .success(try DiagnosticsExporter.export(snapshot))
+        } catch {
+            record(.appLifecycle, "Diagnostics export failed: \(error)", .warning)
+            return .failure(error)
+        }
+    }
+
     private func apply(brightness: Int, warmth: Int, source: BrightnessCommandSource) {
         guard let command = makeCommand(brightness: brightness, warmth: warmth, source: source) else {
             refreshPopover()
@@ -318,18 +340,20 @@ final class MenuBarController: NSObject {
         applyCommand(command)
     }
 
+    @discardableResult
     private func applyCommand(
         _ command: BrightnessCommand,
         updatesManualOverride: Bool = true,
         reschedulesBoundaryTimer: Bool = true,
         refreshesPopover: Bool = true
-    ) {
+    ) -> Bool {
         let previousMode = brightnessController.state.activeMode
         brightnessController.apply(command)
+        let softwareFailed = brightnessController.lastSoftwareDimmingFailure?.command == command
         if brightnessController.pendingCommand == command {
             applyPendingPreview(command)
         }
-        if updatesManualOverride {
+        if !softwareFailed && updatesManualOverride {
             pauseAutomationAfterManualCommandIfNeeded(command)
         }
         recordAppliedCommand(command, previousMode: previousMode)
@@ -339,6 +363,7 @@ final class MenuBarController: NSObject {
         if refreshesPopover {
             refreshPopover()
         }
+        return !softwareFailed
     }
 
     private func applyPendingPreview(_ command: BrightnessCommand) {
@@ -443,12 +468,17 @@ final class MenuBarController: NSObject {
             return
         }
 
-        applyCommand(
+        let applied = applyCommand(
             command,
             updatesManualOverride: false,
             reschedulesBoundaryTimer: false,
             refreshesPopover: false
         )
+        guard applied else {
+            refreshPopover()
+            return
+        }
+
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
         record(.schedule, "Applied scheduled brightness \(entry.brightness)% warmth \(entry.warmth)%")
@@ -611,6 +641,16 @@ final class MenuBarController: NSObject {
             record(
                 .display,
                 "Queued brightness \(command.brightness)% warmth \(command.warmth)% for \(command.display.localizedName)"
+            )
+            return
+        }
+
+        if let failure = brightnessController.lastSoftwareDimmingFailure,
+           failure.command == command {
+            record(
+                .softwareDimming,
+                "Software dimming failed for \(command.display.localizedName): \(failure.message)",
+                .error
             )
             return
         }
