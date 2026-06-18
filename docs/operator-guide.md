@@ -6,9 +6,9 @@ InnosDimmer is built for personal use on macOS with an M1 Mac, direct HDMI, and 
 
 ## Operating Policy
 
-- Try verified hardware DDC first.
-- Queue brightness commands while hardware capability is not probed, probing, or read-only.
-- Use software dimming only after hardware failure is exhausted or diagnostics explicitly forces it.
+- Use software overlay dimming as the primary and only user-facing dimming path.
+- Do not attempt to change the monitor's hardware brightness in normal operation.
+- Apply brightness, warmth, schedule, quick disable, and restore commands immediately through the overlay.
 - Keep platform-blocked states visible.
 - Do not intercept native brightness/media keys in the MVP; use custom global shortcuts.
 
@@ -38,7 +38,7 @@ Manual changes pause automation until the next schedule boundary.
 1. Run the compiler-level verification command from the README.
 2. Launch the app locally from Xcode once the local Xcode plug-in issue is resolved.
 3. Complete `docs/qa-matrix.md` with notes for every row.
-4. Export diagnostics after testing hardware probe, overlay mode, shortcut conflicts, sleep/wake, and reconnect.
+4. Export diagnostics after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
 
 ## No Package Dependency Policy
 

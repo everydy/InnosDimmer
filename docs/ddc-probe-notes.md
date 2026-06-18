@@ -1,5 +1,7 @@
 # DDC Probe Notes
 
+Status: archived internal reference. The current user-facing MVP is software-overlay only and does not expose DDC probing or hardware brightness control in normal operation.
+
 The app implements the hardware DDC probe strategy as a testable state machine. It does not yet include a real reviewed IOKit DDC adapter for the INNOS 27QA100M.
 
 ## Safety Policy

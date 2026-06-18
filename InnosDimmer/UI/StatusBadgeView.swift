@@ -12,7 +12,7 @@ enum ModeStatusLabel {
         case .platformBlocked:
             return "Platform blocked"
         case .unknown:
-            return "Not probed"
+            return "Software dimming ready"
         }
     }
 }

@@ -8,7 +8,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(ModeStatusLabel.title(for: .overlay), "Overlay active")
         XCTAssertEqual(ModeStatusLabel.title(for: .platformBlocked), "Platform blocked")
         XCTAssertEqual(ModeStatusLabel.title(for: .gamma), "Gamma active")
-        XCTAssertEqual(ModeStatusLabel.title(for: .unknown), "Not probed")
+        XCTAssertEqual(ModeStatusLabel.title(for: .unknown), "Software dimming ready")
     }
 
     func testMenuBarViewModelUsesStateValues() {
@@ -43,7 +43,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 10:00 70%/20")
         XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 5 enabled")
-        XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active, DDC unsupported: DDC unavailable")
+        XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active")
     }
 
     func testMenuBarViewModelIncludesDisplayAndLatestDiagnosticEvent() {
@@ -61,7 +61,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.displaySummary, "Display: INNOS 27QA100M")
         XCTAssertEqual(
             viewModel.diagnosticsSummary,
-            "Diagnostics: Not probed, DDC not probed. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
+            "Diagnostics: Software dimming ready. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
         )
     }
 
@@ -123,7 +123,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(view.shortcutSummaryForTesting(), "Shortcuts: 5 enabled")
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
-            "Diagnostics: Overlay active, DDC unsupported: DDC unavailable. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
+            "Diagnostics: Overlay active. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
         )
     }
 
@@ -216,49 +216,6 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
     }
 
-    @MainActor
-    func testMenuBarControllerRunsDDCProbeAndSurfacesUnsupportedResult() {
-        let adapter = MenuBarProbeDDCAdapter(currentBrightness: nil)
-        let software = RecordingSoftwareDimmingStrategy()
-        var state = BrightnessState.defaultState()
-        state.display = .menuBarTestDisplay
-        let brightnessController = BrightnessController(
-            state: state,
-            softwareStrategy: software
-        )
-        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
-        let menuBarController = MenuBarController(
-            brightnessController: brightnessController,
-            diagnosticsStore: diagnosticsStore,
-            hardwareDDCController: HardwareDDCController(
-                adapter: adapter,
-                now: { Date(timeIntervalSince1970: 42) }
-            )
-        )
-
-        menuBarController.perform(.probeDDC)
-
-        XCTAssertEqual(brightnessController.state.hardwareCapability, .unsupported(reason: "brightness read failed"))
-        XCTAssertEqual(
-            brightnessController.state.lastHardwareProbeResult?.steps.map(\.kind),
-            [.identifyDisplay, .readBrightness, .classifyFailure]
-        )
-        XCTAssertTrue(adapter.writtenValues.isEmpty)
-        XCTAssertEqual(diagnosticsStore.latestEvent?.category, .hardwareProbe)
-        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
-        XCTAssertTrue(diagnosticsStore.latestEvent?.message.contains("DDC probe result for INNOS 27QA100M") == true)
-
-        let viewModel = MenuBarViewModel(state: brightnessController.state)
-        XCTAssertEqual(
-            viewModel.diagnosticsSummary,
-            "Diagnostics: Not probed, DDC unsupported: brightness read failed. Probe: DDC unsupported: brightness read failed after 3 steps"
-        )
-
-        menuBarController.perform(.brightnessDown)
-
-        XCTAssertEqual(software.appliedCommands.map(\.brightness), [75])
-        XCTAssertNil(brightnessController.pendingCommand)
-    }
 }
 
 @MainActor
@@ -270,28 +227,6 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     }
 
     func clear(display: DisplayIdentity) throws {}
-}
-
-private final class MenuBarProbeDDCAdapter: DDCAdapter {
-    var currentBrightness: Int?
-    private(set) var writtenValues: [Int] = []
-
-    init(currentBrightness: Int?) {
-        self.currentBrightness = currentBrightness
-    }
-
-    func readBrightness(display: DisplayIdentity) throws -> DDCBrightnessValue {
-        guard let currentBrightness else {
-            throw DDCAdapterError.readFailed
-        }
-
-        return DDCBrightnessValue(current: currentBrightness, range: 0...100)
-    }
-
-    func writeBrightness(_ value: Int, display: DisplayIdentity) throws {
-        writtenValues.append(value)
-        currentBrightness = value
-    }
 }
 
 private extension DisplayIdentity {

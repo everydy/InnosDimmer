@@ -5,7 +5,6 @@ enum MenuBarCommand: CaseIterable, Equatable, Hashable {
     case brightnessUp
     case warmthDown
     case warmthUp
-    case probeDDC
     case pauseAutomation
     case quickDisable
     case restorePrevious
@@ -58,10 +57,6 @@ struct MenuBarViewModel: Equatable {
         return String(format: "%02d:%02d", minute / 60, minute % 60)
     }
 
-    private static func hardwareSummary(for capability: HardwareCapability) -> String {
-        capability.diagnosticSummary
-    }
-
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
             "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)%/\(entry.warmth)"
@@ -77,15 +72,8 @@ struct MenuBarViewModel: Equatable {
         latestDiagnosticEvent: DiagnosticsEvent?
     ) -> String {
         var parts = [
-            "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(hardwareSummary(for: state.hardwareCapability))"
+            "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode))"
         ]
-        let latestEventIsProbeResult = latestDiagnosticEvent?.category == .hardwareProbe
-            && latestDiagnosticEvent?.message.hasPrefix("DDC probe result") == true
-
-        if let lastHardwareProbeResult = state.lastHardwareProbeResult,
-           !latestEventIsProbeResult {
-            parts.append("Probe: \(lastHardwareProbeResult.diagnosticSummary)")
-        }
 
         if let latestDiagnosticEvent {
             parts.append("Last: \(latestDiagnosticEvent.message)")
@@ -182,7 +170,6 @@ final class MenuBarPopoverView: NSView {
 
         let brightnessTitle = NSTextField(labelWithString: "Brightness")
         let warmthTitle = NSTextField(labelWithString: "Warmth")
-        let probeButton = button("DDC Probe", command: .probeDDC, action: #selector(probeDDCPressed))
         let pauseButton = button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
         let brightnessDownButton = button("Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed))
         let brightnessUpButton = button("Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))
@@ -205,7 +192,6 @@ final class MenuBarPopoverView: NSView {
             row(label: brightnessDownButton, value: brightnessUpButton),
             row(label: warmthDownButton, value: warmthUpButton),
             row(label: quickDisableButton, value: restorePreviousButton),
-            probeButton,
             pauseButton,
             settingsButton
         ])
@@ -250,10 +236,6 @@ final class MenuBarPopoverView: NSView {
 
     @objc private func warmthUpPressed() {
         actions.perform(.warmthUp)
-    }
-
-    @objc private func probeDDCPressed() {
-        actions.perform(.probeDDC)
     }
 
     @objc private func pauseAutomationPressed() {

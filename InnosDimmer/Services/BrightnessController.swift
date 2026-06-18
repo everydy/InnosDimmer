@@ -31,14 +31,7 @@ final class BrightnessController {
             return
         }
 
-        switch state.hardwareCapability {
-        case .writeReadbackSupported:
-            applyHardware(command)
-        case .notProbed, .probing, .readSupported:
-            applySoftware(command, reason: .hardwareNotReady(state.hardwareCapability))
-        case .unsupported, .blockedByPlatform, .failedWithError:
-            applySoftware(command, reason: .hardwareExhausted(state.hardwareCapability))
-        }
+        applySoftware(command, reason: .softwareOnly)
     }
 
     private func applyHardware(_ command: BrightnessCommand) {

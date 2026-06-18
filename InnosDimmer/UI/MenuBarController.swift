@@ -137,8 +137,6 @@ final class MenuBarController: NSObject {
             restorePrevious()
         case .openSettings:
             openSettings()
-        case .probeDDC:
-            runDDCProbe()
         case .pauseAutomation:
             pauseAutomationUntilNextBoundary(messagePrefix: "Automation pause requested")
         }

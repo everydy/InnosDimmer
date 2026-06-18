@@ -1,6 +1,7 @@
 import Foundation
 
 enum SoftwareActivationReason: Codable, Equatable {
+    case softwareOnly
     case hardwareNotReady(HardwareCapability)
     case hardwareExhausted(HardwareCapability)
     case forcedForDiagnostics

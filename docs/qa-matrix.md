@@ -20,7 +20,7 @@ This matrix tracks requested dimming contexts. Manual visual QA remains pending 
 
 ## Commit 5 Checks
 
-- Software dimming code exists but does not activate while hardware state is `notProbed`.
+- Software dimming activates immediately and does not wait for hardware DDC probing.
 - Diagnostics can force software mode through `forcedSoftwareTest`.
 - Overlay panels are configured as non-opaque, click-through, all-Spaces, stationary windows.
 - Overlay appearance computes separate black dimming opacity and warm tint opacity.

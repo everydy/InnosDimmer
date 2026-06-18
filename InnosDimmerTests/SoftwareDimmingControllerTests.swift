@@ -43,7 +43,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     }
 
     @MainActor
-    func testNormalStartupDoesNotApplySoftwareWhileHardwareIsNotProbed() {
+    func testNormalStartupAppliesSoftwareDimmingImmediately() {
         let software = RecordingSoftwareDimmingStrategy()
         let controller = BrightnessController(
             state: .defaultState(),
@@ -57,7 +57,9 @@ final class SoftwareDimmingControllerTests: XCTestCase {
             source: .startupRestore
         ))
 
-        XCTAssertEqual(software.appliedCommands.count, 0)
+        XCTAssertEqual(software.appliedCommands.count, 1)
+        XCTAssertEqual(software.activationReasons, [.softwareOnly])
+        XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
@@ -79,7 +81,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     }
 
     @MainActor
-    func testHardwareExhaustedFailureAppliesSoftwareWithVisibleReason() {
+    func testRegularCommandsApplySoftwareOnlyEvenWhenHardwareIsUnsupported() {
         let software = RecordingSoftwareDimmingStrategy()
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .unsupported(reason: "DDC unavailable")
@@ -93,7 +95,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         ))
 
         XCTAssertEqual(software.appliedCommands.count, 1)
-        XCTAssertEqual(software.activationReasons, [.hardwareExhausted(.unsupported(reason: "DDC unavailable"))])
+        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 

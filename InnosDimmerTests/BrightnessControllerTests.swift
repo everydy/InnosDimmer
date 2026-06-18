@@ -3,7 +3,7 @@ import XCTest
 
 final class BrightnessControllerTests: XCTestCase {
     @MainActor
-    func testRoutesToHardwareOnlyAfterWriteReadbackSupport() {
+    func testAlwaysRoutesCommandsToSoftwareDimming() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .writeReadbackSupported(range: 0...100)
         let hardware = RecordingHardwareBrightnessStrategy()
@@ -12,13 +12,14 @@ final class BrightnessControllerTests: XCTestCase {
 
         controller.apply(.fixture(source: .menuSlider))
 
-        XCTAssertEqual(hardware.appliedCommands.count, 1)
-        XCTAssertEqual(software.appliedCommands.count, 0)
-        XCTAssertEqual(controller.state.activeMode, .hardwareDDC)
+        XCTAssertEqual(hardware.appliedCommands.count, 0)
+        XCTAssertEqual(software.appliedCommands, [.fixture(source: .menuSlider)])
+        XCTAssertEqual(software.activationReasons, [.softwareOnly])
+        XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testAppliesSoftwareWhenHardwareIsNotProbed() {
+    func testSoftwareOnlyModeDoesNotQueueWhenHardwareIsNotProbed() {
         let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: .defaultState(), hardwareStrategy: hardware, softwareStrategy: software)
@@ -28,12 +29,12 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertNil(controller.pendingCommand)
         XCTAssertEqual(hardware.appliedCommands.count, 0)
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .startupRestore)])
-        XCTAssertEqual(software.activationReasons, [.hardwareNotReady(.notProbed)])
+        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testAppliesSoftwareWhileHardwareProbeIsInProgressOrReadOnly() {
+    func testSoftwareOnlyModeIgnoresProbeAndReadOnlyHardwareStates() {
         let softwareCapabilities: [HardwareCapability] = [
             .probing(startedAt: Date(timeIntervalSince1970: 1)),
             .readSupported(current: 50)
@@ -51,38 +52,23 @@ final class BrightnessControllerTests: XCTestCase {
             XCTAssertNil(controller.pendingCommand)
             XCTAssertEqual(hardware.appliedCommands.count, 0)
             XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
-            XCTAssertEqual(software.activationReasons, [.hardwareNotReady(capability)])
+            XCTAssertEqual(software.activationReasons, [.softwareOnly])
             XCTAssertEqual(controller.state.activeMode, .overlay)
         }
     }
 
     @MainActor
-    func testFallsBackToSoftwareOnlyAfterHardwareFailureIsExhausted() {
+    func testSoftwareOnlyModeIgnoresHardwareFailureStates() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .failedWithError(message: "write/readback failed")
-        let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: state, softwareStrategy: software)
-
-        controller.apply(.fixture(source: .hotkey))
-
-        XCTAssertEqual(software.activationReasons, [.hardwareExhausted(.failedWithError(message: "write/readback failed"))])
-        XCTAssertEqual(controller.state.activeMode, .overlay)
-    }
-
-    @MainActor
-    func testHardwareWriteFailureRecordsFailureAndFallsBackToSoftware() {
-        var state = BrightnessState.defaultState()
-        state.hardwareCapability = .writeReadbackSupported(range: 0...100)
-        let hardware = RecordingHardwareBrightnessStrategy(error: HardwareBrightnessTestError.writeFailed)
+        let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: state, hardwareStrategy: hardware, softwareStrategy: software)
 
-        controller.apply(.fixture(source: .menuSlider))
+        controller.apply(.fixture(source: .hotkey))
 
-        XCTAssertEqual(hardware.appliedCommands.count, 1)
-        XCTAssertEqual(software.appliedCommands.count, 1)
-        XCTAssertEqual(controller.state.hardwareCapability, .failedWithError(message: "writeFailed"))
-        XCTAssertEqual(software.activationReasons, [.hardwareExhausted(.failedWithError(message: "writeFailed"))])
+        XCTAssertEqual(hardware.appliedCommands.count, 0)
+        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 }
@@ -114,10 +100,6 @@ private final class RecordingPolicySoftwareDimmingStrategy: SoftwareDimmingStrat
     }
 
     func clear(display: DisplayIdentity) throws {}
-}
-
-private enum HardwareBrightnessTestError: Error {
-    case writeFailed
 }
 
 private extension BrightnessCommand {
