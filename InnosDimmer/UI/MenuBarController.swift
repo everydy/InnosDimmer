@@ -7,20 +7,29 @@ final class MenuBarController: NSObject {
         static let warmth = 5
     }
 
+    private enum SettingsRuntimeError: LocalizedError {
+        case unavailable
+
+        var errorDescription: String? {
+            "Settings runtime is unavailable."
+        }
+    }
+
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let brightnessController: BrightnessController
     private let displayInventory: DisplayInventory
     private let displayTargetStore: DisplayTargetStore
     private let diagnosticsStore: DiagnosticsStore
-    private let shortcutBindings: [ShortcutBinding]
+    private var shortcutBindings: [ShortcutBinding]
     private let hotkeyRegistrationBackend: HotkeyRegistrationBackend
     private let registersHotkeysOnStart: Bool
-    private let scheduleEntries: [ScheduleEntry]
+    private var scheduleEntries: [ScheduleEntry]
     private let scheduleTimerController: ScheduleTimerController
     private let hardwareDDCController: HardwareDDCController
+    private let loginItemController: LoginItemControlling
     private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
-    private lazy var settingsWindowController = SettingsWindowController()
+    private lazy var settingsWindowController = SettingsWindowController(actions: makeSettingsActions())
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
     private var scheduleReconciliationObservers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -37,6 +46,7 @@ final class MenuBarController: NSObject {
         scheduleEntries: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
         scheduleTimerController: ScheduleTimerController = ScheduleTimerController(),
         hardwareDDCController: HardwareDDCController = HardwareDDCController(),
+        loginItemController: LoginItemControlling = LoginItemController(),
         currentMinuteOfDay: @escaping () -> Int = { MenuBarController.systemMinuteOfDay() }
     ) {
         self.brightnessController = brightnessController
@@ -50,6 +60,7 @@ final class MenuBarController: NSObject {
         self.scheduleEntries = scheduleEntries
         self.scheduleTimerController = scheduleTimerController
         self.hardwareDDCController = hardwareDDCController
+        self.loginItemController = loginItemController
         self.currentMinuteOfDay = currentMinuteOfDay
         super.init()
     }
@@ -57,6 +68,7 @@ final class MenuBarController: NSObject {
     func start() {
         record(.appLifecycle, "Menu bar controller started")
         hasStarted = true
+        loadPersistedSettingsForRuntime()
         _ = stateResolvingSelectedDisplayIfNeeded()
         applyScheduleDecision()
         let initialState = brightnessController.state
@@ -192,9 +204,107 @@ final class MenuBarController: NSObject {
 
     private func openSettings() {
         record(.appLifecycle, "Opened settings")
+        settingsWindowController.configure(
+            snapshot: displayTargetStore.load(),
+            displayCandidates: displayInventory.activeDisplays(),
+            loginItemStatus: loginItemController.status()
+        )
         settingsWindowController.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
         refreshPopover()
+    }
+
+    private func makeSettingsActions() -> SettingsActions {
+        SettingsActions(
+            selectDisplay: { [weak self] display in
+                self?.saveSelectedDisplay(display) ?? .failure(SettingsRuntimeError.unavailable)
+            },
+            updateSchedule: { [weak self] schedule in
+                self?.saveSchedule(schedule) ?? .failure(SettingsRuntimeError.unavailable)
+            },
+            updateShortcuts: { [weak self] shortcuts in
+                self?.saveShortcuts(shortcuts) ?? .failure(SettingsRuntimeError.unavailable)
+            },
+            setLaunchAtLogin: { [weak self] enabled in
+                self?.setLaunchAtLogin(enabled) ?? .failure(SettingsRuntimeError.unavailable)
+            }
+        )
+    }
+
+    private func loadPersistedSettingsForRuntime() {
+        let snapshot = displayTargetStore.load()
+        shortcutBindings = snapshot.shortcuts
+        scheduleEntries = snapshot.schedule
+
+        var state = brightnessController.state
+        state.targetBrightness = snapshot.state.targetBrightness
+        state.targetWarmth = snapshot.state.targetWarmth
+        brightnessController.applyPreviewState(state)
+    }
+
+    private func saveSelectedDisplay(_ display: DisplayIdentity?) -> Result<SettingsSnapshot, Error> {
+        do {
+            let snapshot = try displayTargetStore.saveSelectedDisplay(display)
+            var state = brightnessController.state
+            state.display = display
+            brightnessController.applyPreviewState(state)
+
+            if display == nil {
+                _ = resolveSelectedDisplay()
+            }
+
+            record(.display, Self.selectedDisplaySavedMessage(for: display))
+            refreshPopover()
+            return .success(snapshot)
+        } catch {
+            record(.display, "Saving selected display failed: \(error)", .warning)
+            refreshPopover()
+            return .failure(error)
+        }
+    }
+
+    private func saveSchedule(_ schedule: [ScheduleEntry]) -> Result<SettingsSnapshot, Error> {
+        do {
+            let snapshot = try displayTargetStore.saveSchedule(schedule)
+            scheduleEntries = snapshot.schedule
+            record(.schedule, "Saved \(scheduleEntries.count) schedule entries")
+            applyScheduleDecision()
+            scheduleNextBoundaryTimerIfRunning()
+            return .success(snapshot)
+        } catch {
+            record(.schedule, "Saving schedule failed: \(error)", .warning)
+            refreshPopover()
+            return .failure(error)
+        }
+    }
+
+    private func saveShortcuts(_ shortcuts: [ShortcutBinding]) -> Result<SettingsSnapshot, Error> {
+        do {
+            let snapshot = try displayTargetStore.saveShortcuts(shortcuts)
+            shortcutBindings = snapshot.shortcuts
+            if hasStarted && registersHotkeysOnStart {
+                registerHotkeys()
+            }
+            record(.shortcut, "Saved \(shortcutBindings.filter(\.isEnabled).count) enabled shortcuts")
+            refreshPopover()
+            return .success(snapshot)
+        } catch {
+            record(.shortcut, "Saving shortcuts failed: \(error)", .warning)
+            refreshPopover()
+            return .failure(error)
+        }
+    }
+
+    private func setLaunchAtLogin(_ enabled: Bool) -> Result<LoginItemStatus, Error> {
+        do {
+            try loginItemController.setEnabled(enabled)
+            let status = loginItemController.status()
+            record(.appLifecycle, "Launch at login \(enabled ? "enabled" : "disabled"): \(Self.loginItemStatusLabel(for: status))")
+            return .success(status)
+        } catch {
+            record(.appLifecycle, "Launch at login update failed: \(error)", .warning)
+            return .failure(error)
+        }
     }
 
     private func runDDCProbe() {
@@ -549,6 +659,29 @@ final class MenuBarController: NSObject {
             return "diagnostics"
         case .forcedSoftwareTest:
             return "forced software"
+        }
+    }
+
+    private static func selectedDisplaySavedMessage(for display: DisplayIdentity?) -> String {
+        if let display {
+            return "Saved selected display \(display.localizedName)"
+        }
+
+        return "Saved automatic display selection"
+    }
+
+    private static func loginItemStatusLabel(for status: LoginItemStatus) -> String {
+        switch status {
+        case .enabled:
+            return "enabled"
+        case .disabled:
+            return "disabled"
+        case .requiresApproval:
+            return "requires approval"
+        case .notRegistered:
+            return "not registered"
+        case .unsupported(let reason):
+            return "unsupported: \(reason)"
         }
     }
 

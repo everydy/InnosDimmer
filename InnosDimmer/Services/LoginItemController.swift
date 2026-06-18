@@ -9,7 +9,12 @@ enum LoginItemStatus: Codable, Equatable {
     case unsupported(reason: String)
 }
 
-final class LoginItemController {
+protocol LoginItemControlling: AnyObject {
+    func status() -> LoginItemStatus
+    func setEnabled(_ isEnabled: Bool) throws
+}
+
+final class LoginItemController: LoginItemControlling {
     func status() -> LoginItemStatus {
         guard #available(macOS 13.0, *) else {
             return .unsupported(reason: "SMAppService requires macOS 13 or later")
