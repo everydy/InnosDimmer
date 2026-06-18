@@ -107,3 +107,84 @@ enum ScheduleEngine {
         max(0, min(1_439, minuteOfDay))
     }
 }
+
+struct ScheduledScheduleBoundary: Equatable {
+    var minuteOfDay: Int
+    var minutesUntilBoundary: Int
+    var interval: TimeInterval
+    var tolerance: TimeInterval
+}
+
+@MainActor
+protocol ScheduleTimerToken: AnyObject {
+    func invalidate()
+}
+
+extension Timer: ScheduleTimerToken {}
+
+@MainActor
+final class ScheduleTimerController {
+    typealias TimerFactory = @MainActor (
+        _ interval: TimeInterval,
+        _ tolerance: TimeInterval,
+        _ fire: @escaping @MainActor () -> Void
+    ) -> ScheduleTimerToken
+
+    private var timer: ScheduleTimerToken?
+    private let makeTimer: TimerFactory
+    private(set) var scheduledBoundary: ScheduledScheduleBoundary?
+
+    init(makeTimer: @escaping TimerFactory = ScheduleTimerController.defaultMakeTimer) {
+        self.makeTimer = makeTimer
+    }
+
+    @discardableResult
+    func scheduleNextBoundary(
+        after minuteOfDay: Int,
+        entries: [ScheduleEntry],
+        fire: @escaping @MainActor () -> Void
+    ) -> ScheduledScheduleBoundary? {
+        timer?.invalidate()
+        timer = nil
+        scheduledBoundary = nil
+
+        guard
+            let minutesUntilBoundary = ScheduleEngine.minutesUntilNextBoundary(after: minuteOfDay, entries: entries),
+            let nextBoundaryMinuteOfDay = ScheduleEngine.nextBoundary(after: minuteOfDay, entries: entries)
+        else {
+            return nil
+        }
+
+        let interval = TimeInterval(max(1, minutesUntilBoundary) * 60)
+        let tolerance = min(60, interval * 0.1)
+        let boundary = ScheduledScheduleBoundary(
+            minuteOfDay: nextBoundaryMinuteOfDay,
+            minutesUntilBoundary: minutesUntilBoundary,
+            interval: interval,
+            tolerance: tolerance
+        )
+        timer = makeTimer(interval, tolerance, fire)
+        scheduledBoundary = boundary
+        return boundary
+    }
+
+    func invalidate() {
+        timer?.invalidate()
+        timer = nil
+        scheduledBoundary = nil
+    }
+
+    private static func defaultMakeTimer(
+        interval: TimeInterval,
+        tolerance: TimeInterval,
+        fire: @escaping @MainActor () -> Void
+    ) -> ScheduleTimerToken {
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
+            Task { @MainActor in
+                fire()
+            }
+        }
+        timer.tolerance = tolerance
+        return timer
+    }
+}

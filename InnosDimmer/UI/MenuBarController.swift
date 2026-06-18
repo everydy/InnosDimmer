@@ -15,10 +15,15 @@ final class MenuBarController: NSObject {
     private let shortcutBindings: [ShortcutBinding]
     private let hotkeyRegistrationBackend: HotkeyRegistrationBackend
     private let registersHotkeysOnStart: Bool
+    private let scheduleEntries: [ScheduleEntry]
+    private let scheduleTimerController: ScheduleTimerController
+    private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
     private lazy var settingsWindowController = SettingsWindowController()
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
+    private var scheduleReconciliationObservers: [(NotificationCenter, NSObjectProtocol)] = []
+    private var hasStarted = false
 
     init(
         brightnessController: BrightnessController = BrightnessController(),
@@ -27,7 +32,10 @@ final class MenuBarController: NSObject {
         diagnosticsStore: DiagnosticsStore = DiagnosticsStore(),
         shortcutBindings: [ShortcutBinding] = ShortcutBinding.defaultBindings,
         hotkeyRegistrationBackend: HotkeyRegistrationBackend = CarbonHotkeyRegistrationBackend(),
-        registersHotkeysOnStart: Bool? = nil
+        registersHotkeysOnStart: Bool? = nil,
+        scheduleEntries: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
+        scheduleTimerController: ScheduleTimerController = ScheduleTimerController(),
+        currentMinuteOfDay: @escaping () -> Int = { MenuBarController.systemMinuteOfDay() }
     ) {
         self.brightnessController = brightnessController
         self.displayInventory = displayInventory
@@ -37,12 +45,18 @@ final class MenuBarController: NSObject {
         self.hotkeyRegistrationBackend = hotkeyRegistrationBackend
         self.registersHotkeysOnStart = registersHotkeysOnStart
             ?? Self.defaultRegistersHotkeysOnStart(backend: hotkeyRegistrationBackend)
+        self.scheduleEntries = scheduleEntries
+        self.scheduleTimerController = scheduleTimerController
+        self.currentMinuteOfDay = currentMinuteOfDay
         super.init()
     }
 
     func start() {
         record(.appLifecycle, "Menu bar controller started")
-        let initialState = stateResolvingSelectedDisplayIfNeeded()
+        hasStarted = true
+        _ = stateResolvingSelectedDisplayIfNeeded()
+        applyScheduleDecision()
+        let initialState = brightnessController.state
         statusItem.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "InnosDimmer")
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
@@ -59,11 +73,15 @@ final class MenuBarController: NSObject {
         if registersHotkeysOnStart {
             registerHotkeys()
         }
+        registerScheduleReconciliationObservers()
+        scheduleNextBoundaryTimer()
     }
 
     func stop() {
-        hotkeyManager?.stop()
-        hotkeyManager = nil
+        stopHotkeys()
+        scheduleTimerController.invalidate()
+        unregisterScheduleReconciliationObservers()
+        hasStarted = false
     }
 
     @objc func togglePopover() {
@@ -104,8 +122,7 @@ final class MenuBarController: NSObject {
             record(.hardwareProbe, "DDC probe requested")
             refreshPopover()
         case .pauseAutomation:
-            record(.schedule, "Pause automation requested")
-            refreshPopover()
+            pauseAutomationUntilNextBoundary(messagePrefix: "Automation pause requested")
         }
     }
 
@@ -113,8 +130,13 @@ final class MenuBarController: NSObject {
         perform(action.menuBarCommand, source: .hotkey)
     }
 
+    private func stopHotkeys() {
+        hotkeyManager?.stop()
+        hotkeyManager = nil
+    }
+
     private func registerHotkeys() {
-        stop()
+        stopHotkeys()
 
         let manager = HotkeyManager(backend: hotkeyRegistrationBackend) { [weak self] action in
             Task { @MainActor in
@@ -182,14 +204,27 @@ final class MenuBarController: NSObject {
         applyCommand(command)
     }
 
-    private func applyCommand(_ command: BrightnessCommand) {
+    private func applyCommand(
+        _ command: BrightnessCommand,
+        updatesManualOverride: Bool = true,
+        reschedulesBoundaryTimer: Bool = true,
+        refreshesPopover: Bool = true
+    ) {
         let previousMode = brightnessController.state.activeMode
         brightnessController.apply(command)
         if brightnessController.pendingCommand == command {
             applyPendingPreview(command)
         }
+        if updatesManualOverride {
+            pauseAutomationAfterManualCommandIfNeeded(command)
+        }
         recordAppliedCommand(command, previousMode: previousMode)
-        refreshPopover()
+        if reschedulesBoundaryTimer {
+            scheduleNextBoundaryTimerIfRunning()
+        }
+        if refreshesPopover {
+            refreshPopover()
+        }
     }
 
     private func applyPendingPreview(_ command: BrightnessCommand) {
@@ -248,6 +283,153 @@ final class MenuBarController: NSObject {
         )
     }
 
+    private func applyScheduleDecision() {
+        let decision = ScheduleEngine.decision(
+            at: currentMinuteOfDay(),
+            entries: scheduleEntries,
+            state: brightnessController.state
+        )
+
+        switch decision {
+        case .apply(let entry, _, _):
+            applyScheduledEntry(entry, decision: decision)
+        case .paused:
+            refreshPopover()
+        case .idle:
+            scheduleTimerController.invalidate()
+            refreshPopover()
+        }
+    }
+
+    private func applyScheduledEntry(_ entry: ScheduleEntry, decision: ScheduleDecision) {
+        guard let command = makeCommand(
+            brightness: entry.brightness,
+            warmth: entry.warmth,
+            source: .schedule
+        ) else {
+            record(.schedule, "Skipped schedule because no display is selected", .warning)
+            refreshPopover()
+            return
+        }
+
+        applyCommand(
+            command,
+            updatesManualOverride: false,
+            reschedulesBoundaryTimer: false,
+            refreshesPopover: false
+        )
+        let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
+        brightnessController.applyPreviewState(updatedState)
+        record(.schedule, "Applied scheduled brightness \(entry.brightness)% warmth \(entry.warmth)%")
+        refreshPopover()
+    }
+
+    private func pauseAutomationAfterManualCommandIfNeeded(_ command: BrightnessCommand) {
+        guard Self.pausesAutomation(for: command.source) else {
+            return
+        }
+
+        pauseAutomationUntilNextBoundary(
+            messagePrefix: "Manual \(Self.commandSourceLabel(for: command.source)) override",
+            reschedulesBoundaryTimer: false,
+            refreshesPopover: false
+        )
+    }
+
+    private func pauseAutomationUntilNextBoundary(
+        messagePrefix: String,
+        reschedulesBoundaryTimer: Bool = true,
+        refreshesPopover: Bool = true
+    ) {
+        let updatedState = ScheduleEngine.stateAfterManualOverride(
+            from: brightnessController.state,
+            at: currentMinuteOfDay(),
+            entries: scheduleEntries
+        )
+        brightnessController.applyPreviewState(updatedState)
+
+        if let resumeMinute = updatedState.automationResumeMinuteOfDay {
+            record(.schedule, "\(messagePrefix); automation paused until \(Self.timeLabel(for: resumeMinute))")
+        } else {
+            record(.schedule, "\(messagePrefix); automation paused until next schedule boundary")
+        }
+
+        if reschedulesBoundaryTimer {
+            scheduleNextBoundaryTimerIfRunning()
+        }
+        if refreshesPopover {
+            refreshPopover()
+        }
+    }
+
+    @discardableResult
+    private func scheduleNextBoundaryTimer() -> ScheduledScheduleBoundary? {
+        scheduleTimerController.scheduleNextBoundary(
+            after: currentMinuteOfDay(),
+            entries: scheduleEntries
+        ) { [weak self] in
+            self?.handleScheduleBoundaryTimerFired()
+        }
+    }
+
+    private func scheduleNextBoundaryTimerIfRunning() {
+        guard hasStarted else {
+            return
+        }
+
+        scheduleNextBoundaryTimer()
+    }
+
+    private func handleScheduleBoundaryTimerFired() {
+        applyScheduleDecision()
+        scheduleNextBoundaryTimer()
+    }
+
+    private func reconcileScheduleAfterRuntimeBoundaryChange() {
+        _ = stateResolvingSelectedDisplayIfNeeded()
+        applyScheduleDecision()
+        scheduleNextBoundaryTimer()
+    }
+
+    private func registerScheduleReconciliationObservers() {
+        guard scheduleReconciliationObservers.isEmpty else {
+            return
+        }
+
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        let wakeObserver = workspaceCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.reconcileScheduleAfterRuntimeBoundaryChange()
+            }
+        }
+
+        let screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.reconcileScheduleAfterRuntimeBoundaryChange()
+            }
+        }
+
+        scheduleReconciliationObservers = [
+            (workspaceCenter, wakeObserver),
+            (NotificationCenter.default, screenObserver)
+        ]
+    }
+
+    private func unregisterScheduleReconciliationObservers() {
+        for (center, observer) in scheduleReconciliationObservers {
+            center.removeObserver(observer)
+        }
+        scheduleReconciliationObservers.removeAll()
+    }
+
     @discardableResult
     private func record(
         _ category: DiagnosticsCategory,
@@ -297,6 +479,42 @@ final class MenuBarController: NSObject {
 
     private static func diagnosticsSeverity(for mode: DimmingMode) -> DiagnosticsSeverity {
         mode == .platformBlocked ? .error : .info
+    }
+
+    private static func pausesAutomation(for source: BrightnessCommandSource) -> Bool {
+        switch source {
+        case .menuSlider, .hotkey:
+            return true
+        case .schedule, .startupRestore, .diagnosticsProbe, .forcedSoftwareTest:
+            return false
+        }
+    }
+
+    private static func commandSourceLabel(for source: BrightnessCommandSource) -> String {
+        switch source {
+        case .menuSlider:
+            return "menu"
+        case .hotkey:
+            return "hotkey"
+        case .schedule:
+            return "schedule"
+        case .startupRestore:
+            return "startup"
+        case .diagnosticsProbe:
+            return "diagnostics"
+        case .forcedSoftwareTest:
+            return "forced software"
+        }
+    }
+
+    private static func timeLabel(for minuteOfDay: Int) -> String {
+        let minute = max(0, min(1_439, minuteOfDay))
+        return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+
+    private static func systemMinuteOfDay(date: Date = Date(), calendar: Calendar = .current) -> Int {
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
     }
 
     private static func defaultRegistersHotkeysOnStart(backend: HotkeyRegistrationBackend) -> Bool {

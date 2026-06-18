@@ -161,3 +161,182 @@ final class ScheduleEngineTests: XCTestCase {
         XCTAssertNil(updated.automationResumeMinuteOfDay)
     }
 }
+
+final class ScheduleRuntimeTests: XCTestCase {
+    @MainActor
+    func testTimerControllerSchedulesOneShotBoundaryAndInvalidatesReplacement() {
+        let factory = RecordingScheduleTimerFactory()
+        let controller = ScheduleTimerController(makeTimer: factory.makeTimer)
+
+        let first = controller.scheduleNextBoundary(
+            after: 1_130,
+            entries: ScheduleEntry.defaultSchedule
+        ) {}
+        let second = controller.scheduleNextBoundary(
+            after: 1_200,
+            entries: ScheduleEntry.defaultSchedule
+        ) {}
+
+        XCTAssertEqual(first, ScheduledScheduleBoundary(minuteOfDay: 1_140, minutesUntilBoundary: 10, interval: 600, tolerance: 60))
+        XCTAssertEqual(second, ScheduledScheduleBoundary(minuteOfDay: 1_380, minutesUntilBoundary: 180, interval: 10_800, tolerance: 60))
+        XCTAssertEqual(factory.timers.count, 2)
+        XCTAssertTrue(factory.timers[0].isInvalidated)
+        XCTAssertFalse(factory.timers[1].isInvalidated)
+    }
+
+    @MainActor
+    func testMenuBarControllerAppliesScheduleAtStartupAndTimerBoundary() {
+        var currentMinute = 1_130
+        let factory = RecordingScheduleTimerFactory()
+        let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
+        var state = BrightnessState.defaultState()
+        state.display = .scheduleRuntimeTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            scheduleTimerController: scheduleTimer,
+            currentMinuteOfDay: { currentMinute }
+        )
+
+        menuBarController.start()
+
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 80)
+        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(factory.timers.last?.interval, 600)
+
+        currentMinute = 1_140
+        factory.timers.last?.fire()
+
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 45)
+        XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+        XCTAssertEqual(factory.timers.last?.interval, 14_400)
+    }
+
+    @MainActor
+    func testManualCommandPausesScheduleUntilNextBoundaryThenTimerResumesAutomation() {
+        var currentMinute = 1_000
+        let factory = RecordingScheduleTimerFactory()
+        let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
+        var state = BrightnessState.defaultState()
+        state.display = .scheduleRuntimeTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            scheduleTimerController: scheduleTimer,
+            currentMinuteOfDay: { currentMinute }
+        )
+        menuBarController.start()
+        let startupTimer = factory.timers.last
+
+        menuBarController.perform(.brightnessUp)
+
+        XCTAssertTrue(startupTimer?.isInvalidated == true)
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertTrue(brightnessController.state.automationPausedUntilNextBoundary)
+        XCTAssertEqual(brightnessController.state.automationPausedAtMinuteOfDay, 1_000)
+        XCTAssertEqual(brightnessController.state.automationResumeMinuteOfDay, 1_140)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 85)
+
+        currentMinute = 1_140
+        factory.timers.last?.fire()
+
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertFalse(brightnessController.state.automationPausedUntilNextBoundary)
+        XCTAssertNil(brightnessController.state.automationPausedAtMinuteOfDay)
+        XCTAssertNil(brightnessController.state.automationResumeMinuteOfDay)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 45)
+        XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+    }
+
+    @MainActor
+    func testHotkeyRegistrationDoesNotDisableScheduleRuntime() {
+        let currentMinute = 1_000
+        let factory = RecordingScheduleTimerFactory()
+        let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
+        let hotkeyBackend = ScheduleRuntimeHotkeyRegistrationBackend()
+        var state = BrightnessState.defaultState()
+        state.display = .scheduleRuntimeTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            hotkeyRegistrationBackend: hotkeyBackend,
+            scheduleTimerController: scheduleTimer,
+            currentMinuteOfDay: { currentMinute }
+        )
+
+        menuBarController.start()
+        let startupTimer = factory.timers.last
+
+        menuBarController.perform(.brightnessUp)
+
+        XCTAssertEqual(hotkeyBackend.registeredBindings, ShortcutBinding.defaultBindings)
+        XCTAssertTrue(startupTimer?.isInvalidated == true)
+        XCTAssertGreaterThanOrEqual(factory.timers.count, 2)
+        XCTAssertEqual(factory.timers.last?.interval, 8_400)
+        XCTAssertTrue(brightnessController.state.automationPausedUntilNextBoundary)
+        XCTAssertEqual(brightnessController.state.automationResumeMinuteOfDay, 1_140)
+    }
+}
+
+@MainActor
+private final class RecordingScheduleTimerFactory {
+    private(set) var timers: [RecordingScheduleTimer] = []
+
+    func makeTimer(
+        interval: TimeInterval,
+        tolerance: TimeInterval,
+        fire: @escaping @MainActor () -> Void
+    ) -> ScheduleTimerToken {
+        let timer = RecordingScheduleTimer(interval: interval, tolerance: tolerance, fire: fire)
+        timers.append(timer)
+        return timer
+    }
+}
+
+@MainActor
+private final class RecordingScheduleTimer: ScheduleTimerToken {
+    let interval: TimeInterval
+    let tolerance: TimeInterval
+    private let fireHandler: @MainActor () -> Void
+    private(set) var isInvalidated = false
+
+    init(interval: TimeInterval, tolerance: TimeInterval, fire: @escaping @MainActor () -> Void) {
+        self.interval = interval
+        self.tolerance = tolerance
+        fireHandler = fire
+    }
+
+    func invalidate() {
+        isInvalidated = true
+    }
+
+    func fire() {
+        fireHandler()
+    }
+}
+
+private final class ScheduleRuntimeHotkeyRegistrationBackend: HotkeyRegistrationBackend {
+    private(set) var registeredBindings: [ShortcutBinding]?
+
+    func register(_ bindings: [ShortcutBinding], handler: @escaping (ShortcutAction) -> Void) throws {
+        registeredBindings = bindings
+        _ = handler
+    }
+
+    func unregisterAll() {
+        registeredBindings = nil
+    }
+}
+
+private extension DisplayIdentity {
+    static let scheduleRuntimeTestDisplay = DisplayIdentity(
+        cgDisplayID: 1,
+        localizedName: "INNOS 27QA100M",
+        vendorNumber: 1,
+        modelNumber: 2,
+        serialNumber: 3,
+        frameDescription: "2560x1440"
+    )
+}
