@@ -25,15 +25,24 @@ final class MenuBarStateTests: XCTestCase {
             isForcedSoftwareModeForTesting: false
         )
 
-        let viewModel = MenuBarViewModel(state: state)
+        let shortcuts = ShortcutBinding.defaultBindings.map { binding in
+            binding.action == .brightnessUp
+                ? ShortcutBinding(action: binding.action, keyCode: binding.keyCode, modifiers: binding.modifiers, isEnabled: false)
+                : binding
+        }
+        let viewModel = MenuBarViewModel(
+            state: state,
+            schedule: [ScheduleEntry(minuteOfDay: 600, brightness: 70, warmth: 20)],
+            shortcuts: shortcuts
+        )
 
         XCTAssertEqual(viewModel.modeTitle, "Overlay active")
         XCTAssertEqual(viewModel.displaySummary, "Display: Not selected")
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.warmthLabel, "32%")
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
-        XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 09:00 / 19:00 / 23:00")
-        XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 6 enabled")
+        XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 10:00 70%/20")
+        XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 5 enabled")
         XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active, DDC unsupported: DDC unavailable")
     }
 
@@ -96,10 +105,22 @@ final class MenuBarStateTests: XCTestCase {
             severity: .info
         )
 
-        view.update(state: state, latestDiagnosticEvent: event)
+        let shortcuts = ShortcutBinding.defaultBindings.map { binding in
+            binding.action == .brightnessDown
+                ? ShortcutBinding(action: binding.action, keyCode: binding.keyCode, modifiers: binding.modifiers, isEnabled: false)
+                : binding
+        }
+        view.update(
+            state: state,
+            schedule: [ScheduleEntry(minuteOfDay: 615, brightness: 66, warmth: 21)],
+            shortcuts: shortcuts,
+            latestDiagnosticEvent: event
+        )
 
         XCTAssertEqual(view.displaySummaryForTesting(), "Display: INNOS 27QA100M")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "Schedule: 10:15 66%/21")
+        XCTAssertEqual(view.shortcutSummaryForTesting(), "Shortcuts: 5 enabled")
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
             "Diagnostics: Overlay active, DDC unsupported: DDC unavailable. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"

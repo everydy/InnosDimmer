@@ -30,6 +30,7 @@ struct MenuBarViewModel: Equatable {
 
     init(
         state: BrightnessState,
+        schedule: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
         shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings,
         latestDiagnosticEvent: DiagnosticsEvent? = nil
     ) {
@@ -44,7 +45,7 @@ struct MenuBarViewModel: Equatable {
         } else {
             automationTitle = "Automation active"
         }
-        scheduleSummary = "Schedule: 09:00 / 19:00 / 23:00"
+        scheduleSummary = Self.scheduleSummary(for: schedule)
         shortcutSummary = HotkeyManager.summary(for: shortcuts)
         diagnosticsSummary = Self.diagnosticsSummary(
             state: state,
@@ -59,6 +60,16 @@ struct MenuBarViewModel: Equatable {
 
     private static func hardwareSummary(for capability: HardwareCapability) -> String {
         capability.diagnosticSummary
+    }
+
+    private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
+        let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
+            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)%/\(entry.warmth)"
+        }
+        guard !labels.isEmpty else {
+            return "Schedule: Not configured"
+        }
+        return "Schedule: \(labels.joined(separator: ", "))"
     }
 
     private static func diagnosticsSummary(
@@ -98,6 +109,8 @@ final class MenuBarPopoverView: NSView {
 
     init(
         state: BrightnessState,
+        schedule: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
+        shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings,
         latestDiagnosticEvent: DiagnosticsEvent? = nil,
         actions: MenuBarActions = .noop
     ) {
@@ -105,16 +118,28 @@ final class MenuBarPopoverView: NSView {
         self.actions = actions
         super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 330))
         buildLayout()
-        update(state: state, latestDiagnosticEvent: latestDiagnosticEvent)
+        update(
+            state: state,
+            schedule: schedule,
+            shortcuts: shortcuts,
+            latestDiagnosticEvent: latestDiagnosticEvent
+        )
     }
 
     required init?(coder: NSCoder) {
         nil
     }
 
-    func update(state: BrightnessState, latestDiagnosticEvent: DiagnosticsEvent? = nil) {
+    func update(
+        state: BrightnessState,
+        schedule: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
+        shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings,
+        latestDiagnosticEvent: DiagnosticsEvent? = nil
+    ) {
         let viewModel = MenuBarViewModel(
             state: state,
+            schedule: schedule,
+            shortcuts: shortcuts,
             latestDiagnosticEvent: latestDiagnosticEvent
         )
         modeBadge.stringValue = viewModel.modeTitle
@@ -141,6 +166,14 @@ final class MenuBarPopoverView: NSView {
 
     func diagnosticsSummaryForTesting() -> String {
         diagnosticsSummaryLabel.stringValue
+    }
+
+    func scheduleSummaryForTesting() -> String {
+        scheduleSummaryLabel.stringValue
+    }
+
+    func shortcutSummaryForTesting() -> String {
+        shortcutSummaryLabel.stringValue
     }
 
     private func buildLayout() {

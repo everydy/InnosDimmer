@@ -80,6 +80,8 @@ final class MenuBarController: NSObject {
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = MenuBarPopoverView(
             state: initialState,
+            schedule: scheduleEntries,
+            shortcuts: shortcutBindings,
             latestDiagnosticEvent: diagnosticsStore.latestEvent,
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
@@ -423,6 +425,8 @@ final class MenuBarController: NSObject {
 
         view.update(
             state: brightnessController.state,
+            schedule: scheduleEntries,
+            shortcuts: shortcutBindings,
             latestDiagnosticEvent: diagnosticsStore.latestEvent
         )
     }

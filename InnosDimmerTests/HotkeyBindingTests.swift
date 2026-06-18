@@ -194,6 +194,110 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     }
 }
 
+final class SettingsWindowShortcutCustomizationTests: XCTestCase {
+    @MainActor
+    func testSettingsWindowSavesCustomizedShortcutBindings() {
+        var savedShortcuts: [ShortcutBinding]?
+        let actions = SettingsActions(
+            selectDisplay: { _ in .success(.defaultSnapshot()) },
+            updateSchedule: { _ in .success(.defaultSnapshot()) },
+            updateShortcuts: { shortcuts in
+                savedShortcuts = shortcuts
+                return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
+            },
+            setLaunchAtLogin: { _ in .success(.notRegistered) }
+        )
+        let controller = SettingsWindowController(actions: actions)
+        controller.configure(
+            snapshot: .defaultSnapshot(),
+            displayCandidates: [],
+            loginItemStatus: .notRegistered
+        )
+
+        controller.setShortcutForTesting(
+            action: .brightnessUp,
+            keyCode: 18,
+            modifiers: [.control, .shift],
+            isEnabled: true
+        )
+        let result = controller.saveShortcutsForTesting()
+
+        guard case .success(let snapshot) = result else {
+            XCTFail("Expected shortcut save to succeed")
+            return
+        }
+        let expected = ShortcutBinding(
+            action: .brightnessUp,
+            keyCode: 18,
+            modifiers: [.control, .shift],
+            isEnabled: true
+        )
+        XCTAssertEqual(savedShortcuts?.first { $0.action == .brightnessUp }, expected)
+        XCTAssertEqual(snapshot.shortcuts.first { $0.action == .brightnessUp }, expected)
+        XCTAssertEqual(controller.shortcutForTesting(action: .brightnessUp), expected)
+    }
+
+    @MainActor
+    func testSettingsWindowSavesHumanReadableShortcutKeyLabels() {
+        var savedShortcuts: [ShortcutBinding]?
+        let actions = SettingsActions(
+            selectDisplay: { _ in .success(.defaultSnapshot()) },
+            updateSchedule: { _ in .success(.defaultSnapshot()) },
+            updateShortcuts: { shortcuts in
+                savedShortcuts = shortcuts
+                return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
+            },
+            setLaunchAtLogin: { _ in .success(.notRegistered) }
+        )
+        let controller = SettingsWindowController(actions: actions)
+        controller.configure(
+            snapshot: .defaultSnapshot(),
+            displayCandidates: [],
+            loginItemStatus: .notRegistered
+        )
+        controller.setShortcutForTesting(
+            action: .brightnessUp,
+            keyCode: 18,
+            modifiers: [.control, .shift],
+            isEnabled: true
+        )
+        controller.setShortcutKeyStringForTesting(action: .brightnessUp, keyCode: "R")
+
+        let result = controller.saveShortcutsForTesting()
+
+        guard case .success = result else {
+            XCTFail("Expected shortcut save to succeed")
+            return
+        }
+        XCTAssertEqual(savedShortcuts?.first { $0.action == .brightnessUp }?.keyCode, 15)
+    }
+
+    @MainActor
+    func testSettingsWindowReportsInvalidCustomizedShortcutKey() {
+        let controller = SettingsWindowController()
+        controller.configure(
+            snapshot: .defaultSnapshot(),
+            displayCandidates: [],
+            loginItemStatus: .notRegistered
+        )
+        controller.setShortcutForTesting(
+            action: .brightnessUp,
+            keyCode: 18,
+            modifiers: [.control, .shift],
+            isEnabled: true
+        )
+        controller.setShortcutKeyStringForTesting(action: .brightnessUp, keyCode: "not-a-key")
+
+        let result = controller.saveShortcutsForTesting()
+
+        guard case .failure(let error) = result else {
+            XCTFail("Expected invalid key to fail")
+            return
+        }
+        XCTAssertEqual(error.localizedDescription, "Brightness up needs a key code from 0 to 65535.")
+    }
+}
+
 private final class RecordingHotkeyRegistrationBackend: HotkeyRegistrationBackend {
     private(set) var registeredBindings: [ShortcutBinding]?
     var errorToThrow: Error?

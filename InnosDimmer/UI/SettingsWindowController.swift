@@ -19,6 +19,10 @@ final class SettingsWindowController: NSWindowController {
     private enum Layout {
         static let scheduleEntryCount = 3
         static let fieldWidth: CGFloat = 72
+        static let shortcutActionWidth: CGFloat = 122
+        static let shortcutToggleWidth: CGFloat = 34
+        static let shortcutModifierWidth: CGFloat = 38
+        static let shortcutKeyWidth: CGFloat = 58
     }
 
     private struct ScheduleControls {
@@ -27,9 +31,19 @@ final class SettingsWindowController: NSWindowController {
         var warmth: NSTextField
     }
 
+    private struct ShortcutControls {
+        var enabled: NSButton
+        var option: NSButton
+        var shift: NSButton
+        var control: NSButton
+        var command: NSButton
+        var keyCode: ShortcutKeyField
+    }
+
     private enum SettingsFormError: LocalizedError {
         case invalidTime(row: Int)
         case invalidPercent(row: Int, field: String)
+        case invalidShortcutKey(action: String)
 
         var errorDescription: String? {
             switch self {
@@ -37,6 +51,8 @@ final class SettingsWindowController: NSWindowController {
                 return "Schedule row \(row) needs a time in HH:mm format."
             case .invalidPercent(let row, let field):
                 return "Schedule row \(row) needs \(field) from 0 to 100."
+            case .invalidShortcutKey(let action):
+                return "\(action) needs a key code from 0 to 65535."
             }
         }
     }
@@ -51,7 +67,7 @@ final class SettingsWindowController: NSWindowController {
     private let matrixSummary = NSTextField(labelWithString: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
     private let statusLabel = NSTextField(labelWithString: "")
     private var scheduleControls: [ScheduleControls] = []
-    private var shortcutCheckboxes: [ShortcutAction: NSButton] = [:]
+    private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
     private var snapshot = SettingsSnapshot.defaultSnapshot()
     private var displayCandidates: [DisplayIdentity] = []
     private var loginItemStatus: LoginItemStatus = .notRegistered
@@ -103,6 +119,11 @@ final class SettingsWindowController: NSWindowController {
 
         let resetShortcutsButton = NSButton(title: "Reset shortcuts", target: self, action: #selector(resetShortcutsPressed))
         resetShortcutsButton.bezelStyle = .rounded
+        let saveShortcutsButton = NSButton(title: "Save shortcuts", target: self, action: #selector(saveShortcutsPressed))
+        saveShortcutsButton.bezelStyle = .rounded
+        let shortcutButtons = NSStackView(views: [saveShortcutsButton, resetShortcutsButton])
+        shortcutButtons.orientation = .horizontal
+        shortcutButtons.spacing = 8
 
         loginItemCheckbox.target = self
         loginItemCheckbox.action = #selector(loginItemToggled)
@@ -123,7 +144,7 @@ final class SettingsWindowController: NSWindowController {
             sectionLabel("Global shortcuts"),
             shortcutSummary,
             shortcutStack,
-            resetShortcutsButton,
+            shortcutButtons,
             sectionLabel("Startup"),
             loginItemCheckbox,
             loginItemSummary,
@@ -202,11 +223,43 @@ final class SettingsWindowController: NSWindowController {
         stack.alignment = .leading
         stack.spacing = 4
 
+        let header = NSStackView(views: [
+            fixedLabel("Action", width: Layout.shortcutActionWidth),
+            fixedLabel("On", width: Layout.shortcutToggleWidth),
+            fixedLabel("Opt", width: Layout.shortcutModifierWidth),
+            fixedLabel("Shift", width: Layout.shortcutModifierWidth),
+            fixedLabel("Ctrl", width: Layout.shortcutModifierWidth),
+            fixedLabel("Cmd", width: Layout.shortcutModifierWidth),
+            fixedLabel("Key", width: Layout.shortcutKeyWidth)
+        ])
+        header.orientation = .horizontal
+        header.spacing = 6
+        stack.addArrangedSubview(header)
+
         for action in ShortcutAction.allCases {
-            let checkbox = NSButton(checkboxWithTitle: Self.shortcutTitle(for: action), target: self, action: #selector(shortcutToggled))
-            checkbox.identifier = NSUserInterfaceItemIdentifier(action.rawValue)
-            shortcutCheckboxes[action] = checkbox
-            stack.addArrangedSubview(checkbox)
+            let controls = ShortcutControls(
+                enabled: checkbox(title: "", action: #selector(shortcutControlChanged), width: Layout.shortcutToggleWidth),
+                option: checkbox(title: "", action: #selector(shortcutControlChanged)),
+                shift: checkbox(title: "", action: #selector(shortcutControlChanged)),
+                control: checkbox(title: "", action: #selector(shortcutControlChanged)),
+                command: checkbox(title: "", action: #selector(shortcutControlChanged)),
+                keyCode: editableKeyField(width: Layout.shortcutKeyWidth)
+            )
+            controls.keyCode.placeholderString = "Key"
+            shortcutControls[action] = controls
+
+            let row = NSStackView(views: [
+                fixedLabel(Self.actionLabel(for: action), width: Layout.shortcutActionWidth),
+                controls.enabled,
+                controls.option,
+                controls.shift,
+                controls.control,
+                controls.command,
+                controls.keyCode
+            ])
+            row.orientation = .horizontal
+            row.spacing = 6
+            stack.addArrangedSubview(row)
         }
 
         return stack
@@ -252,7 +305,16 @@ final class SettingsWindowController: NSWindowController {
     private func renderShortcuts() {
         for action in ShortcutAction.allCases {
             let binding = snapshot.shortcuts.first { $0.action == action }
-            shortcutCheckboxes[action]?.state = binding?.isEnabled == true ? .on : .off
+            guard let controls = shortcutControls[action] else {
+                continue
+            }
+
+            controls.enabled.state = binding?.isEnabled == true ? .on : .off
+            controls.option.state = binding?.modifiers.contains(.option) == true ? .on : .off
+            controls.shift.state = binding?.modifiers.contains(.shift) == true ? .on : .off
+            controls.control.state = binding?.modifiers.contains(.control) == true ? .on : .off
+            controls.command.state = binding?.modifiers.contains(.command) == true ? .on : .off
+            controls.keyCode.setKeyCode(binding?.keyCode)
         }
     }
 
@@ -296,26 +358,75 @@ final class SettingsWindowController: NSWindowController {
         }
     }
 
-    @objc private func shortcutToggled(_ sender: NSButton) {
-        guard let rawValue = sender.identifier?.rawValue,
-              let action = ShortcutAction(rawValue: rawValue) else {
-            return
-        }
+    @objc private func shortcutControlChanged() {
+        report("Shortcut changes are ready to save.")
+    }
 
-        var shortcuts = snapshot.shortcuts
-        if let index = shortcuts.firstIndex(where: { $0.action == action }) {
-            shortcuts[index].isEnabled = sender.state == .on
-        }
-
-        switch actions.updateShortcuts(shortcuts) {
-        case .success(let updatedSnapshot):
-            snapshot = updatedSnapshot
-            render()
-            report("Shortcuts saved.")
-        case .failure(let error):
+    @objc private func saveShortcutsPressed() {
+        do {
+            let shortcuts = try shortcutBindingsFromControls()
+            switch actions.updateShortcuts(shortcuts) {
+            case .success(let updatedSnapshot):
+                snapshot = updatedSnapshot
+                render()
+                report("Shortcuts saved.")
+            case .failure(let error):
+                render()
+                report(error.localizedDescription, isError: true)
+            }
+        } catch {
             render()
             report(error.localizedDescription, isError: true)
         }
+    }
+
+    @discardableResult
+    func saveShortcutsForTesting() -> Result<SettingsSnapshot, Error> {
+        do {
+            let shortcuts = try shortcutBindingsFromControls()
+            switch actions.updateShortcuts(shortcuts) {
+            case .success(let updatedSnapshot):
+                snapshot = updatedSnapshot
+                render()
+                return .success(updatedSnapshot)
+            case .failure(let error):
+                render()
+                return .failure(error)
+            }
+        } catch {
+            render()
+            return .failure(error)
+        }
+    }
+
+    func setShortcutForTesting(
+        action: ShortcutAction,
+        keyCode: UInt16,
+        modifiers: ShortcutModifiers,
+        isEnabled: Bool
+    ) {
+        guard let controls = shortcutControls[action] else {
+            return
+        }
+
+        controls.enabled.state = isEnabled ? .on : .off
+        controls.option.state = modifiers.contains(.option) ? .on : .off
+        controls.shift.state = modifiers.contains(.shift) ? .on : .off
+        controls.control.state = modifiers.contains(.control) ? .on : .off
+        controls.command.state = modifiers.contains(.command) ? .on : .off
+        controls.keyCode.setKeyCode(keyCode)
+    }
+
+    func setShortcutKeyStringForTesting(action: ShortcutAction, keyCode: String) {
+        shortcutControls[action]?.keyCode.setRawString(keyCode)
+    }
+
+    func captureShortcutKeyForTesting(action: ShortcutAction, keyCode: UInt16) {
+        shortcutControls[action]?.keyCode.setKeyCode(keyCode)
+    }
+
+    func shortcutForTesting(action: ShortcutAction) -> ShortcutBinding? {
+        try? shortcutBindingsFromControls().first { $0.action == action }
     }
 
     @objc private func resetShortcutsPressed() {
@@ -359,6 +470,39 @@ final class SettingsWindowController: NSWindowController {
         }
     }
 
+    private func shortcutBindingsFromControls() throws -> [ShortcutBinding] {
+        try ShortcutAction.allCases.map { action in
+            guard let controls = shortcutControls[action],
+                  let keyCode = controls.keyCode.parsedKeyCode() else {
+                throw SettingsFormError.invalidShortcutKey(action: Self.actionLabel(for: action))
+            }
+
+            return ShortcutBinding(
+                action: action,
+                keyCode: keyCode,
+                modifiers: modifiers(from: controls),
+                isEnabled: controls.enabled.state == .on
+            )
+        }
+    }
+
+    private func modifiers(from controls: ShortcutControls) -> ShortcutModifiers {
+        var modifiers: ShortcutModifiers = []
+        if controls.option.state == .on {
+            modifiers.insert(.option)
+        }
+        if controls.shift.state == .on {
+            modifiers.insert(.shift)
+        }
+        if controls.control.state == .on {
+            modifiers.insert(.control)
+        }
+        if controls.command.state == .on {
+            modifiers.insert(.command)
+        }
+        return modifiers
+    }
+
     private func report(_ message: String, isError: Bool = false) {
         statusLabel.stringValue = message
         statusLabel.textColor = isError ? .systemRed : .secondaryLabelColor
@@ -377,11 +521,27 @@ final class SettingsWindowController: NSWindowController {
         return label
     }
 
-    private func editableField() -> NSTextField {
+    private func editableField(width: CGFloat = Layout.fieldWidth) -> NSTextField {
         let field = NSTextField(string: "")
         field.translatesAutoresizingMaskIntoConstraints = false
-        field.widthAnchor.constraint(equalToConstant: Layout.fieldWidth).isActive = true
+        field.widthAnchor.constraint(equalToConstant: width).isActive = true
         return field
+    }
+
+    private func editableKeyField(width: CGFloat) -> ShortcutKeyField {
+        let field = ShortcutKeyField()
+        field.translatesAutoresizingMaskIntoConstraints = false
+        field.widthAnchor.constraint(equalToConstant: width).isActive = true
+        field.target = self
+        field.action = #selector(shortcutControlChanged)
+        return field
+    }
+
+    private func checkbox(title: String, action: Selector, width: CGFloat = Layout.shortcutModifierWidth) -> NSButton {
+        let button = NSButton(checkboxWithTitle: title, target: self, action: action)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return button
     }
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
@@ -415,12 +575,6 @@ final class SettingsWindowController: NSWindowController {
         return hour * 60 + minute
     }
 
-    private static func shortcutTitle(for action: ShortcutAction) -> String {
-        let binding = ShortcutBinding.defaultBindings.first { $0.action == action }
-        let suffix = binding.map { " (\(shortcutLabel(for: $0)))" } ?? ""
-        return "\(actionLabel(for: action))\(suffix)"
-    }
-
     private static func actionLabel(for action: ShortcutAction) -> String {
         switch action {
         case .brightnessUp:
@@ -438,22 +592,77 @@ final class SettingsWindowController: NSWindowController {
         }
     }
 
-    private static func shortcutLabel(for binding: ShortcutBinding) -> String {
-        var parts: [String] = []
-        if binding.modifiers.contains(.option) {
-            parts.append("Option")
+    private static func loginItemSummary(for status: LoginItemStatus) -> String {
+        switch status {
+        case .enabled:
+            return "Launch at login: enabled"
+        case .disabled:
+            return "Launch at login: disabled"
+        case .requiresApproval:
+            return "Launch at login: requires approval in System Settings"
+        case .notRegistered:
+            return "Launch at login: not registered"
+        case .unsupported(let reason):
+            return "Launch at login: unsupported (\(reason))"
         }
-        if binding.modifiers.contains(.shift) {
-            parts.append("Shift")
+    }
+}
+
+private final class ShortcutKeyField: NSTextField {
+    private(set) var capturedKeyCode: UInt16?
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 48, 53:
+            super.keyDown(with: event)
+        case 51, 117:
+            setKeyCode(nil)
+            sendAction(action, to: target)
+        default:
+            setKeyCode(event.keyCode)
+            sendAction(action, to: target)
         }
-        if binding.modifiers.contains(.control) {
-            parts.append("Control")
+    }
+
+    func setKeyCode(_ keyCode: UInt16?) {
+        capturedKeyCode = keyCode
+        stringValue = keyCode.map { Self.keyLabel(for: $0) } ?? ""
+    }
+
+    func setRawString(_ value: String) {
+        capturedKeyCode = nil
+        stringValue = value
+    }
+
+    func parsedKeyCode() -> UInt16? {
+        let input = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let capturedKeyCode, input == Self.keyLabel(for: capturedKeyCode) {
+            return capturedKeyCode
         }
-        if binding.modifiers.contains(.command) {
-            parts.append("Command")
+        if let numeric = UInt16(input) {
+            return numeric
         }
-        parts.append(keyLabel(for: binding.keyCode))
-        return parts.joined(separator: " + ")
+        return Self.keyCode(for: input)
+    }
+
+    private static func keyCode(for label: String) -> UInt16? {
+        switch label.lowercased() {
+        case "up":
+            return 126
+        case "down":
+            return 125
+        case "right":
+            return 124
+        case "left":
+            return 123
+        case "0":
+            return 29
+        case "r":
+            return 15
+        default:
+            let normalized = label.lowercased().replacingOccurrences(of: "key ", with: "")
+            return UInt16(normalized)
+        }
     }
 
     private static func keyLabel(for keyCode: UInt16) -> String {
@@ -472,21 +681,6 @@ final class SettingsWindowController: NSWindowController {
             return "R"
         default:
             return "Key \(keyCode)"
-        }
-    }
-
-    private static func loginItemSummary(for status: LoginItemStatus) -> String {
-        switch status {
-        case .enabled:
-            return "Launch at login: enabled"
-        case .disabled:
-            return "Launch at login: disabled"
-        case .requiresApproval:
-            return "Launch at login: requires approval in System Settings"
-        case .notRegistered:
-            return "Launch at login: not registered"
-        case .unsupported(let reason):
-            return "Launch at login: unsupported (\(reason))"
         }
     }
 }
