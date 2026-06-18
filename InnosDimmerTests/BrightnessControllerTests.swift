@@ -18,27 +18,28 @@ final class BrightnessControllerTests: XCTestCase {
     }
 
     @MainActor
-    func testQueuesWhenHardwareIsNotProbed() {
+    func testAppliesSoftwareWhenHardwareIsNotProbed() {
         let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: .defaultState(), hardwareStrategy: hardware, softwareStrategy: software)
 
         controller.apply(.fixture(source: .startupRestore))
 
-        XCTAssertEqual(controller.pendingCommand, .fixture(source: .startupRestore))
+        XCTAssertNil(controller.pendingCommand)
         XCTAssertEqual(hardware.appliedCommands.count, 0)
-        XCTAssertEqual(software.appliedCommands.count, 0)
-        XCTAssertEqual(controller.state.activeMode, .unknown)
+        XCTAssertEqual(software.appliedCommands, [.fixture(source: .startupRestore)])
+        XCTAssertEqual(software.activationReasons, [.hardwareNotReady(.notProbed)])
+        XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testQueuesWhileHardwareProbeIsInProgressOrReadOnly() {
-        let queuedCapabilities: [HardwareCapability] = [
+    func testAppliesSoftwareWhileHardwareProbeIsInProgressOrReadOnly() {
+        let softwareCapabilities: [HardwareCapability] = [
             .probing(startedAt: Date(timeIntervalSince1970: 1)),
             .readSupported(current: 50)
         ]
 
-        for capability in queuedCapabilities {
+        for capability in softwareCapabilities {
             var state = BrightnessState.defaultState()
             state.hardwareCapability = capability
             let hardware = RecordingHardwareBrightnessStrategy()
@@ -47,10 +48,11 @@ final class BrightnessControllerTests: XCTestCase {
 
             controller.apply(.fixture(source: .schedule))
 
-            XCTAssertEqual(controller.pendingCommand, .fixture(source: .schedule))
+            XCTAssertNil(controller.pendingCommand)
             XCTAssertEqual(hardware.appliedCommands.count, 0)
-            XCTAssertEqual(software.appliedCommands.count, 0)
-            XCTAssertEqual(controller.state.activeMode, .unknown)
+            XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
+            XCTAssertEqual(software.activationReasons, [.hardwareNotReady(capability)])
+            XCTAssertEqual(controller.state.activeMode, .overlay)
         }
     }
 

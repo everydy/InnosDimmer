@@ -131,43 +131,51 @@ final class MenuBarStateTests: XCTestCase {
     func testMenuBarControllerRoutesDimmingCommandsThroughBrightnessController() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(brightnessController: brightnessController)
 
         menuBarController.perform(.brightnessUp)
 
-        XCTAssertEqual(brightnessController.pendingCommand?.display, .menuBarTestDisplay)
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 85)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.display), [.menuBarTestDisplay])
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [85])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
+        XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         menuBarController.perform(.warmthDown)
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 85)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 7)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
         XCTAssertEqual(brightnessController.state.targetWarmth, 7)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 
     @MainActor
     func testMenuBarControllerRoutesQuickDisableAndRestoreThroughBrightnessController() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(brightnessController: brightnessController)
 
         menuBarController.perform(.quickDisable)
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 100)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
+        XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         menuBarController.perform(.restorePrevious)
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 80)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 12])
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 
     @MainActor

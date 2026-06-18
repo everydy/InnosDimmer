@@ -35,7 +35,7 @@ final class BrightnessController {
         case .writeReadbackSupported:
             applyHardware(command)
         case .notProbed, .probing, .readSupported:
-            pendingCommand = command
+            applySoftware(command, reason: .hardwareNotReady(state.hardwareCapability))
         case .unsupported, .blockedByPlatform, .failedWithError:
             applySoftware(command, reason: .hardwareExhausted(state.hardwareCapability))
         }

@@ -124,7 +124,8 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     func testMenuBarControllerRoutesHotkeysThroughSharedCommands() async {
         var state = BrightnessState.defaultState()
         state.display = .hotkeyTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingHotkeySoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let backend = RecordingHotkeyRegistrationBackend()
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
@@ -135,25 +136,29 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.brightnessUp)
         await Task.yield()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 85)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .hotkey)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [85])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
+        XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         backend.trigger(.warmthDown)
         await Task.yield()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 85)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 7)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .hotkey)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
         XCTAssertEqual(brightnessController.state.targetWarmth, 7)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
     }
 
     @MainActor
     func testMenuBarControllerRoutesQuickDisableAndRestoreHotkeys() async {
         var state = BrightnessState.defaultState()
         state.display = .hotkeyTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingHotkeySoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let backend = RecordingHotkeyRegistrationBackend()
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
@@ -164,16 +169,19 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.quickDisableOverlay)
         await Task.yield()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 100)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .hotkey)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
+        XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         backend.trigger(.restorePreviousDimming)
         await Task.yield()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 80)
-        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .hotkey)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 12])
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
     }
 
     @MainActor
@@ -319,6 +327,17 @@ private final class RecordingHotkeyRegistrationBackend: HotkeyRegistrationBacken
     func trigger(_ action: ShortcutAction) {
         handler?(action)
     }
+}
+
+@MainActor
+private final class RecordingHotkeySoftwareDimmingStrategy: SoftwareDimmingStrategy {
+    private(set) var appliedCommands: [BrightnessCommand] = []
+
+    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+        appliedCommands.append(command)
+    }
+
+    func clear(display: DisplayIdentity) throws {}
 }
 
 private extension DisplayIdentity {

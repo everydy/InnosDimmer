@@ -191,7 +191,8 @@ final class ScheduleRuntimeTests: XCTestCase {
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
         var state = BrightnessState.defaultState()
         state.display = .scheduleRuntimeTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingScheduleSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             scheduleTimerController: scheduleTimer,
@@ -200,17 +201,22 @@ final class ScheduleRuntimeTests: XCTestCase {
 
         menuBarController.start()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
         XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
+        XCTAssertEqual(brightnessController.state.activeMode, .overlay)
         XCTAssertEqual(factory.timers.last?.interval, 600)
 
         currentMinute = 1_140
         factory.timers.last?.fire()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule, .schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
         XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
         XCTAssertEqual(factory.timers.last?.interval, 14_400)
     }
 
@@ -221,7 +227,8 @@ final class ScheduleRuntimeTests: XCTestCase {
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
         var state = BrightnessState.defaultState()
         state.display = .scheduleRuntimeTestDisplay
-        let brightnessController = BrightnessController(state: state)
+        let software = RecordingScheduleSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             scheduleTimerController: scheduleTimer,
@@ -233,21 +240,25 @@ final class ScheduleRuntimeTests: XCTestCase {
         menuBarController.perform(.brightnessUp)
 
         XCTAssertTrue(startupTimer?.isInvalidated == true)
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.source).suffix(1), [.menuSlider])
         XCTAssertTrue(brightnessController.state.automationPausedUntilNextBoundary)
         XCTAssertEqual(brightnessController.state.automationPausedAtMinuteOfDay, 1_000)
         XCTAssertEqual(brightnessController.state.automationResumeMinuteOfDay, 1_140)
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
 
         currentMinute = 1_140
         factory.timers.last?.fire()
 
-        XCTAssertEqual(brightnessController.pendingCommand?.source, .schedule)
+        XCTAssertNil(brightnessController.pendingCommand)
+        XCTAssertEqual(software.appliedCommands.map(\.source).suffix(1), [.schedule])
         XCTAssertFalse(brightnessController.state.automationPausedUntilNextBoundary)
         XCTAssertNil(brightnessController.state.automationPausedAtMinuteOfDay)
         XCTAssertNil(brightnessController.state.automationResumeMinuteOfDay)
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
         XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
     }
 
     @MainActor
@@ -328,6 +339,17 @@ private final class ScheduleRuntimeHotkeyRegistrationBackend: HotkeyRegistration
     func unregisterAll() {
         registeredBindings = nil
     }
+}
+
+@MainActor
+private final class RecordingScheduleSoftwareDimmingStrategy: SoftwareDimmingStrategy {
+    private(set) var appliedCommands: [BrightnessCommand] = []
+
+    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+        appliedCommands.append(command)
+    }
+
+    func clear(display: DisplayIdentity) throws {}
 }
 
 private extension DisplayIdentity {
