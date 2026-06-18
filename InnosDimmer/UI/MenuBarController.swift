@@ -584,8 +584,6 @@ final class MenuBarController: NSObject {
 
     private static func diagnosticsCategory(for mode: DimmingMode) -> DiagnosticsCategory {
         switch mode {
-        case .hardwareDDC:
-            return .hardwareProbe
         case .gamma, .overlay, .platformBlocked:
             return .softwareDimming
         case .unknown:
@@ -601,7 +599,7 @@ final class MenuBarController: NSObject {
         switch source {
         case .menuSlider, .hotkey:
             return true
-        case .schedule, .startupRestore, .diagnosticsProbe, .forcedSoftwareTest:
+        case .schedule, .startupRestore, .forcedSoftwareTest:
             return false
         }
     }
@@ -616,8 +614,6 @@ final class MenuBarController: NSObject {
             return "schedule"
         case .startupRestore:
             return "startup"
-        case .diagnosticsProbe:
-            return "diagnostics"
         case .forcedSoftwareTest:
             return "forced software"
         }

@@ -32,10 +32,9 @@ final class DiagnosticsStoreTests: XCTestCase {
 
     func testDiagnosticsSnapshotIncludesStateAndRecentEvents() {
         var state = BrightnessState.defaultState()
-        state.hardwareCapability = .unsupported(reason: "brightness read failed")
         state.activeMode = .overlay
         let store = DiagnosticsStore(maxEvents: 10)
-        store.record(.fixture(category: .hardwareProbe, message: "DDC unsupported"))
+        store.record(.fixture(category: .softwareDimming, message: "Overlay active"))
 
         let snapshot = store.snapshot(
             selectedDisplay: .fixture(),
@@ -44,17 +43,15 @@ final class DiagnosticsStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(snapshot.selectedDisplay?.localizedName, "INNOS 27QA100M")
-        XCTAssertEqual(snapshot.hardwareCapability, .unsupported(reason: "brightness read failed"))
         XCTAssertEqual(snapshot.activeMode, .overlay)
         XCTAssertEqual(snapshot.matrixSummary, "not tested")
-        XCTAssertEqual(snapshot.events.map(\.message), ["DDC unsupported"])
+        XCTAssertEqual(snapshot.events.map(\.message), ["Overlay active"])
     }
 
     func testDiagnosticsExporterEncodesSnapshotWithoutSensitiveUserContent() throws {
         let snapshot = DiagnosticsSnapshot(
             exportedAt: Date(timeIntervalSince1970: 0),
             selectedDisplay: .fixture(),
-            hardwareCapability: .blockedByPlatform(reason: "protected surface"),
             activeMode: .platformBlocked,
             matrixSummary: "platform blocked disclosed",
             events: [

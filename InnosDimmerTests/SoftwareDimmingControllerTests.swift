@@ -90,9 +90,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     @MainActor
     func testRegularCommandsApplySoftwareOnlyEvenWhenHardwareIsUnsupported() {
         let software = RecordingSoftwareDimmingStrategy()
-        var state = BrightnessState.defaultState()
-        state.hardwareCapability = .unsupported(reason: "DDC unavailable")
-        let controller = BrightnessController(state: state, softwareStrategy: software)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(BrightnessCommand(
             display: DisplayIdentity.fixture(),
@@ -109,9 +107,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     @MainActor
     func testSoftwareApplyFailureRecordsPlatformBlockedState() {
         let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.platformBlocked("protected surface"))
-        var state = BrightnessState.defaultState()
-        state.hardwareCapability = .unsupported(reason: "DDC unavailable")
-        let controller = BrightnessController(state: state, softwareStrategy: software)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(BrightnessCommand(
             display: DisplayIdentity.fixture(),

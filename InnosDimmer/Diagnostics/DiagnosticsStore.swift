@@ -3,7 +3,6 @@ import Foundation
 enum DiagnosticsCategory: String, Codable, Equatable {
     case appLifecycle
     case display
-    case hardwareProbe
     case softwareDimming
     case schedule
     case shortcut
@@ -26,7 +25,6 @@ struct DiagnosticsEvent: Codable, Equatable {
 struct DiagnosticsSnapshot: Codable, Equatable {
     var exportedAt: Date
     var selectedDisplay: DisplayIdentity?
-    var hardwareCapability: HardwareCapability
     var activeMode: DimmingMode
     var matrixSummary: String
     var events: [DiagnosticsEvent]
@@ -76,7 +74,6 @@ final class DiagnosticsStore {
         DiagnosticsSnapshot(
             exportedAt: exportedAt,
             selectedDisplay: selectedDisplay,
-            hardwareCapability: state.hardwareCapability,
             activeMode: state.activeMode,
             matrixSummary: matrixSummary,
             events: events

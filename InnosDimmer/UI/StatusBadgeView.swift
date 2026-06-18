@@ -3,8 +3,6 @@ import AppKit
 enum ModeStatusLabel {
     static func title(for mode: DimmingMode) -> String {
         switch mode {
-        case .hardwareDDC:
-            return "Hardware DDC"
         case .gamma:
             return "Gamma active"
         case .overlay:

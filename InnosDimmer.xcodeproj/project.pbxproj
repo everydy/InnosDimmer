@@ -15,12 +15,10 @@
 		AA0000000000000000000028 /* ScheduleEntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002A /* ScheduleEntryTests.swift */; };
 		AA0000000000000000000030 /* DisplayIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003B /* DisplayIdentity.swift */; };
 		AA0000000000000000000031 /* DimmingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003C /* DimmingMode.swift */; };
-		AA0000000000000000000032 /* HardwareCapability.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003D /* HardwareCapability.swift */; };
 		AA0000000000000000000033 /* BrightnessCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003E /* BrightnessCommand.swift */; };
 		AA0000000000000000000034 /* BrightnessState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003F /* BrightnessState.swift */; };
 		AA0000000000000000000035 /* ScheduleEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000040 /* ScheduleEntry.swift */; };
 		AA0000000000000000000036 /* ShortcutBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000041 /* ShortcutBinding.swift */; };
-		AA0000000000000000000037 /* ProbeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000042 /* ProbeStep.swift */; };
 		AA0000000000000000000038 /* SettingsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000043 /* SettingsSnapshot.swift */; };
 		AA0000000000000000000039 /* Clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000044 /* Clamped.swift */; };
 		AA000000000000000000003A /* DisplayTargetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000045 /* DisplayTargetStore.swift */; };
@@ -37,9 +35,6 @@
 		AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000005F /* SoftwareDimmingController.swift */; };
 		AA000000000000000000005D /* OverlayWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000060 /* OverlayWindowManager.swift */; };
 		AA000000000000000000005E /* GammaDimmingController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000061 /* GammaDimmingController.swift */; };
-		AA0000000000000000000062 /* HardwareDDCControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000063 /* HardwareDDCControllerTests.swift */; };
-		AA0000000000000000000064 /* HardwareDDCController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000068 /* HardwareDDCController.swift */; };
-		AA0000000000000000000065 /* CapabilityProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000069 /* CapabilityProbe.swift */; };
 		AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006A /* DiagnosticsExporter.swift */; };
 		AA000000000000000000006B /* BrightnessControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006C /* BrightnessControllerTests.swift */; };
 		AA000000000000000000006D /* ScheduleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000006E /* ScheduleEngine.swift */; };
@@ -75,12 +70,10 @@
 		AA000000000000000000002A /* ScheduleEntryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEntryTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000003B /* DisplayIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayIdentity.swift; sourceTree = "<group>"; };
 		AA000000000000000000003C /* DimmingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DimmingMode.swift; sourceTree = "<group>"; };
-		AA000000000000000000003D /* HardwareCapability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareCapability.swift; sourceTree = "<group>"; };
 		AA000000000000000000003E /* BrightnessCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessCommand.swift; sourceTree = "<group>"; };
 		AA000000000000000000003F /* BrightnessState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessState.swift; sourceTree = "<group>"; };
 		AA0000000000000000000040 /* ScheduleEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEntry.swift; sourceTree = "<group>"; };
 		AA0000000000000000000041 /* ShortcutBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutBinding.swift; sourceTree = "<group>"; };
-		AA0000000000000000000042 /* ProbeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProbeStep.swift; sourceTree = "<group>"; };
 		AA0000000000000000000043 /* SettingsSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSnapshot.swift; sourceTree = "<group>"; };
 		AA0000000000000000000044 /* Clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clamped.swift; sourceTree = "<group>"; };
 		AA0000000000000000000045 /* DisplayTargetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetStore.swift; sourceTree = "<group>"; };
@@ -97,9 +90,6 @@
 		AA000000000000000000005F /* SoftwareDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareDimmingController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000060 /* OverlayWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayWindowManager.swift; sourceTree = "<group>"; };
 		AA0000000000000000000061 /* GammaDimmingController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GammaDimmingController.swift; sourceTree = "<group>"; };
-		AA0000000000000000000063 /* HardwareDDCControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDDCControllerTests.swift; sourceTree = "<group>"; };
-		AA0000000000000000000068 /* HardwareDDCController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareDDCController.swift; sourceTree = "<group>"; };
-		AA0000000000000000000069 /* CapabilityProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityProbe.swift; sourceTree = "<group>"; };
 		AA000000000000000000006A /* DiagnosticsExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsExporter.swift; sourceTree = "<group>"; };
 		AA000000000000000000006C /* BrightnessControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessControllerTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000006E /* ScheduleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEngine.swift; sourceTree = "<group>"; };
@@ -155,7 +145,6 @@
 		AA0000000000000000000067 /* Diagnostics */ = {
 			isa = PBXGroup;
 			children = (
-				AA0000000000000000000069 /* CapabilityProbe.swift */,
 				AA0000000000000000000076 /* DiagnosticsStore.swift */,
 				AA000000000000000000006A /* DiagnosticsExporter.swift */,
 				AA000000000000000000007C /* VerificationMatrix.swift */,
@@ -192,8 +181,6 @@
 				AA000000000000000000003F /* BrightnessState.swift */,
 				AA000000000000000000003B /* DisplayIdentity.swift */,
 				AA000000000000000000003C /* DimmingMode.swift */,
-				AA000000000000000000003D /* HardwareCapability.swift */,
-				AA0000000000000000000042 /* ProbeStep.swift */,
 				AA0000000000000000000040 /* ScheduleEntry.swift */,
 				AA0000000000000000000043 /* SettingsSnapshot.swift */,
 				AA0000000000000000000041 /* ShortcutBinding.swift */,
@@ -209,7 +196,6 @@
 				AA0000000000000000000058 /* DisplayTargetResolver.swift */,
 				AA0000000000000000000045 /* DisplayTargetStore.swift */,
 				AA0000000000000000000061 /* GammaDimmingController.swift */,
-				AA0000000000000000000068 /* HardwareDDCController.swift */,
 				AA0000000000000000000072 /* HotkeyManager.swift */,
 				AA0000000000000000000078 /* LoginItemController.swift */,
 				AA0000000000000000000060 /* OverlayWindowManager.swift */,
@@ -229,7 +215,6 @@
 				AA000000000000000000004B /* MenuBarStateTests.swift */,
 				AA0000000000000000000055 /* DisplayTargetStoreTests.swift */,
 				AA000000000000000000005B /* SoftwareDimmingControllerTests.swift */,
-				AA0000000000000000000063 /* HardwareDDCControllerTests.swift */,
 				AA000000000000000000006C /* BrightnessControllerTests.swift */,
 				AA0000000000000000000070 /* ScheduleEngineTests.swift */,
 				AA0000000000000000000074 /* HotkeyBindingTests.swift */,
@@ -357,8 +342,6 @@
 				AA0000000000000000000034 /* BrightnessState.swift in Sources */,
 				AA0000000000000000000030 /* DisplayIdentity.swift in Sources */,
 				AA0000000000000000000031 /* DimmingMode.swift in Sources */,
-				AA0000000000000000000032 /* HardwareCapability.swift in Sources */,
-				AA0000000000000000000037 /* ProbeStep.swift in Sources */,
 				AA0000000000000000000035 /* ScheduleEntry.swift in Sources */,
 				AA0000000000000000000038 /* SettingsSnapshot.swift in Sources */,
 				AA0000000000000000000036 /* ShortcutBinding.swift in Sources */,
@@ -369,8 +352,6 @@
 				AA000000000000000000005E /* GammaDimmingController.swift in Sources */,
 				AA000000000000000000005D /* OverlayWindowManager.swift in Sources */,
 				AA000000000000000000005C /* SoftwareDimmingController.swift in Sources */,
-				AA0000000000000000000064 /* HardwareDDCController.swift in Sources */,
-				AA0000000000000000000065 /* CapabilityProbe.swift in Sources */,
 				AA0000000000000000000066 /* DiagnosticsExporter.swift in Sources */,
 				AA000000000000000000006D /* ScheduleEngine.swift in Sources */,
 				AA0000000000000000000071 /* HotkeyManager.swift in Sources */,
@@ -391,7 +372,6 @@
 				AA000000000000000000004A /* MenuBarStateTests.swift in Sources */,
 				AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */,
 				AA000000000000000000005A /* SoftwareDimmingControllerTests.swift in Sources */,
-				AA0000000000000000000062 /* HardwareDDCControllerTests.swift in Sources */,
 				AA000000000000000000006B /* BrightnessControllerTests.swift in Sources */,
 				AA000000000000000000006F /* ScheduleEngineTests.swift in Sources */,
 				AA0000000000000000000073 /* HotkeyBindingTests.swift in Sources */,

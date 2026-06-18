@@ -5,7 +5,6 @@ enum BrightnessCommandSource: String, Codable, Equatable {
     case hotkey
     case schedule
     case startupRestore
-    case diagnosticsProbe
     case forcedSoftwareTest
 }
 

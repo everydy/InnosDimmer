@@ -8,7 +8,6 @@ final class BrightnessStateTests: XCTestCase {
             targetBrightness: 140,
             targetWarmth: -20,
             activeMode: .unknown,
-            hardwareCapability: .notProbed,
             automationPausedUntilNextBoundary: false,
             automationPausedAtMinuteOfDay: nil,
             automationResumeMinuteOfDay: nil,
@@ -18,11 +17,6 @@ final class BrightnessStateTests: XCTestCase {
 
         XCTAssertEqual(state.targetBrightness, 100)
         XCTAssertEqual(state.targetWarmth, 0)
-    }
-
-    func testReadSupportedDoesNotAllowHardwareWrites() {
-        XCTAssertFalse(HardwareCapability.readSupported(current: 50).allowsHardwareWrites)
-        XCTAssertTrue(HardwareCapability.writeReadbackSupported(range: 0...100).allowsHardwareWrites)
     }
 
     func testForcedSoftwareModeDefaultsToFalse() {
@@ -38,7 +32,6 @@ final class BrightnessStateTests: XCTestCase {
             targetBrightness: 80,
             targetWarmth: 12,
             activeMode: .unknown,
-            hardwareCapability: .notProbed,
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: -50,
             automationResumeMinuteOfDay: 2_000,

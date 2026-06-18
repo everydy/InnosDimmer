@@ -84,4 +84,71 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.schedule, ScheduleEntry.defaultSchedule)
         XCTAssertEqual(snapshot.shortcuts, ShortcutBinding.defaultBindings)
     }
+
+    func testDecodesLegacyHardwareSettingsSnapshot() throws {
+        let legacyJSON = """
+        {
+          "schemaVersion": 1,
+          "selectedDisplay": {
+            "cgDisplayID": 42,
+            "localizedName": "INNOS 27QA100M",
+            "vendorNumber": 1,
+            "modelNumber": 2,
+            "serialNumber": 3,
+            "frameDescription": "2560x1440@2x"
+          },
+          "state": {
+            "display": {
+              "cgDisplayID": 42,
+              "localizedName": "INNOS 27QA100M",
+              "vendorNumber": 1,
+              "modelNumber": 2,
+              "serialNumber": 3,
+              "frameDescription": "2560x1440@2x"
+            },
+            "targetBrightness": 45,
+            "targetWarmth": 32,
+            "activeMode": "overlay",
+            "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
+            "lastHardwareProbeResult": null,
+            "automationPausedUntilNextBoundary": true,
+            "automationPausedAtMinuteOfDay": 600,
+            "automationResumeMinuteOfDay": 1140,
+            "lastAppliedCommandSource": "menuSlider",
+            "isForcedSoftwareModeForTesting": false
+          },
+          "schedule": [
+            {
+              "id": "00000000-0000-0000-0000-000000000001",
+              "minuteOfDay": 600,
+              "brightness": 45,
+              "warmth": 32
+            }
+          ],
+          "shortcuts": [
+            {
+              "action": "brightnessDown",
+              "keyCode": 125,
+              "modifiers": 786432,
+              "isEnabled": true
+            }
+          ]
+        }
+        """
+
+        let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: Data(legacyJSON.utf8))
+
+        XCTAssertEqual(decoded.schemaVersion, 1)
+        XCTAssertEqual(decoded.selectedDisplay?.localizedName, "INNOS 27QA100M")
+        XCTAssertEqual(decoded.state.display?.cgDisplayID, 42)
+        XCTAssertEqual(decoded.state.targetBrightness, 45)
+        XCTAssertEqual(decoded.state.targetWarmth, 32)
+        XCTAssertEqual(decoded.state.activeMode, .overlay)
+        XCTAssertTrue(decoded.state.automationPausedUntilNextBoundary)
+        XCTAssertEqual(decoded.state.automationPausedAtMinuteOfDay, 600)
+        XCTAssertEqual(decoded.state.automationResumeMinuteOfDay, 1_140)
+        XCTAssertEqual(decoded.state.lastAppliedCommandSource, .menuSlider)
+        XCTAssertEqual(decoded.schedule.first?.brightness, 45)
+        XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
+    }
 }

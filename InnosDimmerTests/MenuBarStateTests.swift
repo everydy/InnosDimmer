@@ -4,7 +4,6 @@ import XCTest
 
 final class MenuBarStateTests: XCTestCase {
     func testModeLabelsMatchReviewArtifactVocabulary() {
-        XCTAssertEqual(ModeStatusLabel.title(for: .hardwareDDC), "Hardware DDC")
         XCTAssertEqual(ModeStatusLabel.title(for: .overlay), "Overlay active")
         XCTAssertEqual(ModeStatusLabel.title(for: .platformBlocked), "Platform blocked")
         XCTAssertEqual(ModeStatusLabel.title(for: .gamma), "Gamma active")
@@ -17,7 +16,6 @@ final class MenuBarStateTests: XCTestCase {
             targetBrightness: 45,
             targetWarmth: 32,
             activeMode: .overlay,
-            hardwareCapability: .unsupported(reason: "DDC unavailable"),
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: 1_000,
             automationResumeMinuteOfDay: 1_140,
@@ -97,7 +95,6 @@ final class MenuBarStateTests: XCTestCase {
         state.targetBrightness = 45
         state.targetWarmth = 32
         state.activeMode = .overlay
-        state.hardwareCapability = .unsupported(reason: "DDC unavailable")
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
@@ -183,7 +180,6 @@ final class MenuBarStateTests: XCTestCase {
         let software = RecordingSoftwareDimmingStrategy()
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
-        state.hardwareCapability = .unsupported(reason: "DDC unavailable")
         let brightnessController = BrightnessController(
             state: state,
             softwareStrategy: software

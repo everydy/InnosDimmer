@@ -4,10 +4,8 @@ import XCTest
 final class BrightnessControllerTests: XCTestCase {
     @MainActor
     func testAlwaysRoutesCommandsToSoftwareDimming() {
-        var state = BrightnessState.defaultState()
-        state.hardwareCapability = .writeReadbackSupported(range: 0...100)
         let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: state, softwareStrategy: software)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(.fixture(source: .menuSlider))
 
@@ -30,36 +28,14 @@ final class BrightnessControllerTests: XCTestCase {
     }
 
     @MainActor
-    func testSoftwareOnlyModeIgnoresProbeAndReadOnlyHardwareStates() {
-        let softwareCapabilities: [HardwareCapability] = [
-            .probing(startedAt: Date(timeIntervalSince1970: 1)),
-            .readSupported(current: 50)
-        ]
-
-        for capability in softwareCapabilities {
-            var state = BrightnessState.defaultState()
-            state.hardwareCapability = capability
-            let software = RecordingPolicySoftwareDimmingStrategy()
-            let controller = BrightnessController(state: state, softwareStrategy: software)
-
-            controller.apply(.fixture(source: .schedule))
-
-            XCTAssertNil(controller.pendingCommand)
-            XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
-            XCTAssertEqual(software.activationReasons, [.softwareOnly])
-            XCTAssertEqual(controller.state.activeMode, .overlay)
-        }
-    }
-
-    @MainActor
-    func testSoftwareOnlyModeIgnoresHardwareFailureStates() {
-        var state = BrightnessState.defaultState()
-        state.hardwareCapability = .failedWithError(message: "write/readback failed")
+    func testSoftwareOnlyModeRoutesScheduleWithoutCapabilityChecks() {
         let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: state, softwareStrategy: software)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
-        controller.apply(.fixture(source: .hotkey))
+        controller.apply(.fixture(source: .schedule))
 
+        XCTAssertNil(controller.pendingCommand)
+        XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
