@@ -2,7 +2,7 @@
 
 ## MVP State
 
-This local MVP contains the menu bar shell, state model, display target persistence, software-only overlay dimming path, brightness routing, schedule engine, shortcut validation/registration backend, login item wrapper, Settings-window diagnostics export, and verification matrix guardrails.
+This local MVP contains the menu bar shell, state model, display target persistence, software overlay brightness dimming, gamma-based blue reduction, brightness routing, schedule engine, shortcut validation/registration backend, login item wrapper, Settings-window diagnostics export, and verification matrix guardrails.
 
 ## Known Limitations
 
@@ -13,7 +13,7 @@ This local MVP contains the menu bar shell, state model, display target persiste
 - On 2026-06-19, the Release build passed after the reliability implementation.
 - `xcodebuild -scheme InnosDimmer -configuration Release build CODE_SIGNING_ALLOWED=NO` passed on 2026-06-18.
 - The Release app was observed running from the local Xcode build products path on 2026-06-18.
-- Manual smoke QA on 2026-06-18 confirmed menu bar popover opening, visible overlay dimming on `27QA100M`, brightness/warmth command updates, quick disable/restore, Finder-focused brightness shortcut, and settings window opening.
+- Manual smoke QA on 2026-06-18 confirmed menu bar popover opening, visible overlay dimming on `27QA100M`, brightness/blue-reduction command updates, quick disable/restore, Finder-focused brightness shortcut, and settings window opening.
 - A narrow `xcodebuild test -only-testing:InnosDimmerTests/SettingsSnapshotTests/testDecodesLegacyHardwareSettingsSnapshot` run was attempted but interrupted after the Xcode test runner stalled during app launch/finalization.
 - DRM/protected playback must be recorded as pass, partial, or platform-blocked only after local observation.
 

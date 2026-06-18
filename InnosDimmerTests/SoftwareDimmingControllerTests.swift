@@ -7,7 +7,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         let appearance = OverlayAppearance.make(brightness: 45, warmth: 32)
 
         XCTAssertEqual(appearance.blackOpacity, CGFloat(55) / 130.0)
-        XCTAssertEqual(appearance.warmOpacity, CGFloat(32) / 180.0)
+        XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
     func testOverlayAppearanceClampsInputs() {
@@ -22,6 +22,48 @@ final class SoftwareDimmingControllerTests: XCTestCase {
 
         XCTAssertEqual(appearance.blackOpacity, CGFloat(90) / 130.0)
         XCTAssertEqual(appearance.warmOpacity, 0)
+    }
+
+    func testGammaBlueReductionScalesOnlyBlueChannelAndRestoresOriginalTable() throws {
+        let display = DisplayIdentity.fixture(cgDisplayID: 2, localizedName: "27QA100M")
+        let original = GammaTableSnapshot(
+            red: [0, 0.5, 1],
+            green: [0, 0.25, 1],
+            blue: [0, 0.5, 1]
+        )
+        let tableController = RecordingGammaTableController(tables: [display.cgDisplayID: original])
+        let controller = GammaDimmingController(tableController: tableController)
+
+        try controller.apply(display: display, blueReduction: 20)
+
+        XCTAssertEqual(tableController.setCalls.count, 1)
+        let reduced = tableController.setCalls[0].table
+        XCTAssertEqual(reduced.red, original.red)
+        XCTAssertEqual(reduced.green, original.green)
+        XCTAssertEqual(reduced.blue[0], 0, accuracy: 0.0001)
+        XCTAssertEqual(reduced.blue[1], 0.455, accuracy: 0.0001)
+        XCTAssertEqual(reduced.blue[2], 0.91, accuracy: 0.0001)
+        XCTAssertTrue(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
+
+        try controller.clear(display: display)
+
+        XCTAssertEqual(tableController.setCalls.count, 2)
+        XCTAssertEqual(tableController.setCalls[1].table, original)
+        XCTAssertFalse(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
+    }
+
+    func testGammaBlueReductionZeroRestoresOriginalTable() throws {
+        let display = DisplayIdentity.fixture(cgDisplayID: 2, localizedName: "27QA100M")
+        let original = GammaTableSnapshot(red: [0, 1], green: [0, 1], blue: [0, 1])
+        let tableController = RecordingGammaTableController(tables: [display.cgDisplayID: original])
+        let controller = GammaDimmingController(tableController: tableController)
+
+        try controller.apply(display: display, blueReduction: 35)
+        try controller.apply(display: display, blueReduction: 0)
+
+        XCTAssertEqual(tableController.setCalls.count, 2)
+        XCTAssertEqual(tableController.setCalls[1].table, original)
+        XCTAssertFalse(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
     }
 
     func testDisplayInventoryFallsBackToFirstNonMainDisplayWhenNoSavedTarget() {
@@ -146,7 +188,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(controller.lastSoftwareDimmingFailure?.command, failedCommand)
         XCTAssertEqual(
             controller.lastSoftwareDimmingFailure?.message,
-            "Display 404 is not currently available for overlay dimming."
+            "Display 404 is not currently available for software dimming."
         )
     }
 
@@ -169,19 +211,11 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     @MainActor
     func testApplySetsOverlayPanelFrameToDisplayScreenFrame() throws {
         let app = NSApplication.shared
-        guard let screen = NSScreen.screens.first,
-              let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
-            throw XCTSkip("No screen available for overlay frame test")
+        let frame = NSRect(x: 123, y: 456, width: 321, height: 222)
+        let display = DisplayIdentity.fixture(cgDisplayID: 777, localizedName: "Frame Test")
+        let manager = OverlayWindowManager { candidate in
+            candidate.cgDisplayID == display.cgDisplayID ? frame : nil
         }
-        let display = DisplayIdentity(
-            cgDisplayID: displayID.uint32Value,
-            localizedName: screen.localizedName,
-            vendorNumber: nil,
-            modelNumber: nil,
-            serialNumber: nil,
-            frameDescription: "test"
-        )
-        let manager = OverlayWindowManager()
 
         try manager.apply(display: display, brightness: 45, warmth: 32)
         defer {
@@ -192,15 +226,16 @@ final class SoftwareDimmingControllerTests: XCTestCase {
             panel.level == .screenSaver
                 && panel.ignoresMouseEvents
                 && panel.contentView?.layer?.sublayers?.contains { $0.name == "InnosDimmer.dim" } == true
+                && panel.frame.equalTo(frame)
         })
 
-        XCTAssertEqual(overlayPanel.frame.origin.x, screen.frame.origin.x, accuracy: 0.5)
-        XCTAssertEqual(overlayPanel.frame.origin.y, screen.frame.origin.y, accuracy: 0.5)
-        XCTAssertEqual(overlayPanel.frame.size.width, screen.frame.size.width, accuracy: 0.5)
-        XCTAssertEqual(overlayPanel.frame.size.height, screen.frame.size.height, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.origin.x, frame.origin.x, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.origin.y, frame.origin.y, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.size.width, frame.size.width, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.size.height, frame.size.height, accuracy: 0.5)
         let contentView = try XCTUnwrap(overlayPanel.contentView)
-        XCTAssertEqual(contentView.bounds.size.width, screen.frame.size.width, accuracy: 0.5)
-        XCTAssertEqual(contentView.bounds.size.height, screen.frame.size.height, accuracy: 0.5)
+        XCTAssertEqual(contentView.bounds.size.width, frame.size.width, accuracy: 0.5)
+        XCTAssertEqual(contentView.bounds.size.height, frame.size.height, accuracy: 0.5)
     }
 
     @MainActor
@@ -259,6 +294,37 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     }
 
     func clear(display: DisplayIdentity) throws {}
+}
+
+private final class RecordingGammaTableController: GammaTableControlling {
+    struct SetCall {
+        var displayID: CGDirectDisplayID
+        var table: GammaTableSnapshot
+    }
+
+    var tables: [CGDirectDisplayID: GammaTableSnapshot]
+    private(set) var setCalls: [SetCall] = []
+
+    init(tables: [CGDirectDisplayID: GammaTableSnapshot]) {
+        self.tables = tables
+    }
+
+    func capacity(for displayID: CGDirectDisplayID) -> UInt32 {
+        UInt32(tables[displayID]?.red.count ?? 0)
+    }
+
+    func read(displayID: CGDirectDisplayID, capacity: UInt32) throws -> GammaTableSnapshot {
+        _ = capacity
+        guard let table = tables[displayID] else {
+            throw SoftwareDimmingError.applyFailed("missing test gamma table")
+        }
+        return table
+    }
+
+    func set(displayID: CGDirectDisplayID, table: GammaTableSnapshot) throws {
+        setCalls.append(SetCall(displayID: displayID, table: table))
+        tables[displayID] = table
+    }
 }
 
 private extension DisplayIdentity {

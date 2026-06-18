@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startIfNeeded()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        menuBarController?.stop()
+    }
+
     func startIfNeeded() {
         guard !didStart else {
             return

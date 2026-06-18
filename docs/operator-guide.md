@@ -6,15 +6,15 @@ InnosDimmer is built for personal use on macOS with an M1 Mac, direct HDMI, and 
 
 ## Operating Policy
 
-- Use software overlay dimming as the primary and only user-facing dimming path.
+- Use software overlay dimming for perceived brightness and gamma-based blue reduction for blue-light control.
 - Do not attempt to change the monitor's hardware brightness in normal operation.
-- Apply brightness, warmth, schedule, quick disable, and restore commands immediately through the overlay.
+- Apply brightness, blue reduction, schedule, quick disable, and restore commands immediately through the software dimming path.
 - Keep platform-blocked states visible.
 - Do not intercept native brightness/media keys in the MVP; use custom global shortcuts.
 
 ## Default Schedule
 
-| Time | Brightness | Warmth |
+| Time | Brightness | Blue reduction |
 | --- | ---: | ---: |
 | 09:00 | 80 | 12 |
 | 19:00 | 45 | 32 |
@@ -28,8 +28,8 @@ Manual changes pause automation until the next schedule boundary.
 | --- | --- |
 | Brightness up | Option + Shift + Up |
 | Brightness down | Option + Shift + Down |
-| Warmth up | Option + Shift + Right |
-| Warmth down | Option + Shift + Left |
+| Blue reduction up | Option + Shift + Right |
+| Blue reduction down | Option + Shift + Left |
 | Quick disable overlay | Option + Shift + 0 |
 | Restore previous dimming | Option + Shift + R |
 
@@ -47,7 +47,7 @@ Latest implementation verification on 2026-06-18:
 - Debug `build-for-testing`: passed.
 - Release build: passed.
 - Release app launch: process observed running from `Build/Products/Release/InnosDimmer.app`.
-- Manual smoke QA: popover opened on `27QA100M`; brightness/warmth controls, quick disable/restore, Finder-focused brightness shortcut, and settings window opening were verified.
+- Manual smoke QA: popover opened on `27QA100M`; brightness/blue-reduction controls, quick disable/restore, Finder-focused brightness shortcut, and settings window opening were verified.
 - Narrow `xcodebuild test -only-testing` was attempted, but the Xcode test runner stalled during app launch/finalization and was interrupted.
 
 Latest reliability implementation verification on 2026-06-19:

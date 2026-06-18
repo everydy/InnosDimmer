@@ -201,7 +201,7 @@ final class SettingsWindowController: NSWindowController {
         let header = NSStackView(views: [
             fixedLabel("Time", width: Layout.fieldWidth),
             fixedLabel("Brightness", width: Layout.fieldWidth),
-            fixedLabel("Warmth", width: Layout.fieldWidth)
+            fixedLabel("Blue", width: Layout.fieldWidth)
         ])
         header.orientation = .horizontal
         header.spacing = 8
@@ -506,7 +506,7 @@ final class SettingsWindowController: NSWindowController {
                 throw SettingsFormError.invalidPercent(row: index + 1, field: "brightness")
             }
             guard let warmth = Int(controls.warmth.stringValue), (0...100).contains(warmth) else {
-                throw SettingsFormError.invalidPercent(row: index + 1, field: "warmth")
+                throw SettingsFormError.invalidPercent(row: index + 1, field: "blue reduction")
             }
 
             return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, warmth: warmth)
@@ -594,7 +594,7 @@ final class SettingsWindowController: NSWindowController {
 
     private static func sortedScheduleLabels(_ schedule: [ScheduleEntry]) -> [String] {
         SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)%/\(entry.warmth)"
+            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / blue \(entry.warmth)%"
         }
     }
 
@@ -625,9 +625,9 @@ final class SettingsWindowController: NSWindowController {
         case .brightnessDown:
             return "Brightness down"
         case .warmthUp:
-            return "Warmth up"
+            return "Blue reduction up"
         case .warmthDown:
-            return "Warmth down"
+            return "Blue reduction down"
         case .quickDisableOverlay:
             return "Quick disable overlay"
         case .restorePreviousDimming:

@@ -97,6 +97,7 @@ final class MenuBarController: NSObject {
     }
 
     func stop() {
+        brightnessController.clearCurrentSoftwareState()
         stopHotkeys()
         scheduleTimerController.invalidate()
         runtimeBoundaryReconcileTask?.cancel()
@@ -403,15 +404,24 @@ final class MenuBarController: NSObject {
     @discardableResult
     private func resolveFreshDisplay(activeDisplays: [DisplayIdentity]? = nil) -> DisplayIdentity? {
         let candidates = activeDisplays ?? displayInventory.activeDisplays()
+        let snapshot = displayTargetStore.load()
+        let resolved = displayInventory.resolveSelectedDisplay(
+            saved: snapshot.selectedDisplay,
+            candidates: candidates
+        )
+
         if let current = brightnessController.state.display,
-           candidates.contains(where: { $0.cgDisplayID == current.cgDisplayID }) {
-            return current
+           let activeCurrent = candidates.first(where: { $0.cgDisplayID == current.cgDisplayID }),
+           resolved?.cgDisplayID == activeCurrent.cgDisplayID {
+            if activeCurrent != current {
+                var state = brightnessController.state
+                state.display = activeCurrent
+                brightnessController.applyPreviewState(state)
+            }
+            return activeCurrent
         }
 
-        guard let display = displayInventory.resolveSelectedDisplay(
-            saved: displayTargetStore.load().selectedDisplay,
-            candidates: candidates
-        ) else {
+        guard let display = resolved else {
             var state = brightnessController.state
             state.display = nil
             brightnessController.applyPreviewState(state)
@@ -490,7 +500,7 @@ final class MenuBarController: NSObject {
 
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
-        record(.schedule, "Applied scheduled brightness \(entry.brightness)% warmth \(entry.warmth)%")
+        record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.warmth)%")
         refreshPopover()
     }
 
@@ -661,7 +671,7 @@ final class MenuBarController: NSObject {
         let state = brightnessController.state
         record(
             Self.diagnosticsCategory(for: state.activeMode),
-            "Applied brightness \(state.targetBrightness)% warmth \(state.targetWarmth)% on \(command.display.localizedName)",
+            "Applied brightness \(state.targetBrightness)% blue reduction \(state.targetWarmth)% on \(command.display.localizedName)",
             Self.diagnosticsSeverity(for: state.activeMode)
         )
 

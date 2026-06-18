@@ -8,10 +8,10 @@ struct OverlayAppearance: Equatable {
     static func make(brightness: Int, warmth: Int) -> OverlayAppearance {
         let clampedBrightness = Clamped.percent(brightness)
         let visualBrightness = max(minimumVisibleBrightness, clampedBrightness)
-        let clampedWarmth = Clamped.percent(warmth)
+        _ = warmth
         return OverlayAppearance(
             blackOpacity: CGFloat(100 - visualBrightness) / 130.0,
-            warmOpacity: CGFloat(clampedWarmth) / 180.0
+            warmOpacity: 0
         )
     }
 }

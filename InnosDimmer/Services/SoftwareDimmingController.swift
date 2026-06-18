@@ -14,7 +14,7 @@ enum SoftwareDimmingError: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .displayUnavailable(let displayID):
-            return "Display \(displayID) is not currently available for overlay dimming."
+            return "Display \(displayID) is not currently available for software dimming."
         case .platformBlocked(let reason), .applyFailed(let reason):
             return reason
         }
@@ -49,7 +49,13 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
 
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
         _ = reason
-        try overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: command.warmth)
+        try gammaDimmingController.apply(display: command.display, blueReduction: command.warmth)
+        do {
+            try overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: 0)
+        } catch {
+            try? gammaDimmingController.clear(display: command.display)
+            throw error
+        }
     }
 
     func clear(display: DisplayIdentity) throws {
@@ -59,5 +65,6 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
 
     func clearStalePanels(activeDisplayIDs: Set<UInt32>) {
         overlayWindowManager.clearPanels(excluding: activeDisplayIDs)
+        gammaDimmingController.clearTables(excluding: activeDisplayIDs)
     }
 }

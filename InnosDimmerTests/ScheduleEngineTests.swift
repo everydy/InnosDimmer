@@ -185,7 +185,7 @@ final class ScheduleRuntimeTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerAppliesScheduleAtStartupAndTimerBoundary() {
+    func testMenuBarControllerAppliesScheduleAtStartupAndTimerBoundary() throws {
         var currentMinute = 1_130
         let factory = RecordingScheduleTimerFactory()
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
@@ -196,6 +196,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            displayTargetStore: try makeScheduleRuntimeStore(state: state),
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
         )
@@ -220,18 +221,20 @@ final class ScheduleRuntimeTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerDoesNotMarkFailedScheduleCommandApplied() {
+    func testMenuBarControllerDoesNotMarkFailedScheduleCommandApplied() throws {
         let currentMinute = 1_130
         let factory = RecordingScheduleTimerFactory()
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
         var state = BrightnessState.defaultState()
         state.display = .scheduleRuntimeTestDisplay
+        state.lastAppliedCommandSource = .menuSlider
         let software = RecordingScheduleSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(404))
         let brightnessController = BrightnessController(state: state, softwareStrategy: software)
         let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            displayTargetStore: try makeScheduleRuntimeStore(state: state),
             diagnosticsStore: diagnosticsStore,
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
@@ -244,14 +247,14 @@ final class ScheduleRuntimeTests: XCTestCase {
         XCTAssertEqual(brightnessController.state.targetWarmth, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertFalse(diagnosticsStore.events.contains { event in
-            event.message == "Applied scheduled brightness 80% warmth 12%"
+            event.message == "Applied scheduled brightness 80% blue reduction 12%"
         })
         XCTAssertEqual(diagnosticsStore.latestEvent?.category, .softwareDimming)
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .error)
     }
 
     @MainActor
-    func testManualCommandPausesScheduleUntilNextBoundaryThenTimerResumesAutomation() {
+    func testManualCommandPausesScheduleUntilNextBoundaryThenTimerResumesAutomation() throws {
         var currentMinute = 1_000
         let factory = RecordingScheduleTimerFactory()
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
@@ -262,6 +265,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            displayTargetStore: try makeScheduleRuntimeStore(state: state),
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
         )
@@ -291,7 +295,7 @@ final class ScheduleRuntimeTests: XCTestCase {
     }
 
     @MainActor
-    func testHotkeyRegistrationDoesNotDisableScheduleRuntime() {
+    func testHotkeyRegistrationDoesNotDisableScheduleRuntime() throws {
         let currentMinute = 1_000
         let factory = RecordingScheduleTimerFactory()
         let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
@@ -302,6 +306,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            displayTargetStore: try makeScheduleRuntimeStore(state: state),
             hotkeyRegistrationBackend: hotkeyBackend,
             scheduleTimerController: scheduleTimer,
             currentMinuteOfDay: { currentMinute }
@@ -319,6 +324,17 @@ final class ScheduleRuntimeTests: XCTestCase {
         XCTAssertTrue(brightnessController.state.automationPausedUntilNextBoundary)
         XCTAssertEqual(brightnessController.state.automationResumeMinuteOfDay, 1_140)
     }
+}
+
+private func makeScheduleRuntimeStore(state: BrightnessState) throws -> DisplayTargetStore {
+    let suiteName = "InnosDimmer.ScheduleRuntimeTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    let store = DisplayTargetStore(defaults: defaults, key: "SettingsSnapshot")
+    var snapshot = SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay(.scheduleRuntimeTestDisplay)
+    snapshot.state = state
+    try store.save(snapshot)
+    return store
 }
 
 @MainActor

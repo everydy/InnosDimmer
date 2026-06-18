@@ -60,7 +60,7 @@ struct MenuBarViewModel: Equatable {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)%/\(entry.warmth)"
+            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / blue \(entry.warmth)%"
         }
         guard !labels.isEmpty else {
             return "Schedule: Not configured"
@@ -180,12 +180,12 @@ final class MenuBarPopoverView: NSView {
         ].forEach(Self.configureWrappingLabel)
 
         let brightnessTitle = NSTextField(labelWithString: "Brightness")
-        let warmthTitle = NSTextField(labelWithString: "Warmth")
+        let warmthTitle = NSTextField(labelWithString: "Blue reduction")
         let pauseButton = button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
         let brightnessDownButton = button("Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed))
         let brightnessUpButton = button("Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))
-        let warmthDownButton = button("Warmth down", command: .warmthDown, action: #selector(warmthDownPressed))
-        let warmthUpButton = button("Warmth up", command: .warmthUp, action: #selector(warmthUpPressed))
+        let warmthDownButton = button("Blue reduction down", command: .warmthDown, action: #selector(warmthDownPressed))
+        let warmthUpButton = button("Blue reduction up", command: .warmthUp, action: #selector(warmthUpPressed))
         let quickDisableButton = button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed))
         let restorePreviousButton = button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
         let appWindowButton = button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed))
@@ -298,7 +298,7 @@ struct AppDashboardViewModel: Equatable {
     ) {
         displayLine = state.display.map { "Display: \($0.localizedName)" } ?? "Display: Not selected"
         modeLine = "Mode: \(ModeStatusLabel.title(for: state.activeMode))"
-        brightnessLine = "Brightness: \(state.targetBrightness)% / Warmth: \(state.targetWarmth)%"
+        brightnessLine = "Brightness: \(state.targetBrightness)% / Blue reduction: \(state.targetWarmth)%"
         if state.automationPausedUntilNextBoundary {
             automationLine = state.automationResumeMinuteOfDay.map {
                 "Automation: paused until \(Self.timeLabel(for: $0))"

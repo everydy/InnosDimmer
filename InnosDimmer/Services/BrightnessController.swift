@@ -52,6 +52,30 @@ final class BrightnessController {
         softwareStrategy.clearStalePanels(activeDisplayIDs: activeDisplayIDs)
     }
 
+    func clearCurrentSoftwareState() {
+        guard let display = state.display else {
+            return
+        }
+
+        do {
+            try softwareStrategy.clear(display: display)
+            lastSoftwareDimmingFailure = nil
+            state.activeMode = .unknown
+        } catch {
+            let command = BrightnessCommand(
+                display: display,
+                brightness: state.targetBrightness,
+                warmth: state.targetWarmth,
+                source: state.lastAppliedCommandSource ?? .startupRestore
+            )
+            lastSoftwareDimmingFailure = SoftwareDimmingFailure(
+                command: command,
+                message: errorMessage(from: error)
+            )
+            state.activeMode = .platformBlocked
+        }
+    }
+
     private func applySoftware(_ command: BrightnessCommand, reason: SoftwareActivationReason) {
         do {
             try softwareStrategy.apply(command, reason: reason)

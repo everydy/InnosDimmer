@@ -66,6 +66,25 @@ final class BrightnessControllerTests: XCTestCase {
 
         XCTAssertEqual(software.activeDisplayIDCalls, [[1, 2]])
     }
+
+    @MainActor
+    func testClearCurrentSoftwareStateRestoresCurrentDisplay() {
+        let command = BrightnessCommand.fixture(source: .menuSlider)
+        let software = RecordingPolicySoftwareDimmingStrategy()
+        var state = BrightnessState.defaultState()
+        state.display = command.display
+        state.targetBrightness = command.brightness
+        state.targetWarmth = command.warmth
+        state.activeMode = .overlay
+        state.lastAppliedCommandSource = command.source
+        let controller = BrightnessController(state: state, softwareStrategy: software)
+
+        controller.clearCurrentSoftwareState()
+
+        XCTAssertEqual(software.clearedDisplays, [command.display])
+        XCTAssertEqual(controller.state.activeMode, .unknown)
+        XCTAssertNil(controller.lastSoftwareDimmingFailure)
+    }
 }
 
 @MainActor
@@ -73,13 +92,16 @@ private final class RecordingPolicySoftwareDimmingStrategy: SoftwareDimmingStrat
     private(set) var appliedCommands: [BrightnessCommand] = []
     private(set) var activationReasons: [SoftwareActivationReason] = []
     private(set) var activeDisplayIDCalls: [Set<UInt32>] = []
+    private(set) var clearedDisplays: [DisplayIdentity] = []
 
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
         appliedCommands.append(command)
         activationReasons.append(reason)
     }
 
-    func clear(display: DisplayIdentity) throws {}
+    func clear(display: DisplayIdentity) throws {
+        clearedDisplays.append(display)
+    }
 
     func clearStalePanels(activeDisplayIDs: Set<UInt32>) {
         activeDisplayIDCalls.append(activeDisplayIDs)

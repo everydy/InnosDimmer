@@ -100,7 +100,7 @@ final class HotkeyBindingTests: XCTestCase {
 
 final class MenuBarHotkeyRoutingTests: XCTestCase {
     @MainActor
-    func testMenuBarControllerRegistersDefaultHotkeysOnStart() {
+    func testMenuBarControllerRegistersDefaultHotkeysOnStart() throws {
         var state = BrightnessState.defaultState()
         state.display = .hotkeyTestDisplay
         let brightnessController = BrightnessController(state: state)
@@ -108,8 +108,11 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         let backend = RecordingHotkeyRegistrationBackend()
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingHotkeyDisplayInventory(displays: [.hotkeyTestDisplay]),
+            displayTargetStore: try makePausedHotkeyStore(),
             diagnosticsStore: diagnosticsStore,
-            hotkeyRegistrationBackend: backend
+            hotkeyRegistrationBackend: backend,
+            currentMinuteOfDay: { 0 }
         )
 
         menuBarController.start()
@@ -121,7 +124,7 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRoutesHotkeysThroughSharedCommands() async {
+    func testMenuBarControllerRoutesHotkeysThroughSharedCommands() async throws {
         var state = BrightnessState.defaultState()
         state.display = .hotkeyTestDisplay
         let software = RecordingHotkeySoftwareDimmingStrategy()
@@ -129,9 +132,14 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         let backend = RecordingHotkeyRegistrationBackend()
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
-            hotkeyRegistrationBackend: backend
+            displayInventory: RecordingHotkeyDisplayInventory(displays: [.hotkeyTestDisplay]),
+            displayTargetStore: try makePausedHotkeyStore(),
+            hotkeyRegistrationBackend: backend,
+            currentMinuteOfDay: { 0 }
         )
         menuBarController.start()
+        software.reset()
+        brightnessController.applyPreviewState(state)
 
         backend.trigger(.brightnessUp)
         await Task.yield()
@@ -152,7 +160,7 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRoutesQuickDisableAndRestoreHotkeys() async {
+    func testMenuBarControllerRoutesQuickDisableAndRestoreHotkeys() async throws {
         var state = BrightnessState.defaultState()
         state.display = .hotkeyTestDisplay
         let software = RecordingHotkeySoftwareDimmingStrategy()
@@ -160,9 +168,14 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         let backend = RecordingHotkeyRegistrationBackend()
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
-            hotkeyRegistrationBackend: backend
+            displayInventory: RecordingHotkeyDisplayInventory(displays: [.hotkeyTestDisplay]),
+            displayTargetStore: try makePausedHotkeyStore(),
+            hotkeyRegistrationBackend: backend,
+            currentMinuteOfDay: { 0 }
         )
         menuBarController.start()
+        software.reset()
+        brightnessController.applyPreviewState(state)
 
         backend.trigger(.quickDisableOverlay)
         await Task.yield()
@@ -181,13 +194,16 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRecordsHotkeyRegistrationFailure() {
+    func testMenuBarControllerRecordsHotkeyRegistrationFailure() throws {
         let backend = RecordingHotkeyRegistrationBackend()
         backend.errorToThrow = HotkeyManagerError.registrationFailed(status: -9876)
         let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
         let menuBarController = MenuBarController(
+            displayInventory: RecordingHotkeyDisplayInventory(displays: [.hotkeyTestDisplay]),
+            displayTargetStore: try makePausedHotkeyStore(),
             diagnosticsStore: diagnosticsStore,
-            hotkeyRegistrationBackend: backend
+            hotkeyRegistrationBackend: backend,
+            currentMinuteOfDay: { 0 }
         )
 
         menuBarController.start()
@@ -304,6 +320,26 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
     }
 }
 
+private final class RecordingHotkeyDisplayInventory: DisplayInventoryProviding {
+    var displays: [DisplayIdentity]
+
+    init(displays: [DisplayIdentity]) {
+        self.displays = displays
+    }
+
+    func activeDisplays() -> [DisplayIdentity] {
+        displays
+    }
+
+    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+        DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: candidates,
+            mainDisplayID: 999
+        )
+    }
+}
+
 private final class RecordingHotkeyRegistrationBackend: HotkeyRegistrationBackend {
     private(set) var registeredBindings: [ShortcutBinding]?
     var errorToThrow: Error?
@@ -336,6 +372,26 @@ private final class RecordingHotkeySoftwareDimmingStrategy: SoftwareDimmingStrat
     }
 
     func clear(display: DisplayIdentity) throws {}
+
+    func reset() {
+        appliedCommands.removeAll()
+    }
+}
+
+private func makePausedHotkeyStore() throws -> DisplayTargetStore {
+    let suiteName = "InnosDimmer.HotkeyBindingTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    let store = DisplayTargetStore(defaults: defaults, key: "SettingsSnapshot")
+    var state = BrightnessState.defaultState()
+    state.display = .hotkeyTestDisplay
+    state.automationPausedUntilNextBoundary = true
+    state.automationPausedAtMinuteOfDay = 0
+    state.automationResumeMinuteOfDay = 1_439
+    var snapshot = SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay(.hotkeyTestDisplay)
+    snapshot.state = state
+    try store.save(snapshot)
+    return store
 }
 
 private extension DisplayIdentity {

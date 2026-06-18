@@ -7,7 +7,7 @@ Latest automation-side evidence on 2026-06-18:
 - Debug `build-for-testing`: passed.
 - Release build: passed.
 - Release app launch: `InnosDimmer` process observed running from the Release build path.
-- Manual smoke QA on the external `27QA100M` display: popover opened, overlay state was visible, brightness/warmth controls updated state and diagnostics, quick disable/restore worked, Finder-focused global brightness shortcut worked, settings window opened.
+- Manual smoke QA on the external `27QA100M` display: popover opened, overlay state was visible, brightness/blue-reduction controls updated state and diagnostics, quick disable/restore worked, Finder-focused global brightness shortcut worked, settings window opened.
 - 2026-06-19 Debug `build-for-testing` passed after adding explicit overlay failure diagnostics, stale display resolution, reconnect debounce, Settings diagnostics export, and pending-preview cleanup.
 - 2026-06-19 Release build passed after the reliability implementation.
 - Scenario rows below remain `not tested` until a human-visible note confirms that exact scenario.
@@ -35,12 +35,12 @@ Latest automation-side evidence on 2026-06-18:
 - Overlay panels are configured as non-opaque, click-through, all-Spaces, stationary windows.
 - Overlay appearance computes separate black dimming opacity and warm tint opacity.
 - Hardware DDC/probe source files are removed from the app target; old settings with hardware-era extra keys are covered by a legacy decode test in source.
-- Manual controls verified on 2026-06-18: `Brightness down`, `Warmth up`, `Quick disable`, and `Restore previous`.
+- Manual controls verified on 2026-06-18: `Brightness down`, `Blue reduction up`, `Quick disable`, and `Restore previous`.
 - Diagnostics export is available from `Settings` -> `Export diagnostics`; manual file-save verification is still pending.
 
 ## Shortcut Checks
 
-- Default shortcut bindings cover brightness up/down, warmth up/down, quick disable, and restore previous dimming.
+- Default shortcut bindings cover brightness up/down, blue reduction up/down, quick disable, and restore previous dimming.
 - Enabled duplicate shortcuts are validation errors; disabled duplicates are ignored.
 - Unsafe bindings without an anchor modifier plus Shift are rejected before registration.
 - Native brightness/media key interception remains out of MVP scope.

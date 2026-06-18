@@ -39,7 +39,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.warmthLabel, "32%")
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
-        XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 10:00 70%/20")
+        XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 10:00 70% / blue 20%")
         XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 5 enabled")
         XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active")
     }
@@ -50,7 +50,7 @@ final class MenuBarStateTests: XCTestCase {
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
-            message: "Applied brightness 45% warmth 32% on INNOS 27QA100M",
+            message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
             severity: .info
         )
 
@@ -59,7 +59,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.displaySummary, "Display: INNOS 27QA100M")
         XCTAssertEqual(
             viewModel.diagnosticsSummary,
-            "Diagnostics: Software dimming ready. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
+            "Diagnostics: Software dimming ready. Last: Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
         )
     }
 
@@ -99,7 +99,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(viewModel.displayLine, "Display: INNOS 27QA100M")
         XCTAssertEqual(viewModel.modeLine, "Mode: Overlay active")
-        XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Warmth: 20%")
+        XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Blue reduction: 20%")
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
         XCTAssertTrue(viewModel.diagnosticsLog.contains("ERROR softwareDimming: Overlay platform blocked"))
         XCTAssertTrue(viewModel.diagnosticsLog.contains("WARNING display: No eligible external display found"))
@@ -150,7 +150,7 @@ final class MenuBarStateTests: XCTestCase {
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
-            message: "Applied brightness 45% warmth 32% on INNOS 27QA100M",
+            message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
             severity: .info
         )
 
@@ -168,21 +168,25 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(view.displaySummaryForTesting(), "Display: INNOS 27QA100M")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
-        XCTAssertEqual(view.scheduleSummaryForTesting(), "Schedule: 10:15 66%/21")
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "Schedule: 10:15 66% / blue 21%")
         XCTAssertEqual(view.shortcutSummaryForTesting(), "Shortcuts: 5 enabled")
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
-            "Diagnostics: Overlay active. Last: Applied brightness 45% warmth 32% on INNOS 27QA100M"
+            "Diagnostics: Overlay active. Last: Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
         )
     }
 
     @MainActor
-    func testMenuBarControllerRoutesDimmingCommandsThroughBrightnessController() {
+    func testMenuBarControllerRoutesDimmingCommandsThroughBrightnessController() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         let software = RecordingSoftwareDimmingStrategy()
         let brightnessController = BrightnessController(state: state, softwareStrategy: software)
-        let menuBarController = MenuBarController(brightnessController: brightnessController)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
 
         menuBarController.perform(.brightnessUp)
 
@@ -202,12 +206,16 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRoutesQuickDisableAndRestoreThroughBrightnessController() {
+    func testMenuBarControllerRoutesQuickDisableAndRestoreThroughBrightnessController() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         let software = RecordingSoftwareDimmingStrategy()
         let brightnessController = BrightnessController(state: state, softwareStrategy: software)
-        let menuBarController = MenuBarController(brightnessController: brightnessController)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
 
         menuBarController.perform(.quickDisable)
 
@@ -224,7 +232,7 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRecordsDiagnosticsForAppliedCommand() {
+    func testMenuBarControllerRecordsDiagnosticsForAppliedCommand() throws {
         let software = RecordingSoftwareDimmingStrategy()
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
@@ -235,6 +243,8 @@ final class MenuBarStateTests: XCTestCase {
         let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
             diagnosticsStore: diagnosticsStore
         )
 
@@ -243,7 +253,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [75])
         XCTAssertTrue(diagnosticsStore.events.contains { event in
             event.category == .softwareDimming
-                && event.message == "Applied brightness 75% warmth 12% on INNOS 27QA100M"
+                && event.message == "Applied brightness 75% blue reduction 12% on INNOS 27QA100M"
         })
         XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Software dimming active for INNOS 27QA100M")
     }
@@ -261,7 +271,7 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerRecordsSoftwareFailureInsteadOfAppliedCommand() {
+    func testMenuBarControllerRecordsSoftwareFailureInsteadOfAppliedCommand() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(404))
@@ -269,6 +279,8 @@ final class MenuBarStateTests: XCTestCase {
         let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
             diagnosticsStore: diagnosticsStore
         )
 
@@ -342,7 +354,7 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testMenuBarControllerDoesNotApplyCommandToMainDisplayWhenExternalTargetIsMissing() {
+    func testMenuBarControllerDoesNotApplyCommandToMainDisplayWhenExternalTargetIsMissing() throws {
         let mainDisplay = DisplayIdentity(
             cgDisplayID: 1,
             localizedName: "Built-in Display",
@@ -359,6 +371,7 @@ final class MenuBarStateTests: XCTestCase {
         let menuBarController = MenuBarController(
             brightnessController: brightnessController,
             displayInventory: RecordingDisplayInventory(displays: [mainDisplay], mainDisplayID: mainDisplay.cgDisplayID),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
             diagnosticsStore: diagnosticsStore
         )
 
@@ -371,11 +384,31 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Skipped dimming command because no display is selected")
     }
 
+    @MainActor
+    func testMenuBarControllerStopClearsCurrentSoftwareState() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.activeMode = .overlay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
+
+        menuBarController.stop()
+
+        XCTAssertEqual(software.clearedDisplays, [.menuBarTestDisplay])
+        XCTAssertEqual(brightnessController.state.activeMode, .unknown)
+    }
+
 }
 
 @MainActor
 private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
+    private(set) var clearedDisplays: [DisplayIdentity] = []
     var error: Error?
 
     init(error: Error? = nil) {
@@ -389,7 +422,9 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
         appliedCommands.append(command)
     }
 
-    func clear(display: DisplayIdentity) throws {}
+    func clear(display: DisplayIdentity) throws {
+        clearedDisplays.append(display)
+    }
 }
 
 private final class RecordingDisplayInventory: DisplayInventoryProviding {
