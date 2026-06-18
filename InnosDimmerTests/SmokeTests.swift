@@ -12,4 +12,9 @@ final class SmokeTests: XCTestCase {
         XCTAssertEqual(NSApp.activationPolicy(), .accessory)
         XCTAssertNotNil(delegate.menuBarControllerForTesting)
     }
+
+    @MainActor
+    func testAppEntryPointRetainsSharedAppDelegate() {
+        XCTAssertTrue(InnosDimmerApp.appDelegateForTesting === InnosDimmerApp.appDelegateForTesting)
+    }
 }

@@ -72,7 +72,9 @@ final class MenuBarController: NSObject {
         _ = stateResolvingSelectedDisplayIfNeeded()
         applyScheduleDecision()
         let initialState = brightnessController.state
-        statusItem.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "InnosDimmer")
+        statusItem.length = NSStatusItem.variableLength
+        statusItem.button?.title = "☀"
+        statusItem.button?.toolTip = "InnosDimmer"
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
         popover.behavior = .transient
