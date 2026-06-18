@@ -38,8 +38,16 @@ Manual changes pause automation until the next schedule boundary.
 1. Run the Debug verification command from the README.
 2. Build the Release app from the README.
 3. Launch the Release app locally.
-3. Complete `docs/qa-matrix.md` with notes for every row.
-4. Export diagnostics after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
+4. Confirm the `InnosDimmer` process is running from the Release build path.
+5. Complete `docs/qa-matrix.md` with notes for every row.
+6. Export diagnostics after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
+
+Latest implementation verification on 2026-06-18:
+
+- Debug `build-for-testing`: passed.
+- Release build: passed.
+- Release app launch: process observed running from `Build/Products/Release/InnosDimmer.app`.
+- Narrow `xcodebuild test -only-testing` was attempted, but the Xcode test runner stalled during app launch/finalization and was interrupted.
 
 ## No Package Dependency Policy
 

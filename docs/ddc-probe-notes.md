@@ -1,6 +1,6 @@
 # DDC Probe Notes
 
-Status: archived internal reference. The current user-facing app is software-overlay only and does not expose DDC probing or hardware brightness control in normal operation.
+Status: archived internal reference. The current user-facing app is software-overlay only and does not expose DDC probing or hardware brightness control in normal operation. The active DDC/probe source files have been removed from the app target and repository source tree.
 
 This document records the earlier DDC probe design. It is not current runtime policy. The active app should not call DDC probe or hardware brightness paths during normal operation.
 
@@ -24,9 +24,9 @@ This document records the earlier DDC probe design. It is not current runtime po
 
 ## Current Adapter
 
-`NoopDDCAdapter` was the default adapter for the archived DDC state machine and always failed reads/writes. This prevented accidental monitor writes before a real IOKit adapter could be reviewed.
+`NoopDDCAdapter` was the default adapter for the archived DDC state machine and always failed reads/writes. This prevented accidental monitor writes before a real IOKit adapter could be reviewed. It is no longer present in the active source tree.
 
-The active software-only runtime no longer routes brightness commands through `HardwareDDCController`.
+The active software-only runtime no longer routes brightness commands through `HardwareDDCController`, and that controller source has been deleted.
 
 ## M1 Direct HDMI Notes
 

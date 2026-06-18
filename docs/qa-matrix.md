@@ -1,6 +1,13 @@
 # InnosDimmer QA Matrix
 
-This matrix tracks requested dimming contexts. Manual visual QA remains pending until the app is run locally against the user's M1 HDMI INNOS setup.
+This matrix tracks requested dimming contexts. Manual visual QA remains pending until the app is exercised against the user's M1 HDMI INNOS setup.
+
+Latest automation-side evidence on 2026-06-18:
+
+- Debug `build-for-testing`: passed.
+- Release build: passed.
+- Release app launch: `InnosDimmer` process observed running from the Release build path.
+- Scenario rows below remain `not tested` until a human-visible note confirms the actual screen behavior.
 
 | Scenario | Current status | Evidence required |
 | --- | --- | --- |
@@ -24,6 +31,7 @@ This matrix tracks requested dimming contexts. Manual visual QA remains pending 
 - Diagnostics can force software mode through `forcedSoftwareTest`.
 - Overlay panels are configured as non-opaque, click-through, all-Spaces, stationary windows.
 - Overlay appearance computes separate black dimming opacity and warm tint opacity.
+- Hardware DDC/probe source files are removed from the app target; old settings with hardware-era extra keys are covered by a legacy decode test in source.
 
 ## Shortcut Checks
 
