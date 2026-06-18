@@ -19,8 +19,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         didStart = true
+        terminateOtherRunningInstances()
         NSApp.setActivationPolicy(.accessory)
         menuBarController = MenuBarController()
         menuBarController?.start()
+    }
+
+    private func terminateOtherRunningInstances() {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
+            return
+        }
+
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+            where app.processIdentifier != currentPID {
+            app.terminate()
+        }
     }
 }
