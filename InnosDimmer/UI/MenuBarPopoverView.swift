@@ -1,5 +1,23 @@
 import AppKit
 
+enum MenuBarCommand: CaseIterable, Equatable, Hashable {
+    case brightnessDown
+    case brightnessUp
+    case warmthDown
+    case warmthUp
+    case probeDDC
+    case pauseAutomation
+    case quickDisable
+    case restorePrevious
+    case openSettings
+}
+
+struct MenuBarActions {
+    var perform: @MainActor (MenuBarCommand) -> Void
+
+    static let noop = MenuBarActions { _ in }
+}
+
 struct MenuBarViewModel: Equatable {
     var modeTitle: String
     var brightnessLabel: String
@@ -52,16 +70,19 @@ struct MenuBarViewModel: Equatable {
 
 final class MenuBarPopoverView: NSView {
     private let modeBadge: StatusBadgeView
+    private let actions: MenuBarActions
     private let brightnessValueLabel = NSTextField(labelWithString: "")
     private let warmthValueLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
     private let shortcutSummaryLabel = NSTextField(labelWithString: "")
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
+    private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
-    init(state: BrightnessState) {
+    init(state: BrightnessState, actions: MenuBarActions = .noop) {
         modeBadge = StatusBadgeView(mode: state.activeMode)
-        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 220))
+        self.actions = actions
+        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 300))
         buildLayout()
         update(state: state)
     }
@@ -81,17 +102,25 @@ final class MenuBarPopoverView: NSView {
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
     }
 
+    func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
+        commandButtons[command]
+    }
+
     private func buildLayout() {
         let title = NSTextField(labelWithString: "INNOS 27QA100M")
         title.font = .systemFont(ofSize: 16, weight: .semibold)
 
         let brightnessTitle = NSTextField(labelWithString: "Brightness")
         let warmthTitle = NSTextField(labelWithString: "Warmth")
-        let probeButton = NSButton(title: "DDC Probe", target: nil, action: nil)
-        let pauseButton = NSButton(title: "Pause automation", target: nil, action: nil)
-        let brightnessDownButton = NSButton(title: "Brightness down", target: nil, action: nil)
-        let brightnessUpButton = NSButton(title: "Brightness up", target: nil, action: nil)
-        let settingsButton = NSButton(title: "Settings", target: nil, action: nil)
+        let probeButton = button("DDC Probe", command: .probeDDC, action: #selector(probeDDCPressed))
+        let pauseButton = button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+        let brightnessDownButton = button("Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed))
+        let brightnessUpButton = button("Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))
+        let warmthDownButton = button("Warmth down", command: .warmthDown, action: #selector(warmthDownPressed))
+        let warmthUpButton = button("Warmth up", command: .warmthUp, action: #selector(warmthUpPressed))
+        let quickDisableButton = button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed))
+        let restorePreviousButton = button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
+        let settingsButton = button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
 
         let stack = NSStackView(views: [
             title,
@@ -103,6 +132,8 @@ final class MenuBarPopoverView: NSView {
             shortcutSummaryLabel,
             diagnosticsSummaryLabel,
             row(label: brightnessDownButton, value: brightnessUpButton),
+            row(label: warmthDownButton, value: warmthUpButton),
+            row(label: quickDisableButton, value: restorePreviousButton),
             probeButton,
             pauseButton,
             settingsButton
@@ -125,5 +156,48 @@ final class MenuBarPopoverView: NSView {
         stack.orientation = .horizontal
         stack.spacing = 8
         return stack
+    }
+
+    private func button(_ title: String, command: MenuBarCommand, action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        commandButtons[command] = button
+        return button
+    }
+
+    @objc private func brightnessDownPressed() {
+        actions.perform(.brightnessDown)
+    }
+
+    @objc private func brightnessUpPressed() {
+        actions.perform(.brightnessUp)
+    }
+
+    @objc private func warmthDownPressed() {
+        actions.perform(.warmthDown)
+    }
+
+    @objc private func warmthUpPressed() {
+        actions.perform(.warmthUp)
+    }
+
+    @objc private func probeDDCPressed() {
+        actions.perform(.probeDDC)
+    }
+
+    @objc private func pauseAutomationPressed() {
+        actions.perform(.pauseAutomation)
+    }
+
+    @objc private func quickDisablePressed() {
+        actions.perform(.quickDisable)
+    }
+
+    @objc private func restorePreviousPressed() {
+        actions.perform(.restorePrevious)
+    }
+
+    @objc private func openSettingsPressed() {
+        actions.perform(.openSettings)
     }
 }

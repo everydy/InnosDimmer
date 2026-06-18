@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import InnosDimmer
 
@@ -34,4 +35,80 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 6 enabled")
         XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active, DDC unsupported: DDC unavailable")
     }
+
+    @MainActor
+    func testMenuBarPopoverButtonsRouteEveryCommand() {
+        var routedCommands: [MenuBarCommand] = []
+        let view = MenuBarPopoverView(
+            state: .defaultState(),
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+
+        for command in MenuBarCommand.allCases {
+            guard let button = view.commandButtonForTesting(command) else {
+                XCTFail("Missing button for \(command)")
+                continue
+            }
+
+            XCTAssertTrue(button.target === view)
+            XCTAssertNotNil(button.action)
+            button.performClick(nil)
+        }
+
+        XCTAssertEqual(routedCommands, MenuBarCommand.allCases)
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesDimmingCommandsThroughBrightnessController() {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let menuBarController = MenuBarController(brightnessController: brightnessController)
+
+        menuBarController.perform(.brightnessUp)
+
+        XCTAssertEqual(brightnessController.pendingCommand?.display, .menuBarTestDisplay)
+        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 85)
+        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+
+        menuBarController.perform(.warmthDown)
+
+        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 80)
+        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 7)
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesQuickDisableAndRestoreThroughBrightnessController() {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let brightnessController = BrightnessController(state: state)
+        let menuBarController = MenuBarController(brightnessController: brightnessController)
+
+        menuBarController.perform(.quickDisable)
+
+        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 100)
+        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+
+        menuBarController.perform(.restorePrevious)
+
+        XCTAssertEqual(brightnessController.pendingCommand?.brightness, 80)
+        XCTAssertEqual(brightnessController.pendingCommand?.warmth, 12)
+        XCTAssertEqual(brightnessController.pendingCommand?.source, .menuSlider)
+    }
+}
+
+private extension DisplayIdentity {
+    static let menuBarTestDisplay = DisplayIdentity(
+        cgDisplayID: 1,
+        localizedName: "INNOS 27QA100M",
+        vendorNumber: 1,
+        modelNumber: 2,
+        serialNumber: 3,
+        frameDescription: "2560x1440"
+    )
 }
