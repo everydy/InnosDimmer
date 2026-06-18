@@ -17,6 +17,13 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
+    func testOverlayAppearanceUsesMinimumVisibleBrightnessFloor() {
+        let appearance = OverlayAppearance.make(brightness: 0, warmth: 0)
+
+        XCTAssertEqual(appearance.blackOpacity, CGFloat(90) / 130.0)
+        XCTAssertEqual(appearance.warmOpacity, 0)
+    }
+
     func testDisplayInventoryFallsBackToFirstNonMainDisplayWhenNoSavedTarget() {
         let main = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Built-in Display")
         let external = DisplayIdentity.fixture(cgDisplayID: 2, localizedName: "INNOS 27QA100M")
@@ -166,6 +173,31 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         let contentView = try XCTUnwrap(overlayPanel.contentView)
         XCTAssertEqual(contentView.bounds.size.width, screen.frame.size.width, accuracy: 0.5)
         XCTAssertEqual(contentView.bounds.size.height, screen.frame.size.height, accuracy: 0.5)
+    }
+
+    @MainActor
+    func testClearPanelsExcludingActiveDisplayIDsRemovesStalePanels() {
+        let first = DisplayIdentity.fixture(cgDisplayID: 101, localizedName: "First")
+        let second = DisplayIdentity.fixture(cgDisplayID: 202, localizedName: "Second")
+        let manager = OverlayWindowManager { display in
+            if display.cgDisplayID == first.cgDisplayID {
+                return NSRect(x: 0, y: 0, width: 100, height: 100)
+            }
+            if display.cgDisplayID == second.cgDisplayID {
+                return NSRect(x: 100, y: 0, width: 100, height: 100)
+            }
+            return nil
+        }
+
+        manager.apply(display: first, brightness: 45, warmth: 32)
+        manager.apply(display: second, brightness: 45, warmth: 32)
+        manager.clearPanels(excluding: [first.cgDisplayID])
+        defer {
+            manager.clear(display: first)
+            manager.clear(display: second)
+        }
+
+        XCTAssertEqual(manager.managedDisplayIDsForTesting(), [first.cgDisplayID])
     }
 }
 

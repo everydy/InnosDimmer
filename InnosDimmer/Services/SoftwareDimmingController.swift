@@ -17,6 +17,13 @@ enum SoftwareDimmingError: Error, Equatable {
 protocol SoftwareDimmingStrategy {
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws
     func clear(display: DisplayIdentity) throws
+    func clearStalePanels(activeDisplayIDs: Set<UInt32>)
+}
+
+extension SoftwareDimmingStrategy {
+    func clearStalePanels(activeDisplayIDs: Set<UInt32>) {
+        _ = activeDisplayIDs
+    }
 }
 
 @MainActor
@@ -40,5 +47,9 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
     func clear(display: DisplayIdentity) throws {
         overlayWindowManager.clear(display: display)
         try gammaDimmingController.clear(display: display)
+    }
+
+    func clearStalePanels(activeDisplayIDs: Set<UInt32>) {
+        overlayWindowManager.clearPanels(excluding: activeDisplayIDs)
     }
 }

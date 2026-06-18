@@ -27,6 +27,26 @@ final class BrightnessController {
         applySoftware(command, reason: .softwareOnly)
     }
 
+    func reapplyCurrentSoftwareState() {
+        guard let display = state.display else {
+            return
+        }
+
+        applySoftware(
+            BrightnessCommand(
+                display: display,
+                brightness: state.targetBrightness,
+                warmth: state.targetWarmth,
+                source: state.lastAppliedCommandSource ?? .startupRestore
+            ),
+            reason: .softwareOnly
+        )
+    }
+
+    func clearStaleSoftwarePanels(activeDisplayIDs: Set<UInt32>) {
+        softwareStrategy.clearStalePanels(activeDisplayIDs: activeDisplayIDs)
+    }
+
     private func applySoftware(_ command: BrightnessCommand, reason: SoftwareActivationReason) {
         do {
             try softwareStrategy.apply(command, reason: reason)

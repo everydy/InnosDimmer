@@ -3,12 +3,14 @@ import AppKit
 struct OverlayAppearance: Equatable {
     var blackOpacity: CGFloat
     var warmOpacity: CGFloat
+    private static let minimumVisibleBrightness = 10
 
     static func make(brightness: Int, warmth: Int) -> OverlayAppearance {
         let clampedBrightness = Clamped.percent(brightness)
+        let visualBrightness = max(minimumVisibleBrightness, clampedBrightness)
         let clampedWarmth = Clamped.percent(warmth)
         return OverlayAppearance(
-            blackOpacity: CGFloat(100 - clampedBrightness) / 130.0,
+            blackOpacity: CGFloat(100 - visualBrightness) / 130.0,
             warmOpacity: CGFloat(clampedWarmth) / 180.0
         )
     }
@@ -53,6 +55,17 @@ final class OverlayWindowManager {
     func clear(display: DisplayIdentity) {
         panelsByDisplayID[display.cgDisplayID]?.orderOut(nil)
         panelsByDisplayID.removeValue(forKey: display.cgDisplayID)
+    }
+
+    func clearPanels(excluding activeDisplayIDs: Set<UInt32>) {
+        for displayID in Array(panelsByDisplayID.keys) where !activeDisplayIDs.contains(displayID) {
+            panelsByDisplayID[displayID]?.orderOut(nil)
+            panelsByDisplayID.removeValue(forKey: displayID)
+        }
+    }
+
+    func managedDisplayIDsForTesting() -> Set<UInt32> {
+        Set(panelsByDisplayID.keys)
     }
 
     private func makePanel() -> NSPanel {

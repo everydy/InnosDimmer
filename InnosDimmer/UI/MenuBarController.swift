@@ -500,6 +500,9 @@ final class MenuBarController: NSObject {
 
     private func reconcileScheduleAfterRuntimeBoundaryChange() {
         _ = stateResolvingSelectedDisplayIfNeeded()
+        let activeDisplayIDs = Set(displayInventory.activeDisplays().map(\.cgDisplayID))
+        brightnessController.clearStaleSoftwarePanels(activeDisplayIDs: activeDisplayIDs)
+        brightnessController.reapplyCurrentSoftwareState()
         applyScheduleDecision()
         scheduleNextBoundaryTimer()
     }
