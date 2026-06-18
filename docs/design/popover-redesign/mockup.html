@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Popover Redesign Mockup</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f3;
+      --panel: #ffffff;
+      --panel-2: #f8f8f6;
+      --text: #181817;
+      --muted: #64645f;
+      --line: #d8d8d2;
+      --blue: #1769c2;
+      --blue-soft: #e8f2ff;
+      --green: #1f7a46;
+      --amber: #8a5a00;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #d9d9d4;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      color: var(--text);
+    }
+
+    .popover {
+      width: 480px;
+      min-height: 620px;
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      align-items: start;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .display {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .badge,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .badge {
+      color: var(--green);
+      border-color: #b8d8c4;
+      background: #eef8f1;
+    }
+
+    .section {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: 116px 54px 1fr 34px 34px;
+      gap: 8px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    .control + .control {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .label {
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .value {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+      font-weight: 720;
+    }
+
+    .track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e2e2dd;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    button {
+      height: 30px;
+      min-width: 34px;
+      border: 1px solid #c8c8c2;
+      border-radius: 7px;
+      background: #fbfbfa;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    button.primary {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    button.warning {
+      color: var(--amber);
+      background: #fff7e1;
+      border-color: #ead28a;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 116px 1fr;
+      gap: 8px 12px;
+      align-items: start;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .summary-grid dt {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .summary-grid dd {
+      margin: 0;
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .footer-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .diagnostic {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 7px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <main class="popover" aria-label="InnosDimmer menu bar popover mockup">
+    <header class="header">
+      <h1>InnosDimmer</h1>
+      <span class="badge">Overlay active</span>
+      <div class="display">27QA100M · HDMI · brightness overlay + gamma blue reduction</div>
+    </header>
+
+    <section class="section" aria-labelledby="primary-controls">
+      <div class="section-title" id="primary-controls">
+        <span>Quick controls</span>
+        <span class="chip">Automation active</span>
+      </div>
+
+      <div class="control">
+        <div class="label">Brightness</div>
+        <div class="value">45%</div>
+        <div class="track" aria-hidden="true"><div class="fill" style="width:45%"></div></div>
+        <button aria-label="Brightness down">-</button>
+        <button aria-label="Brightness up">+</button>
+      </div>
+
+      <div class="control">
+        <div class="label">Blue reduction</div>
+        <div class="value">32%</div>
+        <div class="track" aria-hidden="true"><div class="fill" style="width:32%"></div></div>
+        <button aria-label="Blue reduction down">-</button>
+        <button aria-label="Blue reduction up">+</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="schedule-status">
+      <div class="section-title" id="schedule-status">
+        <span>Schedule</span>
+        <span>next 23:00</span>
+      </div>
+      <dl class="summary-grid">
+        <dt>Current</dt>
+        <dd>19:00 · 45% brightness / 32% blue</dd>
+        <dt>Shortcuts</dt>
+        <dd>6 enabled · Option + Shift controls</dd>
+      </dl>
+      <div class="action-row">
+        <button class="warning">Quick disable</button>
+        <button>Restore previous</button>
+      </div>
+      <div class="action-row">
+        <button>Pause automation</button>
+        <button>Resume at next boundary</button>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="diagnostics">
+      <div class="section-title" id="diagnostics">
+        <span>Diagnostics</span>
+        <span>latest</span>
+      </div>
+      <div class="diagnostic">
+        Applied brightness 45% and blue reduction 32% on INNOS 27QA100M.
+      </div>
+      <div class="footer-actions">
+        <button class="primary">Open app window</button>
+        <button>Settings</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
