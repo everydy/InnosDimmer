@@ -12,20 +12,31 @@ final class MenuBarController: NSObject {
     private let displayInventory: DisplayInventory
     private let displayTargetStore: DisplayTargetStore
     private let diagnosticsStore: DiagnosticsStore
+    private let shortcutBindings: [ShortcutBinding]
+    private let hotkeyRegistrationBackend: HotkeyRegistrationBackend
+    private let registersHotkeysOnStart: Bool
     private let popover = NSPopover()
     private lazy var settingsWindowController = SettingsWindowController()
+    private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
 
     init(
         brightnessController: BrightnessController = BrightnessController(),
         displayInventory: DisplayInventory = DisplayInventory(),
         displayTargetStore: DisplayTargetStore = DisplayTargetStore(),
-        diagnosticsStore: DiagnosticsStore = DiagnosticsStore()
+        diagnosticsStore: DiagnosticsStore = DiagnosticsStore(),
+        shortcutBindings: [ShortcutBinding] = ShortcutBinding.defaultBindings,
+        hotkeyRegistrationBackend: HotkeyRegistrationBackend = CarbonHotkeyRegistrationBackend(),
+        registersHotkeysOnStart: Bool? = nil
     ) {
         self.brightnessController = brightnessController
         self.displayInventory = displayInventory
         self.displayTargetStore = displayTargetStore
         self.diagnosticsStore = diagnosticsStore
+        self.shortcutBindings = shortcutBindings
+        self.hotkeyRegistrationBackend = hotkeyRegistrationBackend
+        self.registersHotkeysOnStart = registersHotkeysOnStart
+            ?? Self.defaultRegistersHotkeysOnStart(backend: hotkeyRegistrationBackend)
         super.init()
     }
 
@@ -45,6 +56,14 @@ final class MenuBarController: NSObject {
                 self?.perform(command)
             }
         )
+        if registersHotkeysOnStart {
+            registerHotkeys()
+        }
+    }
+
+    func stop() {
+        hotkeyManager?.stop()
+        hotkeyManager = nil
     }
 
     @objc func togglePopover() {
@@ -62,17 +81,21 @@ final class MenuBarController: NSObject {
     }
 
     func perform(_ command: MenuBarCommand) {
+        perform(command, source: .menuSlider)
+    }
+
+    private func perform(_ command: MenuBarCommand, source: BrightnessCommandSource) {
         switch command {
         case .brightnessDown:
-            adjust(brightnessDelta: -DimmingStep.brightness)
+            adjust(brightnessDelta: -DimmingStep.brightness, source: source)
         case .brightnessUp:
-            adjust(brightnessDelta: DimmingStep.brightness)
+            adjust(brightnessDelta: DimmingStep.brightness, source: source)
         case .warmthDown:
-            adjust(warmthDelta: -DimmingStep.warmth)
+            adjust(warmthDelta: -DimmingStep.warmth, source: source)
         case .warmthUp:
-            adjust(warmthDelta: DimmingStep.warmth)
+            adjust(warmthDelta: DimmingStep.warmth, source: source)
         case .quickDisable:
-            quickDisable()
+            quickDisable(source: source)
         case .restorePrevious:
             restorePrevious()
         case .openSettings:
@@ -86,23 +109,50 @@ final class MenuBarController: NSObject {
         }
     }
 
-    private func adjust(brightnessDelta: Int = 0, warmthDelta: Int = 0) {
+    private func handleShortcut(_ action: ShortcutAction) {
+        perform(action.menuBarCommand, source: .hotkey)
+    }
+
+    private func registerHotkeys() {
+        stop()
+
+        let manager = HotkeyManager(backend: hotkeyRegistrationBackend) { [weak self] action in
+            Task { @MainActor in
+                self?.handleShortcut(action)
+            }
+        }
+
+        do {
+            try manager.start(bindings: shortcutBindings)
+            hotkeyManager = manager
+            record(.shortcut, "Registered \(shortcutBindings.filter(\.isEnabled).count) shortcuts")
+        } catch {
+            hotkeyManager = nil
+            record(.shortcut, "Shortcut registration failed: \(error)", .warning)
+        }
+    }
+
+    private func adjust(
+        brightnessDelta: Int = 0,
+        warmthDelta: Int = 0,
+        source: BrightnessCommandSource = .menuSlider
+    ) {
         let state = brightnessController.state
         apply(
             brightness: state.targetBrightness + brightnessDelta,
             warmth: state.targetWarmth + warmthDelta,
-            source: .menuSlider
+            source: source
         )
     }
 
-    private func quickDisable() {
+    private func quickDisable(source: BrightnessCommandSource = .menuSlider) {
         let state = brightnessController.state
         commandBeforeQuickDisable = makeCommand(
             brightness: state.targetBrightness,
             warmth: state.targetWarmth,
-            source: .menuSlider
+            source: source
         )
-        apply(brightness: 100, warmth: state.targetWarmth, source: .menuSlider)
+        apply(brightness: 100, warmth: state.targetWarmth, source: source)
     }
 
     private func restorePrevious() {
@@ -247,5 +297,33 @@ final class MenuBarController: NSObject {
 
     private static func diagnosticsSeverity(for mode: DimmingMode) -> DiagnosticsSeverity {
         mode == .platformBlocked ? .error : .info
+    }
+
+    private static func defaultRegistersHotkeysOnStart(backend: HotkeyRegistrationBackend) -> Bool {
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil,
+           backend is CarbonHotkeyRegistrationBackend {
+            return false
+        }
+
+        return true
+    }
+}
+
+extension ShortcutAction {
+    var menuBarCommand: MenuBarCommand {
+        switch self {
+        case .brightnessUp:
+            return .brightnessUp
+        case .brightnessDown:
+            return .brightnessDown
+        case .warmthUp:
+            return .warmthUp
+        case .warmthDown:
+            return .warmthDown
+        case .quickDisableOverlay:
+            return .quickDisable
+        case .restorePreviousDimming:
+            return .restorePrevious
+        }
     }
 }

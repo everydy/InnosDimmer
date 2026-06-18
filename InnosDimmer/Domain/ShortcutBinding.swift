@@ -1,6 +1,6 @@
 import Foundation
 
-struct ShortcutModifiers: OptionSet, Codable, Hashable {
+struct ShortcutModifiers: OptionSet, Codable, Hashable, Sendable {
     let rawValue: UInt
 
     static let option = ShortcutModifiers(rawValue: 1 << 0)
@@ -9,7 +9,7 @@ struct ShortcutModifiers: OptionSet, Codable, Hashable {
     static let command = ShortcutModifiers(rawValue: 1 << 3)
 }
 
-enum ShortcutAction: String, Codable, Equatable, CaseIterable {
+enum ShortcutAction: String, Codable, Equatable, CaseIterable, Sendable {
     case brightnessUp
     case brightnessDown
     case warmthUp
@@ -18,14 +18,14 @@ enum ShortcutAction: String, Codable, Equatable, CaseIterable {
     case restorePreviousDimming
 }
 
-struct ShortcutBinding: Codable, Equatable {
+struct ShortcutBinding: Codable, Equatable, Sendable {
     var action: ShortcutAction
     var keyCode: UInt16
     var modifiers: ShortcutModifiers
     var isEnabled: Bool
 }
 
-struct ShortcutSignature: Codable, Equatable, Hashable, Comparable {
+struct ShortcutSignature: Codable, Equatable, Hashable, Comparable, Sendable {
     var keyCode: UInt16
     var modifiers: ShortcutModifiers
 
@@ -37,7 +37,7 @@ struct ShortcutSignature: Codable, Equatable, Hashable, Comparable {
     }
 }
 
-struct HotkeyValidationReport: Equatable {
+struct HotkeyValidationReport: Equatable, Sendable {
     var duplicateSignatures: [ShortcutSignature]
     var unsafeBindings: [ShortcutBinding]
 
