@@ -84,6 +84,8 @@ struct MenuBarViewModel: Equatable {
 }
 
 final class MenuBarPopoverView: NSView {
+    static let preferredContentSize = NSSize(width: 460, height: 520)
+
     private let modeBadge: StatusBadgeView
     private let actions: MenuBarActions
     private let displaySummaryLabel = NSTextField(labelWithString: "")
@@ -104,7 +106,7 @@ final class MenuBarPopoverView: NSView {
     ) {
         modeBadge = StatusBadgeView(mode: state.activeMode)
         self.actions = actions
-        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 330))
+        super.init(frame: NSRect(origin: .zero, size: Self.preferredContentSize))
         buildLayout()
         update(
             state: state,
@@ -168,6 +170,14 @@ final class MenuBarPopoverView: NSView {
         let title = NSTextField(labelWithString: "INNOS 27QA100M")
         title.font = .systemFont(ofSize: 16, weight: .semibold)
 
+        [
+            displaySummaryLabel,
+            automationLabel,
+            scheduleSummaryLabel,
+            shortcutSummaryLabel,
+            diagnosticsSummaryLabel
+        ].forEach(Self.configureWrappingLabel)
+
         let brightnessTitle = NSTextField(labelWithString: "Brightness")
         let warmthTitle = NSTextField(labelWithString: "Warmth")
         let pauseButton = button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
@@ -196,15 +206,16 @@ final class MenuBarPopoverView: NSView {
             settingsButton
         ])
         stack.orientation = .vertical
-        stack.alignment = .leading
+        stack.alignment = .width
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 16)
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 16),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -16)
         ])
     }
 
@@ -212,7 +223,14 @@ final class MenuBarPopoverView: NSView {
         let stack = NSStackView(views: [label, value])
         stack.orientation = .horizontal
         stack.spacing = 8
+        stack.distribution = .fillEqually
         return stack
+    }
+
+    private static func configureWrappingLabel(_ label: NSTextField) {
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 0
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     private func button(_ title: String, command: MenuBarCommand, action: Selector) -> NSButton {

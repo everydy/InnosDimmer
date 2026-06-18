@@ -76,7 +76,7 @@ final class MenuBarController: NSObject {
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 320, height: 330)
+        popover.contentSize = MenuBarPopoverView.preferredContentSize
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = MenuBarPopoverView(
             state: initialState,

@@ -88,6 +88,16 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPopoverUsesExpandedContentSize() {
+        let view = MenuBarPopoverView(state: .defaultState())
+
+        XCTAssertEqual(view.frame.size.width, MenuBarPopoverView.preferredContentSize.width)
+        XCTAssertEqual(view.frame.size.height, MenuBarPopoverView.preferredContentSize.height)
+        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.width, 460)
+        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 520)
+    }
+
+    @MainActor
     func testMenuBarPopoverUpdateRefreshesVisibleStateAndDiagnostics() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
