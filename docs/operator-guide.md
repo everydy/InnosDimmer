@@ -53,6 +53,7 @@ Latest implementation verification on 2026-06-18:
 Latest reliability implementation verification on 2026-06-19:
 
 - Debug `build-for-testing`: passed after explicit overlay failure reporting, stale display resolution, reconnect debounce, diagnostics export, and pending-preview cleanup.
+- Release build: passed after the reliability implementation.
 - Narrow `xcodebuild test -only-testing:InnosDimmerTests/MenuBarStateTests` was attempted, but macOS denied the Debug dylib load during app test launch and the run was interrupted.
 
 ## No Package Dependency Policy

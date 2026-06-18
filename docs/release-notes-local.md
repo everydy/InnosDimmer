@@ -10,6 +10,7 @@ This local MVP contains the menu bar shell, state model, display target persiste
 - Full manual QA is still pending.
 - `xcodebuild -scheme InnosDimmer -configuration Debug build-for-testing CODE_SIGNING_ALLOWED=NO` is the current compiler/test-build verification source.
 - On 2026-06-19, the Debug test build passed after overlay failure reporting, stale display resolution, reconnect debounce, diagnostics export, and pending-preview cleanup.
+- On 2026-06-19, the Release build passed after the reliability implementation.
 - `xcodebuild -scheme InnosDimmer -configuration Release build CODE_SIGNING_ALLOWED=NO` passed on 2026-06-18.
 - The Release app was observed running from the local Xcode build products path on 2026-06-18.
 - Manual smoke QA on 2026-06-18 confirmed menu bar popover opening, visible overlay dimming on `27QA100M`, brightness/warmth command updates, quick disable/restore, Finder-focused brightness shortcut, and settings window opening.
@@ -21,7 +22,7 @@ This local MVP contains the menu bar shell, state model, display target persiste
 | Area | Status | Next evidence |
 | --- | --- | --- |
 | Compiler/test build | passing | Keep running the Debug `xcodebuild` command after changes. |
-| Release build | passing | Rebuild before each local handoff. |
+| Release build | passing | Passed on 2026-06-19 after reliability implementation. |
 | Local launch | smoke QA passed | Continue broader scenario QA from `docs/qa-matrix.md`. |
 | Software overlay | manual desktop pass | Manual visual QA still needed across Spaces, full-screen apps, video, DRM/protected playback, sharing/recording, sleep/wake, and reconnect. |
 | Schedule | engine implemented | Near-future boundary manual check. |

@@ -9,6 +9,7 @@ Latest automation-side evidence on 2026-06-18:
 - Release app launch: `InnosDimmer` process observed running from the Release build path.
 - Manual smoke QA on the external `27QA100M` display: popover opened, overlay state was visible, brightness/warmth controls updated state and diagnostics, quick disable/restore worked, Finder-focused global brightness shortcut worked, settings window opened.
 - 2026-06-19 Debug `build-for-testing` passed after adding explicit overlay failure diagnostics, stale display resolution, reconnect debounce, Settings diagnostics export, and pending-preview cleanup.
+- 2026-06-19 Release build passed after the reliability implementation.
 - Scenario rows below remain `not tested` until a human-visible note confirms that exact scenario.
 
 | Scenario | Current status | Evidence required |
