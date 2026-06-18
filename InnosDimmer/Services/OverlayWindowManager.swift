@@ -32,6 +32,7 @@ final class OverlayWindowManager {
         panel.level = .screenSaver
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         panel.ignoresMouseEvents = true
+        panel.hidesOnDeactivate = false
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false

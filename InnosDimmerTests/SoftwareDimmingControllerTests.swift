@@ -157,6 +157,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         OverlayWindowManager.configureOverlayPanel(panel, for: NSRect(x: 0, y: 0, width: 100, height: 100))
 
         XCTAssertTrue(panel.ignoresMouseEvents)
+        XCTAssertFalse(panel.hidesOnDeactivate)
         XCTAssertFalse(panel.isOpaque)
         XCTAssertFalse(panel.hasShadow)
         XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
