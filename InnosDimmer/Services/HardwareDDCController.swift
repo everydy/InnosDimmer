@@ -62,7 +62,7 @@ extension HardwareCapability {
     }
 }
 
-final class HardwareDDCController: HardwareBrightnessStrategy {
+final class HardwareDDCController {
     private let adapter: DDCAdapter
     private let now: () -> Date
 

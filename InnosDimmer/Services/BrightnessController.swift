@@ -1,23 +1,16 @@
 import Foundation
 
-protocol HardwareBrightnessStrategy {
-    func applyHardware(_ command: BrightnessCommand) throws
-}
-
 @MainActor
 final class BrightnessController {
     private(set) var state: BrightnessState
     private(set) var pendingCommand: BrightnessCommand?
-    private let hardwareStrategy: HardwareBrightnessStrategy
     private let softwareStrategy: SoftwareDimmingStrategy
 
     init(
         state: BrightnessState = .defaultState(),
-        hardwareStrategy: HardwareBrightnessStrategy = HardwareDDCController(),
         softwareStrategy: SoftwareDimmingStrategy = SoftwareDimmingController()
     ) {
         self.state = state
-        self.hardwareStrategy = hardwareStrategy
         self.softwareStrategy = softwareStrategy
     }
 
@@ -32,19 +25,6 @@ final class BrightnessController {
         }
 
         applySoftware(command, reason: .softwareOnly)
-    }
-
-    private func applyHardware(_ command: BrightnessCommand) {
-        do {
-            try hardwareStrategy.applyHardware(command)
-            pendingCommand = nil
-            recordApplied(command)
-            state.activeMode = .hardwareDDC
-        } catch {
-            let failure = HardwareCapability.failedWithError(message: Self.hardwareFailureMessage(from: error))
-            state.hardwareCapability = failure
-            applySoftware(command, reason: .hardwareExhausted(failure))
-        }
     }
 
     private func applySoftware(_ command: BrightnessCommand, reason: SoftwareActivationReason) {
@@ -73,9 +53,5 @@ final class BrightnessController {
         }
 
         return nil
-    }
-
-    private static func hardwareFailureMessage(from error: Error) -> String {
-        String(describing: error)
     }
 }

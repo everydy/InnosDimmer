@@ -6,13 +6,11 @@ final class BrightnessControllerTests: XCTestCase {
     func testAlwaysRoutesCommandsToSoftwareDimming() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .writeReadbackSupported(range: 0...100)
-        let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: state, hardwareStrategy: hardware, softwareStrategy: software)
+        let controller = BrightnessController(state: state, softwareStrategy: software)
 
         controller.apply(.fixture(source: .menuSlider))
 
-        XCTAssertEqual(hardware.appliedCommands.count, 0)
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .menuSlider)])
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
@@ -20,14 +18,12 @@ final class BrightnessControllerTests: XCTestCase {
 
     @MainActor
     func testSoftwareOnlyModeDoesNotQueueWhenHardwareIsNotProbed() {
-        let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: .defaultState(), hardwareStrategy: hardware, softwareStrategy: software)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(.fixture(source: .startupRestore))
 
         XCTAssertNil(controller.pendingCommand)
-        XCTAssertEqual(hardware.appliedCommands.count, 0)
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .startupRestore)])
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
@@ -43,14 +39,12 @@ final class BrightnessControllerTests: XCTestCase {
         for capability in softwareCapabilities {
             var state = BrightnessState.defaultState()
             state.hardwareCapability = capability
-            let hardware = RecordingHardwareBrightnessStrategy()
             let software = RecordingPolicySoftwareDimmingStrategy()
-            let controller = BrightnessController(state: state, hardwareStrategy: hardware, softwareStrategy: software)
+            let controller = BrightnessController(state: state, softwareStrategy: software)
 
             controller.apply(.fixture(source: .schedule))
 
             XCTAssertNil(controller.pendingCommand)
-            XCTAssertEqual(hardware.appliedCommands.count, 0)
             XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
             XCTAssertEqual(software.activationReasons, [.softwareOnly])
             XCTAssertEqual(controller.state.activeMode, .overlay)
@@ -61,31 +55,13 @@ final class BrightnessControllerTests: XCTestCase {
     func testSoftwareOnlyModeIgnoresHardwareFailureStates() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .failedWithError(message: "write/readback failed")
-        let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
-        let controller = BrightnessController(state: state, hardwareStrategy: hardware, softwareStrategy: software)
+        let controller = BrightnessController(state: state, softwareStrategy: software)
 
         controller.apply(.fixture(source: .hotkey))
 
-        XCTAssertEqual(hardware.appliedCommands.count, 0)
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
-    }
-}
-
-private final class RecordingHardwareBrightnessStrategy: HardwareBrightnessStrategy {
-    private(set) var appliedCommands: [BrightnessCommand] = []
-    var error: Error?
-
-    init(error: Error? = nil) {
-        self.error = error
-    }
-
-    func applyHardware(_ command: BrightnessCommand) throws {
-        appliedCommands.append(command)
-        if let error {
-            throw error
-        }
     }
 }
 
