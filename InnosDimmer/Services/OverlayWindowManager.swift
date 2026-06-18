@@ -14,6 +14,7 @@ struct OverlayAppearance: Equatable {
     }
 }
 
+@MainActor
 final class OverlayWindowManager {
     private var panelsByDisplayID: [UInt32: NSPanel] = [:]
 

@@ -17,6 +17,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
+    @MainActor
     func testNormalStartupDoesNotApplySoftwareWhileHardwareIsNotProbed() {
         let software = RecordingSoftwareDimmingStrategy()
         let controller = BrightnessController(
@@ -34,6 +35,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(software.appliedCommands.count, 0)
     }
 
+    @MainActor
     func testForcedSoftwareTestAppliesSoftwareWithVisibleReason() {
         let software = RecordingSoftwareDimmingStrategy()
         var state = BrightnessState.defaultState()
@@ -51,6 +53,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(software.activationReasons, [.forcedForDiagnostics])
     }
 
+    @MainActor
     func testHardwareExhaustedFailureAppliesSoftwareWithVisibleReason() {
         let software = RecordingSoftwareDimmingStrategy()
         var state = BrightnessState.defaultState()
@@ -69,6 +72,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
+    @MainActor
     func testSoftwareApplyFailureRecordsPlatformBlockedState() {
         let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.platformBlocked("protected surface"))
         var state = BrightnessState.defaultState()
@@ -85,6 +89,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .platformBlocked)
     }
 
+    @MainActor
     func testOverlayPanelConfigurationIsClickThroughAndAllSpaces() {
         let panel = NSPanel(contentRect: .zero, styleMask: .borderless, backing: .buffered, defer: false)
 
@@ -99,6 +104,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
     }
 }
 
+@MainActor
 private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
     private(set) var activationReasons: [SoftwareActivationReason] = []

@@ -4,6 +4,7 @@ protocol HardwareBrightnessStrategy {
     func applyHardware(_ command: BrightnessCommand) throws
 }
 
+@MainActor
 final class BrightnessController {
     private(set) var state: BrightnessState
     private(set) var pendingCommand: BrightnessCommand?

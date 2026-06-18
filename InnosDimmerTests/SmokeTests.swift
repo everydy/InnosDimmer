@@ -3,6 +3,7 @@ import XCTest
 @testable import InnosDimmer
 
 final class SmokeTests: XCTestCase {
+    @MainActor
     func testAppDelegateConfiguresAccessoryMenuBarShell() {
         let delegate = AppDelegate()
 

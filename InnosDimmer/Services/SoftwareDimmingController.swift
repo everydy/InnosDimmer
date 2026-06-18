@@ -11,11 +11,13 @@ enum SoftwareDimmingError: Error, Equatable {
     case applyFailed(String)
 }
 
+@MainActor
 protocol SoftwareDimmingStrategy {
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws
     func clear(display: DisplayIdentity) throws
 }
 
+@MainActor
 final class SoftwareDimmingController: SoftwareDimmingStrategy {
     private let overlayWindowManager: OverlayWindowManager
     private let gammaDimmingController: GammaDimmingController

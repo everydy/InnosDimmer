@@ -2,6 +2,7 @@ import XCTest
 @testable import InnosDimmer
 
 final class BrightnessControllerTests: XCTestCase {
+    @MainActor
     func testRoutesToHardwareOnlyAfterWriteReadbackSupport() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .writeReadbackSupported(range: 0...100)
@@ -16,6 +17,7 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .hardwareDDC)
     }
 
+    @MainActor
     func testQueuesWhenHardwareIsNotProbed() {
         let hardware = RecordingHardwareBrightnessStrategy()
         let software = RecordingPolicySoftwareDimmingStrategy()
@@ -29,6 +31,7 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .unknown)
     }
 
+    @MainActor
     func testQueuesWhileHardwareProbeIsInProgressOrReadOnly() {
         let queuedCapabilities: [HardwareCapability] = [
             .probing(startedAt: Date(timeIntervalSince1970: 1)),
@@ -51,6 +54,7 @@ final class BrightnessControllerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testFallsBackToSoftwareOnlyAfterHardwareFailureIsExhausted() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .failedWithError(message: "write/readback failed")
@@ -63,6 +67,7 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
+    @MainActor
     func testHardwareWriteFailureRecordsFailureAndFallsBackToSoftware() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .writeReadbackSupported(range: 0...100)
@@ -96,6 +101,7 @@ private final class RecordingHardwareBrightnessStrategy: HardwareBrightnessStrat
     }
 }
 
+@MainActor
 private final class RecordingPolicySoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
     private(set) var activationReasons: [SoftwareActivationReason] = []

@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 final class MenuBarController: NSObject {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let brightnessController: BrightnessController
