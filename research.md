@@ -454,3 +454,361 @@ Apple 공식 문서 조사:
 5. 문서와 UI의 diagnostics export 불일치 정리.
 
 이 조합이 현재 앱 목표인 "개인용 macOS HDMI 외부 모니터 체감 밝기/색감 조정"에 가장 부작용이 적고 성공 가능성이 높다.
+
+---
+
+# 2026-06-19 Research - Gamma-Based Blue Reduction Before Implementation Plan
+
+## Goal
+
+기존 `Warmth`가 주황색 overlay를 화면 전체에 덮는 방식이라 인위적으로 보이는 문제를 해결하기 위해, 구현 계획 전에 gamma table 기반 blue channel reduction이 실제로 가능한지와 어떤 설계 제약을 가져야 하는지 조사한다.
+
+목표는 다음 결정을 뒷받침하는 것이다.
+
+- `Warmth`를 계속 orange overlay로 둘지, `Blue reduction` 의미로 재정의할지.
+- `GammaDimmingController`를 실제 구현 경로로 승격할 수 있는지.
+- 구현 전 반드시 확인해야 하는 empirical write probe와 복구 조건은 무엇인지.
+
+## Scope And Entry Points
+
+대상 환경:
+
+- macOS, M1 Mac.
+- HDMI 직결 외부 모니터 `27QA100M`.
+- 개인용 native menu bar app.
+- 현재 밝기 dimming은 overlay 방식으로 작동 중이며, 하드웨어 DDC/CI는 기본 경로에서 제외된 상태.
+
+검토 entry point:
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/GammaDimmingController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/SoftwareDimmingController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/OverlayWindowManager.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/BrightnessController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/BrightnessCommand.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ScheduleEntry.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/SoftwareDimmingControllerTests.swift`
+
+Evidence lanes:
+
+- `codebase`: current dimming abstractions and tests.
+- `official`: Apple CoreGraphics display gamma APIs.
+- `community`: Apple Developer Forum / display utility ecosystem reports.
+- `empirical`: local read-only gamma table probe and dry-run table transform.
+- `reasoning`: safety, restore, lifecycle, and UI implications.
+
+## Relevant Files
+
+Current code facts:
+
+- `GammaDimmingController.swift` currently contains only a no-op `clear(display:)`. It is the natural implementation target for gamma-based blue reduction.
+- `SoftwareDimmingController.swift` already owns both `overlayWindowManager` and `gammaDimmingController`, but `apply(...)` currently only calls `overlayWindowManager.apply(...)`.
+- `OverlayWindowManager.swift` calculates `OverlayAppearance.blackOpacity` from `brightness` and `OverlayAppearance.warmOpacity` from `warmth`, then paints:
+  - `InnosDimmer.dim` with black alpha.
+  - `InnosDimmer.warm` with `NSColor(calibratedRed: 1.0, green: 0.64, blue: 0.32, alpha: warmOpacity)`.
+- `BrightnessCommand.swift`, `BrightnessState.swift`, and `ScheduleEntry.swift` still call the second control value `warmth`, clamped to 0...100.
+- `MenuBarController.swift` routes menu, schedule, and hotkey commands through the same `BrightnessCommand` path, so a blue-reduction implementation must preserve this command contract or migrate it carefully.
+
+## Current Behavior
+
+The current "warmth" behavior is an overlay tint, not actual channel-level blue reduction.
+
+```swift
+warmOpacity: CGFloat(clampedWarmth) / 180.0
+```
+
+```swift
+NSColor(calibratedRed: 1.0, green: 0.64, blue: 0.32, alpha: appearance.warmOpacity).cgColor
+```
+
+This means increasing warmth adds an orange layer over the whole external display. It can reduce perceived blue, but it also tints neutral whites, grays, skin tones, and UI colors in an artificial way. The user reports that values above about `20%` feel too unnatural.
+
+## Data Flow And Control Flow
+
+Current path:
+
+```text
+Menu / hotkey / schedule
+  -> MenuBarController.makeCommand(brightness, warmth)
+  -> BrightnessController.apply(command)
+  -> SoftwareDimmingController.apply(command)
+  -> OverlayWindowManager.apply(display, brightness, warmth)
+  -> black overlay + orange warm overlay
+```
+
+Proposed gamma path should preserve the same high-level command flow but split physical effects:
+
+```text
+BrightnessCommand(brightness, warmth/blueReduction)
+  -> SoftwareDimmingController.apply(command)
+  -> OverlayWindowManager.apply(display, brightness, warmth: 0 or legacy tint disabled)
+  -> GammaDimmingController.applyBlueReduction(display, amount)
+```
+
+The implementation should not route around `BrightnessController` or `MenuBarController`, because those layers already own:
+
+- schedule pause/resume behavior
+- diagnostics
+- selected display resolution
+- stale display clearing
+- hotkey/menu command source tracking
+
+## Existing Abstractions And Boundaries
+
+Good existing boundaries:
+
+- `GammaDimmingController` exists and should become the CoreGraphics gamma owner.
+- `SoftwareDimmingController` is already the correct composition point between overlay dimming and gamma color adjustment.
+- `BrightnessController` records user-facing state and should not directly call CoreGraphics.
+- `OverlayWindowManager` should continue to own visual overlay panels only.
+
+Boundary constraints:
+
+- Gamma changes affect display color tables, not app-local windows. This is more global than overlay and needs a stronger restore contract.
+- `CGDisplayRestoreColorSyncSettings()` restores all display gamma tables to the user's ColorSync display profile values; this is useful but may be broader than restoring one target display.
+- A safer app-specific restore path should store the original red/green/blue tables per `CGDirectDisplayID` before first applying reduction, and restore those exact tables on clear/quit/reconnect where possible.
+
+## Side Effects And Integration Points
+
+Gamma-based blue reduction can affect:
+
+- the whole external display output, not only app content
+- screenshots or screen recording color appearance depending on capture pipeline
+- ColorSync profile state
+- Night Shift / True Tone / HDR / display profile changes
+- other utilities that also modify gamma tables, such as f.lux, Lunar, MonitorControl, BetterDisplay
+- sleep/wake and HDMI reconnect, because macOS or display services can reset the color table
+
+Required integration points:
+
+- `SoftwareDimmingController.apply(...)`: apply overlay brightness and gamma blue reduction together.
+- `SoftwareDimmingController.clear(...)`: clear overlay and restore gamma.
+- `MenuBarController.stop()` or app termination path: restore gamma before exit if the app has modified it.
+- display-change/wake reconciliation: reapply gamma when target display is still present; restore stale displays if a saved table exists.
+- Diagnostics app window: log gamma capacity, read/write success, restore success, and failures.
+
+## Risk To Surrounding Systems
+
+Main risks:
+
+1. **Write ignored or not visually applied.** `CGGetDisplayTransferByTable` can succeed even if later `CGSetDisplayTransferByTable` is ignored on some hardware/macOS combinations.
+2. **Restore failure.** If the app writes gamma and crashes or is killed before restoring, the display can remain color-shifted until ColorSync restore, logout, reboot, or another display settings change.
+3. **Conflict with other color utilities.** If another app changes gamma after InnosDimmer stores the baseline table, restoring the old baseline can undo the other app's newer change.
+4. **Color profile edge cases.** Community reports mention black/white screen issues around `CGDisplayRestoreColorSyncSettings()` with problematic custom ICC profiles.
+5. **UI naming migration.** Changing `Warmth` to `Blue reduction` changes user meaning while the storage schema still uses `warmth`. Plan must decide whether to preserve the storage field and only change labels, or introduce a schema migration.
+
+## Do Not Duplicate Or Bypass
+
+Do not bypass:
+
+- `BrightnessController.apply(...)`
+- `SoftwareDimmingController.apply(...)`
+- `MenuBarController.makeCommand(...)`
+- `DisplayInventory` / `DisplayTargetResolver` target display resolution
+- diagnostics recording and dashboard update path
+
+Do not duplicate:
+
+- overlay panel management in `OverlayWindowManager`
+- schedule/hotkey/manual command handling in separate gamma-only code
+- display selection logic inside `GammaDimmingController`
+
+## Confirmed Facts
+
+Codebase facts:
+
+- `GammaDimmingController` is currently a stub and can absorb gamma logic without inventing a new service name.
+- `SoftwareDimmingController` already has a `gammaDimmingController` dependency.
+- Current warmness is an orange overlay layer, not a channel-level blue reduction.
+- The dashboard diagnostics window added earlier is the right place to expose gamma capability and failure logs.
+
+Apple official API facts:
+
+- `CGSetDisplayTransferByTable` sets a display's color gamma function by specifying RGB gamma table values.
+- `CGGetDisplayTransferByTable` reads red, green, and blue table values into caller-provided arrays.
+- `CGDisplayGammaTableCapacity` returns the number of entries in a display's gamma table.
+- `CGDisplayRestoreColorSyncSettings()` restores gamma tables to values from the user's ColorSync display profile.
+
+Local empirical read-only probe facts on 2026-06-19:
+
+```text
+activeDisplayListStatus=0 count=2
+display=1 name=Built-in Retina Display capacity=1024 main=true
+  getGammaStatus=0 sampleCount=1024
+  current mid rgb=0.50048876,0.50048876,0.50048876 last rgb=1.0,1.0,1.0
+  dryRun blueReduction=18% midBlue 0.50048876 -> 0.41040078
+display=2 name=27QA100M capacity=1024 main=false
+  getGammaStatus=0 sampleCount=1024
+  current mid rgb=0.50048876,0.50048876,0.50048876 last rgb=1.0,1.0,1.0
+  dryRun blueReduction=18% midBlue 0.50048876 -> 0.41040078
+```
+
+Interpretation:
+
+- The external monitor is visible as `display=2`, `name=27QA100M`, `main=false`.
+- `CGDisplayGammaTableCapacity(display=2)` returns `1024`.
+- `CGGetDisplayTransferByTable` returns status `0` and sample count `1024`.
+- This proves read capability and table shape, not write effectiveness.
+
+## Repeated Observations
+
+Community / ecosystem observations:
+
+- Apple Developer Forum search results include recent reports that `CGSetDisplayTransferByTable()` is broken on some latest Mac hardware and macOS Tahoe 26.3/26.4 combinations, with apps such as BetterDisplay, MonitorControl, f.lux, and Lunar mentioned as affected.
+- The repeated community pattern is not "gamma APIs do not exist"; it is "the official API can regress or be ignored on specific hardware/macOS combinations."
+- A BetterDisplay discussion reports black screen risk around `CGDisplayRestoreColorSyncSettings()` when custom ICC profiles are problematic. This is not direct evidence that the user's M1 + 27QA100M will fail, but it is enough to treat broad ColorSync restore as a risky fallback rather than the first restore mechanism.
+
+## Inference
+
+Gamma-based blue reduction is technically plausible and better aligned with the user's goal than orange overlay warmth, but it must be treated as a capability-gated strategy rather than assumed universal behavior.
+
+The local read probe strongly supports doing a controlled write probe next. It does not yet prove the final feature will work, because the important unanswered question is whether `CGSetDisplayTransferByTable` visibly and persistently changes the external display table on this exact M1 + HDMI + 27QA100M setup.
+
+## Candidate Methods Ranked
+
+### 1. Gamma Blue Reduction With Overlay Brightness Kept Separate
+
+Recommendation: highest.
+
+User-visible behavior:
+
+- `Brightness` continues to dim with overlay.
+- `Warmth` is renamed to `Blue reduction` or `Blue light`.
+- Blue channel is reduced through display gamma table, avoiding the strong orange overlay look.
+- Orange warm overlay is disabled by default.
+
+Core design:
+
+```swift
+final class GammaDimmingController {
+    func applyBlueReduction(display: DisplayIdentity, amount: Int) throws
+    func clear(display: DisplayIdentity) throws
+}
+```
+
+Blue reduction table concept:
+
+```swift
+let reduction = CGFloat(Clamped.percent(amount)) / 100.0
+let blueScale = 1.0 - min(reduction * 0.65, 0.65)
+newBlue[index] = originalBlue[index] * blueScale
+newRed[index] = originalRed[index]
+newGreen[index] = originalGreen[index]
+```
+
+Important: final curve may need a nonlinear mapping so `20%` feels subtle. A likely initial mapping is `blueScale = 1.0 - amount * 0.004...0.006`, capped around 35-45% actual blue reduction for UI value 100.
+
+### 2. Hybrid: Gamma Primary, Very Subtle Warm Overlay Optional
+
+Recommendation: medium.
+
+This keeps gamma as the real blue reduction engine, but allows a very small warm overlay for visual comfort. It is more complex and risks returning to the artificial orange look. It should not be the first implementation unless the gamma-only result feels too green/cyan or visually harsh.
+
+### 3. Tune Existing Warm Overlay Only
+
+Recommendation: low.
+
+This is easiest but does not address the user's complaint. It remains an orange filter and will continue to look artificial at higher values.
+
+## Safe Write Probe Required Before Plan
+
+The next empirical check should be explicit and reversible.
+
+Probe objective:
+
+- Verify that `CGSetDisplayTransferByTable` changes only external `27QA100M` gamma output.
+- Verify that original gamma tables can be restored.
+- Verify that app diagnostics can detect success/failure.
+
+Probe outline:
+
+1. Read current external display table into baseline arrays.
+2. Apply a tiny blue reduction, e.g. 8-12%, for 1-2 seconds.
+3. Read the table back and compare against expected transformed blue values.
+4. Restore the exact baseline arrays with `CGSetDisplayTransferByTable`.
+5. Read again and compare against baseline.
+6. If exact restore fails, call `CGDisplayRestoreColorSyncSettings()` as emergency restore and log that broader restore was used.
+
+Safety constraints:
+
+- Target only `display=2` / `27QA100M`; never apply to all displays in the probe.
+- Do not run the probe while color-critical work is open.
+- Always use `defer` or equivalent to restore baseline if the process hits an error.
+- Log the original sample count and table capacity.
+- Use small reduction only; do not test with a visually extreme table first.
+
+The write probe was **not run** during this research pass because it intentionally changes live display output. It should be run only after explicit operator approval.
+
+## Plan Implications
+
+Implementation plan should not jump directly to replacing warmth everywhere. It should proceed in phases:
+
+1. Add a standalone gamma capability probe path and diagnostics logging.
+2. Implement `GammaDimmingController` with table read/store/apply/restore.
+3. Change `SoftwareDimmingController.apply` to keep overlay brightness but route `warmth` to gamma blue reduction.
+4. Rename user-facing labels from `Warmth` to `Blue light` / `Blue reduction`; decide separately whether persisted schema stays named `warmth`.
+5. Remove or neutralize orange warm overlay in `OverlayWindowManager`.
+6. Add app termination/display-change restore and reapply handling.
+7. Add targeted tests using injected gamma API protocol, not real CoreGraphics calls.
+8. Add manual QA checklist for:
+   - startup
+   - quit restore
+   - crash/force quit recovery
+   - sleep/wake
+   - HDMI reconnect
+   - Night Shift on/off
+   - changing macOS display color profile
+
+## Open Questions
+
+- Does `CGSetDisplayTransferByTable` visibly work on this exact M1 + HDMI + 27QA100M setup?
+- Should the app preserve the persisted property name `warmth` for compatibility while changing labels to `Blue reduction`, or introduce schema v2 naming?
+- Should blue reduction apply at startup before or after overlay brightness?
+- Should `Quick disable` restore both overlay brightness and gamma table, or only brightness?
+- What should happen if another app changes gamma while InnosDimmer is running?
+- Should `CGDisplayRestoreColorSyncSettings()` be available as a visible emergency button in the diagnostics app window?
+
+## Evidence
+
+Local files read:
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/GammaDimmingController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/SoftwareDimmingController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/OverlayWindowManager.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/BrightnessController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/BrightnessCommand.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ScheduleEntry.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/SoftwareDimmingControllerTests.swift`
+
+Commands run:
+
+```bash
+swift - <<'SWIFT'
+import AppKit
+import CoreGraphics
+...
+CGDisplayGammaTableCapacity(display)
+CGGetDisplayTransferByTable(display, capacity, &red, &green, &blue, &sampleCount)
+...
+SWIFT
+```
+
+Official sources:
+
+- Apple Developer Documentation, `CGSetDisplayTransferByTable`: https://developer.apple.com/documentation/coregraphics/cgsetdisplaytransferbytable%28_%3A_%3A_%3A_%3A_%3A%29
+- Apple Developer Documentation, `CGGetDisplayTransferByTable`: https://developer.apple.com/documentation/coregraphics/cggetdisplaytransferbytable%28_%3A_%3A_%3A_%3A_%3A_%3A%29
+- Apple Developer Documentation, `CGDisplayGammaTableCapacity`: https://developer.apple.com/documentation/coregraphics/cgdisplaygammatablecapacity%28_%3A%29
+- Apple Developer Documentation, `CGDisplayRestoreColorSyncSettings`: https://developer.apple.com/documentation/coregraphics/cgdisplayrestorecolorsyncsettings%28%29
+
+Community / ecosystem sources:
+
+- Apple Developer Forums search result for `CGSetDisplayTransferByTable is broken on macOS Tahoe 26.4 RC (and 26.3.1) with MacBook M5 Pro, Max and Neo`: https://developer.apple.com/forums/tags/core-graphics
+- Apple Developer Forums 2D Graphics tag showing the same regression report and affected apps: https://developer.apple.com/forums/tags/2d-graphics
+- BetterDisplay discussion mentioning `CGDisplayRestoreColorSyncSettings()` black screen risk with problematic custom ICC profiles: https://github.com/waydabber/BetterDisplay/discussions/1820
+
+Insufficient evidence:
+
+- No `CGSetDisplayTransferByTable` write probe has been run on 27QA100M yet.
+- No Night Shift / HDR / ColorSync profile interaction test has been run.
+- No sleep/wake or HDMI reconnect gamma persistence test has been run.
