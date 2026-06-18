@@ -20,6 +20,7 @@ struct MenuBarActions {
 
 struct MenuBarViewModel: Equatable {
     var modeTitle: String
+    var displaySummary: String
     var brightnessLabel: String
     var warmthLabel: String
     var automationTitle: String
@@ -27,8 +28,13 @@ struct MenuBarViewModel: Equatable {
     var shortcutSummary: String
     var diagnosticsSummary: String
 
-    init(state: BrightnessState, shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings) {
+    init(
+        state: BrightnessState,
+        shortcuts: [ShortcutBinding] = ShortcutBinding.defaultBindings,
+        latestDiagnosticEvent: DiagnosticsEvent? = nil
+    ) {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
+        displaySummary = state.display.map { "Display: \($0.localizedName)" } ?? "Display: Not selected"
         brightnessLabel = "\(state.targetBrightness)%"
         warmthLabel = "\(state.targetWarmth)%"
         if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
@@ -40,7 +46,10 @@ struct MenuBarViewModel: Equatable {
         }
         scheduleSummary = "Schedule: 09:00 / 19:00 / 23:00"
         shortcutSummary = HotkeyManager.summary(for: shortcuts)
-        diagnosticsSummary = "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(Self.hardwareSummary(for: state.hardwareCapability))"
+        diagnosticsSummary = Self.diagnosticsSummary(
+            state: state,
+            latestDiagnosticEvent: latestDiagnosticEvent
+        )
     }
 
     private static func timeLabel(for minuteOfDay: Int) -> String {
@@ -66,11 +75,24 @@ struct MenuBarViewModel: Equatable {
             return "DDC failed: \(message)"
         }
     }
+
+    private static func diagnosticsSummary(
+        state: BrightnessState,
+        latestDiagnosticEvent: DiagnosticsEvent?
+    ) -> String {
+        let base = "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(hardwareSummary(for: state.hardwareCapability))"
+        guard let latestDiagnosticEvent else {
+            return base
+        }
+
+        return "\(base). Last: \(latestDiagnosticEvent.message)"
+    }
 }
 
 final class MenuBarPopoverView: NSView {
     private let modeBadge: StatusBadgeView
     private let actions: MenuBarActions
+    private let displaySummaryLabel = NSTextField(labelWithString: "")
     private let brightnessValueLabel = NSTextField(labelWithString: "")
     private let warmthValueLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
@@ -79,21 +101,29 @@ final class MenuBarPopoverView: NSView {
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
-    init(state: BrightnessState, actions: MenuBarActions = .noop) {
+    init(
+        state: BrightnessState,
+        latestDiagnosticEvent: DiagnosticsEvent? = nil,
+        actions: MenuBarActions = .noop
+    ) {
         modeBadge = StatusBadgeView(mode: state.activeMode)
         self.actions = actions
-        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 300))
+        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 330))
         buildLayout()
-        update(state: state)
+        update(state: state, latestDiagnosticEvent: latestDiagnosticEvent)
     }
 
     required init?(coder: NSCoder) {
         nil
     }
 
-    func update(state: BrightnessState) {
-        let viewModel = MenuBarViewModel(state: state)
+    func update(state: BrightnessState, latestDiagnosticEvent: DiagnosticsEvent? = nil) {
+        let viewModel = MenuBarViewModel(
+            state: state,
+            latestDiagnosticEvent: latestDiagnosticEvent
+        )
         modeBadge.stringValue = viewModel.modeTitle
+        displaySummaryLabel.stringValue = viewModel.displaySummary
         brightnessValueLabel.stringValue = viewModel.brightnessLabel
         warmthValueLabel.stringValue = viewModel.warmthLabel
         automationLabel.stringValue = viewModel.automationTitle
@@ -104,6 +134,18 @@ final class MenuBarPopoverView: NSView {
 
     func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
         commandButtons[command]
+    }
+
+    func displaySummaryForTesting() -> String {
+        displaySummaryLabel.stringValue
+    }
+
+    func brightnessLabelForTesting() -> String {
+        brightnessValueLabel.stringValue
+    }
+
+    func diagnosticsSummaryForTesting() -> String {
+        diagnosticsSummaryLabel.stringValue
     }
 
     private func buildLayout() {
@@ -125,6 +167,7 @@ final class MenuBarPopoverView: NSView {
         let stack = NSStackView(views: [
             title,
             modeBadge,
+            displaySummaryLabel,
             row(label: brightnessTitle, value: brightnessValueLabel),
             row(label: warmthTitle, value: warmthValueLabel),
             automationLabel,

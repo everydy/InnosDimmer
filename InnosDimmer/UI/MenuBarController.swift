@@ -11,6 +11,7 @@ final class MenuBarController: NSObject {
     private let brightnessController: BrightnessController
     private let displayInventory: DisplayInventory
     private let displayTargetStore: DisplayTargetStore
+    private let diagnosticsStore: DiagnosticsStore
     private let popover = NSPopover()
     private lazy var settingsWindowController = SettingsWindowController()
     private var commandBeforeQuickDisable: BrightnessCommand?
@@ -18,24 +19,28 @@ final class MenuBarController: NSObject {
     init(
         brightnessController: BrightnessController = BrightnessController(),
         displayInventory: DisplayInventory = DisplayInventory(),
-        displayTargetStore: DisplayTargetStore = DisplayTargetStore()
+        displayTargetStore: DisplayTargetStore = DisplayTargetStore(),
+        diagnosticsStore: DiagnosticsStore = DiagnosticsStore()
     ) {
         self.brightnessController = brightnessController
         self.displayInventory = displayInventory
         self.displayTargetStore = displayTargetStore
+        self.diagnosticsStore = diagnosticsStore
         super.init()
     }
 
     func start() {
+        record(.appLifecycle, "Menu bar controller started")
         let initialState = stateResolvingSelectedDisplayIfNeeded()
         statusItem.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "InnosDimmer")
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 320, height: 300)
+        popover.contentSize = NSSize(width: 320, height: 330)
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = MenuBarPopoverView(
             state: initialState,
+            latestDiagnosticEvent: diagnosticsStore.latestEvent,
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
             }
@@ -50,6 +55,8 @@ final class MenuBarController: NSObject {
         if popover.isShown {
             popover.performClose(nil)
         } else {
+            _ = stateResolvingSelectedDisplayIfNeeded()
+            refreshPopover()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
     }
@@ -70,7 +77,11 @@ final class MenuBarController: NSObject {
             restorePrevious()
         case .openSettings:
             openSettings()
-        case .probeDDC, .pauseAutomation:
+        case .probeDDC:
+            record(.hardwareProbe, "DDC probe requested")
+            refreshPopover()
+        case .pauseAutomation:
+            record(.schedule, "Pause automation requested")
             refreshPopover()
         }
     }
@@ -96,18 +107,20 @@ final class MenuBarController: NSObject {
 
     private func restorePrevious() {
         guard let command = commandBeforeQuickDisable else {
+            record(.softwareDimming, "Restore previous requested without saved state", .warning)
             refreshPopover()
             return
         }
 
-        brightnessController.apply(command)
+        applyCommand(command)
         commandBeforeQuickDisable = nil
-        refreshPopover()
     }
 
     private func openSettings() {
+        record(.appLifecycle, "Opened settings")
         settingsWindowController.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+        refreshPopover()
     }
 
     private func apply(brightness: Int, warmth: Int, source: BrightnessCommandSource) {
@@ -116,12 +129,31 @@ final class MenuBarController: NSObject {
             return
         }
 
+        applyCommand(command)
+    }
+
+    private func applyCommand(_ command: BrightnessCommand) {
+        let previousMode = brightnessController.state.activeMode
         brightnessController.apply(command)
+        if brightnessController.pendingCommand == command {
+            applyPendingPreview(command)
+        }
+        recordAppliedCommand(command, previousMode: previousMode)
         refreshPopover()
+    }
+
+    private func applyPendingPreview(_ command: BrightnessCommand) {
+        var state = brightnessController.state
+        state.display = command.display
+        state.targetBrightness = command.brightness
+        state.targetWarmth = command.warmth
+        state.lastAppliedCommandSource = command.source
+        brightnessController.applyPreviewState(state)
     }
 
     private func makeCommand(brightness: Int, warmth: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
         guard let display = brightnessController.state.display ?? resolveSelectedDisplay() else {
+            record(.display, "Skipped dimming command because no display is selected", .warning)
             return nil
         }
 
@@ -144,12 +176,14 @@ final class MenuBarController: NSObject {
     @discardableResult
     private func resolveSelectedDisplay() -> DisplayIdentity? {
         guard let display = displayInventory.selectedDisplay(using: displayTargetStore) else {
+            record(.display, "No eligible external display found", .warning)
             return nil
         }
 
         var state = brightnessController.state
         state.display = display
         brightnessController.applyPreviewState(state)
+        record(.display, "Selected display \(display.localizedName)")
         return display
     }
 
@@ -158,6 +192,60 @@ final class MenuBarController: NSObject {
             return
         }
 
-        view.update(state: brightnessController.state)
+        view.update(
+            state: brightnessController.state,
+            latestDiagnosticEvent: diagnosticsStore.latestEvent
+        )
+    }
+
+    @discardableResult
+    private func record(
+        _ category: DiagnosticsCategory,
+        _ message: String,
+        _ severity: DiagnosticsSeverity = .info
+    ) -> DiagnosticsEvent {
+        diagnosticsStore.record(
+            category: category,
+            message: message,
+            severity: severity
+        )
+    }
+
+    private func recordAppliedCommand(_ command: BrightnessCommand, previousMode: DimmingMode) {
+        if brightnessController.pendingCommand == command {
+            record(
+                .display,
+                "Queued brightness \(command.brightness)% warmth \(command.warmth)% for \(command.display.localizedName)"
+            )
+            return
+        }
+
+        let state = brightnessController.state
+        record(
+            Self.diagnosticsCategory(for: state.activeMode),
+            "Applied brightness \(state.targetBrightness)% warmth \(state.targetWarmth)% on \(command.display.localizedName)",
+            Self.diagnosticsSeverity(for: state.activeMode)
+        )
+
+        if state.activeMode == .overlay, previousMode != .overlay {
+            record(.softwareDimming, "Software dimming active for \(command.display.localizedName)")
+        } else if state.activeMode == .platformBlocked {
+            record(.softwareDimming, "Software dimming blocked for \(command.display.localizedName)", .error)
+        }
+    }
+
+    private static func diagnosticsCategory(for mode: DimmingMode) -> DiagnosticsCategory {
+        switch mode {
+        case .hardwareDDC:
+            return .hardwareProbe
+        case .gamma, .overlay, .platformBlocked:
+            return .softwareDimming
+        case .unknown:
+            return .display
+        }
+    }
+
+    private static func diagnosticsSeverity(for mode: DimmingMode) -> DiagnosticsSeverity {
+        mode == .platformBlocked ? .error : .info
     }
 }

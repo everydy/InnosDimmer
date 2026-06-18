@@ -12,6 +12,24 @@ final class DiagnosticsStoreTests: XCTestCase {
         XCTAssertEqual(store.events.map(\.message), ["second", "third"])
     }
 
+    func testDiagnosticsStoreRecordHelperReturnsAndExposesLatestEvent() {
+        let store = DiagnosticsStore(maxEvents: 10)
+        let timestamp = Date(timeIntervalSince1970: 42)
+
+        let event = store.record(
+            category: .display,
+            message: "Selected display INNOS 27QA100M",
+            severity: .warning,
+            timestamp: timestamp
+        )
+
+        XCTAssertEqual(event.timestamp, timestamp)
+        XCTAssertEqual(event.category, .display)
+        XCTAssertEqual(event.message, "Selected display INNOS 27QA100M")
+        XCTAssertEqual(event.severity, .warning)
+        XCTAssertEqual(store.latestEvent, event)
+    }
+
     func testDiagnosticsSnapshotIncludesStateAndRecentEvents() {
         var state = BrightnessState.defaultState()
         state.hardwareCapability = .unsupported(reason: "brightness read failed")
