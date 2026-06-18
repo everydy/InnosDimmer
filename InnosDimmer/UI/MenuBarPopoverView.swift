@@ -58,34 +58,29 @@ struct MenuBarViewModel: Equatable {
     }
 
     private static func hardwareSummary(for capability: HardwareCapability) -> String {
-        switch capability {
-        case .notProbed:
-            return "DDC not probed"
-        case .probing:
-            return "DDC probing"
-        case .readSupported:
-            return "DDC read-only"
-        case .writeReadbackSupported:
-            return "DDC verified"
-        case .unsupported(let reason):
-            return "DDC unsupported: \(reason)"
-        case .blockedByPlatform(let reason):
-            return "Platform blocked: \(reason)"
-        case .failedWithError(let message):
-            return "DDC failed: \(message)"
-        }
+        capability.diagnosticSummary
     }
 
     private static func diagnosticsSummary(
         state: BrightnessState,
         latestDiagnosticEvent: DiagnosticsEvent?
     ) -> String {
-        let base = "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(hardwareSummary(for: state.hardwareCapability))"
-        guard let latestDiagnosticEvent else {
-            return base
+        var parts = [
+            "Diagnostics: \(ModeStatusLabel.title(for: state.activeMode)), \(hardwareSummary(for: state.hardwareCapability))"
+        ]
+        let latestEventIsProbeResult = latestDiagnosticEvent?.category == .hardwareProbe
+            && latestDiagnosticEvent?.message.hasPrefix("DDC probe result") == true
+
+        if let lastHardwareProbeResult = state.lastHardwareProbeResult,
+           !latestEventIsProbeResult {
+            parts.append("Probe: \(lastHardwareProbeResult.diagnosticSummary)")
         }
 
-        return "\(base). Last: \(latestDiagnosticEvent.message)"
+        if let latestDiagnosticEvent {
+            parts.append("Last: \(latestDiagnosticEvent.message)")
+        }
+
+        return parts.joined(separator: ". ")
     }
 }
 

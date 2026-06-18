@@ -186,6 +186,50 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Restore previous requested without saved state")
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
     }
+
+    @MainActor
+    func testMenuBarControllerRunsDDCProbeAndSurfacesUnsupportedResult() {
+        let adapter = MenuBarProbeDDCAdapter(currentBrightness: nil)
+        let software = RecordingSoftwareDimmingStrategy()
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let brightnessController = BrightnessController(
+            state: state,
+            softwareStrategy: software
+        )
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            diagnosticsStore: diagnosticsStore,
+            hardwareDDCController: HardwareDDCController(
+                adapter: adapter,
+                now: { Date(timeIntervalSince1970: 42) }
+            )
+        )
+
+        menuBarController.perform(.probeDDC)
+
+        XCTAssertEqual(brightnessController.state.hardwareCapability, .unsupported(reason: "brightness read failed"))
+        XCTAssertEqual(
+            brightnessController.state.lastHardwareProbeResult?.steps.map(\.kind),
+            [.identifyDisplay, .readBrightness, .classifyFailure]
+        )
+        XCTAssertTrue(adapter.writtenValues.isEmpty)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.category, .hardwareProbe)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
+        XCTAssertTrue(diagnosticsStore.latestEvent?.message.contains("DDC probe result for INNOS 27QA100M") == true)
+
+        let viewModel = MenuBarViewModel(state: brightnessController.state)
+        XCTAssertEqual(
+            viewModel.diagnosticsSummary,
+            "Diagnostics: Not probed, DDC unsupported: brightness read failed. Probe: DDC unsupported: brightness read failed after 3 steps"
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [75])
+        XCTAssertNil(brightnessController.pendingCommand)
+    }
 }
 
 @MainActor
@@ -197,6 +241,28 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     }
 
     func clear(display: DisplayIdentity) throws {}
+}
+
+private final class MenuBarProbeDDCAdapter: DDCAdapter {
+    var currentBrightness: Int?
+    private(set) var writtenValues: [Int] = []
+
+    init(currentBrightness: Int?) {
+        self.currentBrightness = currentBrightness
+    }
+
+    func readBrightness(display: DisplayIdentity) throws -> DDCBrightnessValue {
+        guard let currentBrightness else {
+            throw DDCAdapterError.readFailed
+        }
+
+        return DDCBrightnessValue(current: currentBrightness, range: 0...100)
+    }
+
+    func writeBrightness(_ value: Int, display: DisplayIdentity) throws {
+        writtenValues.append(value)
+        currentBrightness = value
+    }
 }
 
 private extension DisplayIdentity {

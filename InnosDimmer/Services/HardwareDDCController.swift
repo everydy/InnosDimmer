@@ -35,6 +35,31 @@ struct ProbeResult: Codable, Equatable {
     var capability: HardwareCapability
     var steps: [ProbeStep]
     var shouldRetryAutomatically: Bool
+
+    var diagnosticSummary: String {
+        "\(capability.diagnosticSummary) after \(steps.count) steps"
+    }
+}
+
+extension HardwareCapability {
+    var diagnosticSummary: String {
+        switch self {
+        case .notProbed:
+            return "DDC not probed"
+        case .probing:
+            return "DDC probing"
+        case .readSupported:
+            return "DDC read-only"
+        case .writeReadbackSupported:
+            return "DDC verified"
+        case .unsupported(let reason):
+            return "DDC unsupported: \(reason)"
+        case .blockedByPlatform(let reason):
+            return "Platform blocked: \(reason)"
+        case .failedWithError(let message):
+            return "DDC failed: \(message)"
+        }
+    }
 }
 
 final class HardwareDDCController: HardwareBrightnessStrategy {

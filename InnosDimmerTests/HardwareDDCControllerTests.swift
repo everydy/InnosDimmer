@@ -15,6 +15,7 @@ final class HardwareDDCControllerTests: XCTestCase {
         let result = controller.probe(display: .fixture())
 
         XCTAssertEqual(result.capability, .writeReadbackSupported(range: 0...100))
+        XCTAssertEqual(result.diagnosticSummary, "DDC verified after 6 steps")
         XCTAssertEqual(adapter.currentBrightness, 50)
         XCTAssertEqual(result.steps.map(\.kind), [
             .identifyDisplay,
@@ -61,6 +62,23 @@ final class HardwareDDCControllerTests: XCTestCase {
         ))
 
         XCTAssertEqual(adapter.currentBrightness, 42)
+    }
+
+    func testDiagnosticsExporterEncodesProbeResult() throws {
+        let adapter = FakeDDCAdapter(currentBrightness: 50)
+        let controller = HardwareDDCController(
+            adapter: adapter,
+            now: { Date(timeIntervalSince1970: 42) }
+        )
+        let result = controller.probe(display: .fixture())
+
+        let data = try DiagnosticsExporter.export(result)
+        let decoded = try JSONDecoder().decode(ProbeResult.self, from: data)
+        let json = String(decoding: data, as: UTF8.self)
+
+        XCTAssertEqual(decoded, result)
+        XCTAssertTrue(json.contains("writeReadbackSupported"))
+        XCTAssertTrue(json.contains("\n"))
     }
 }
 

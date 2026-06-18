@@ -17,6 +17,7 @@ final class MenuBarController: NSObject {
     private let registersHotkeysOnStart: Bool
     private let scheduleEntries: [ScheduleEntry]
     private let scheduleTimerController: ScheduleTimerController
+    private let hardwareDDCController: HardwareDDCController
     private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
     private lazy var settingsWindowController = SettingsWindowController()
@@ -35,6 +36,7 @@ final class MenuBarController: NSObject {
         registersHotkeysOnStart: Bool? = nil,
         scheduleEntries: [ScheduleEntry] = ScheduleEntry.defaultSchedule,
         scheduleTimerController: ScheduleTimerController = ScheduleTimerController(),
+        hardwareDDCController: HardwareDDCController = HardwareDDCController(),
         currentMinuteOfDay: @escaping () -> Int = { MenuBarController.systemMinuteOfDay() }
     ) {
         self.brightnessController = brightnessController
@@ -47,6 +49,7 @@ final class MenuBarController: NSObject {
             ?? Self.defaultRegistersHotkeysOnStart(backend: hotkeyRegistrationBackend)
         self.scheduleEntries = scheduleEntries
         self.scheduleTimerController = scheduleTimerController
+        self.hardwareDDCController = hardwareDDCController
         self.currentMinuteOfDay = currentMinuteOfDay
         super.init()
     }
@@ -119,8 +122,7 @@ final class MenuBarController: NSObject {
         case .openSettings:
             openSettings()
         case .probeDDC:
-            record(.hardwareProbe, "DDC probe requested")
-            refreshPopover()
+            runDDCProbe()
         case .pauseAutomation:
             pauseAutomationUntilNextBoundary(messagePrefix: "Automation pause requested")
         }
@@ -193,6 +195,38 @@ final class MenuBarController: NSObject {
         settingsWindowController.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
         refreshPopover()
+    }
+
+    private func runDDCProbe() {
+        guard let display = brightnessController.state.display ?? resolveSelectedDisplay() else {
+            record(.hardwareProbe, "DDC probe skipped: no selected display", .warning)
+            refreshPopover()
+            return
+        }
+
+        record(.hardwareProbe, "DDC probe started for \(display.localizedName)")
+        let result = hardwareDDCController.probe(display: display)
+        var state = brightnessController.state
+        state.display = display
+        state.hardwareCapability = result.capability
+        state.lastHardwareProbeResult = result
+        brightnessController.applyPreviewState(state)
+
+        record(
+            .hardwareProbe,
+            "DDC probe result for \(display.localizedName): \(result.diagnosticSummary)\(probeExportNote(for: result))",
+            Self.diagnosticsSeverity(for: result.capability)
+        )
+        refreshPopover()
+    }
+
+    private func probeExportNote(for result: ProbeResult) -> String {
+        do {
+            let data = try DiagnosticsExporter.export(result)
+            return " (export \(data.count) bytes)"
+        } catch {
+            return " (export failed: \(error))"
+        }
     }
 
     private func apply(brightness: Int, warmth: Int, source: BrightnessCommandSource) {
@@ -479,6 +513,17 @@ final class MenuBarController: NSObject {
 
     private static func diagnosticsSeverity(for mode: DimmingMode) -> DiagnosticsSeverity {
         mode == .platformBlocked ? .error : .info
+    }
+
+    private static func diagnosticsSeverity(for capability: HardwareCapability) -> DiagnosticsSeverity {
+        switch capability {
+        case .notProbed, .probing, .readSupported, .writeReadbackSupported:
+            return .info
+        case .unsupported, .blockedByPlatform:
+            return .warning
+        case .failedWithError:
+            return .error
+        }
     }
 
     private static func pausesAutomation(for source: BrightnessCommandSource) -> Bool {

@@ -6,6 +6,7 @@ struct BrightnessState: Codable, Equatable {
     var targetWarmth: Int
     var activeMode: DimmingMode
     var hardwareCapability: HardwareCapability
+    var lastHardwareProbeResult: ProbeResult?
     var automationPausedUntilNextBoundary: Bool
     var automationPausedAtMinuteOfDay: Int?
     var automationResumeMinuteOfDay: Int?
@@ -18,6 +19,7 @@ struct BrightnessState: Codable, Equatable {
         targetWarmth: Int,
         activeMode: DimmingMode,
         hardwareCapability: HardwareCapability,
+        lastHardwareProbeResult: ProbeResult? = nil,
         automationPausedUntilNextBoundary: Bool,
         automationPausedAtMinuteOfDay: Int? = nil,
         automationResumeMinuteOfDay: Int? = nil,
@@ -29,6 +31,7 @@ struct BrightnessState: Codable, Equatable {
         self.targetWarmth = Clamped.percent(targetWarmth)
         self.activeMode = activeMode
         self.hardwareCapability = hardwareCapability
+        self.lastHardwareProbeResult = lastHardwareProbeResult
         self.automationPausedUntilNextBoundary = automationPausedUntilNextBoundary
         self.automationPausedAtMinuteOfDay = automationPausedAtMinuteOfDay.map { max(0, min(1_439, $0)) }
         self.automationResumeMinuteOfDay = automationResumeMinuteOfDay.map { max(0, min(1_439, $0)) }
@@ -43,6 +46,7 @@ struct BrightnessState: Codable, Equatable {
             targetWarmth: 12,
             activeMode: .unknown,
             hardwareCapability: .notProbed,
+            lastHardwareProbeResult: nil,
             automationPausedUntilNextBoundary: false,
             automationPausedAtMinuteOfDay: nil,
             automationResumeMinuteOfDay: nil,
