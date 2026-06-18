@@ -129,7 +129,7 @@ final class SettingsSnapshotTests: XCTestCase {
             {
               "action": "brightnessDown",
               "keyCode": 125,
-              "modifiers": 786432,
+              "modifiers": 3,
               "isEnabled": true
             }
           ]
@@ -150,5 +150,71 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertEqual(decoded.schedule.first?.brightness, 45)
         XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
+    }
+
+    func testStoreLoadMigratesLegacyHardwareSettingsSnapshot() throws {
+        let defaults = UserDefaults(suiteName: "InnosDimmerTests.\(UUID().uuidString)")!
+        let key = "snapshot"
+        let legacyJSON = """
+        {
+          "schemaVersion": 1,
+          "selectedDisplay": {
+            "cgDisplayID": 42,
+            "localizedName": "INNOS 27QA100M",
+            "vendorNumber": 1,
+            "modelNumber": 2,
+            "serialNumber": 3,
+            "frameDescription": "2560x1440@2x"
+          },
+          "state": {
+            "display": {
+              "cgDisplayID": 42,
+              "localizedName": "INNOS 27QA100M",
+              "vendorNumber": 1,
+              "modelNumber": 2,
+              "serialNumber": 3,
+              "frameDescription": "2560x1440@2x"
+            },
+            "targetBrightness": 45,
+            "targetWarmth": 32,
+            "activeMode": "overlay",
+            "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
+            "lastHardwareProbeResult": null,
+            "automationPausedUntilNextBoundary": true,
+            "automationPausedAtMinuteOfDay": 600,
+            "automationResumeMinuteOfDay": 1140,
+            "lastAppliedCommandSource": "menuSlider",
+            "isForcedSoftwareModeForTesting": false
+          },
+          "schedule": [
+            {
+              "id": "00000000-0000-0000-0000-000000000001",
+              "minuteOfDay": 600,
+              "brightness": 45,
+              "warmth": 32
+            }
+          ],
+          "shortcuts": [
+            {
+              "action": "brightnessDown",
+              "keyCode": 125,
+              "modifiers": 3,
+              "isEnabled": true
+            }
+          ]
+        }
+        """
+        defaults.set(Data(legacyJSON.utf8), forKey: key)
+        let store = DisplayTargetStore(defaults: defaults, key: key)
+
+        let loaded = store.load()
+
+        XCTAssertEqual(loaded.schemaVersion, SettingsSnapshot.currentSchemaVersion)
+        XCTAssertEqual(loaded.selectedDisplay?.localizedName, "INNOS 27QA100M")
+        XCTAssertEqual(loaded.state.targetBrightness, 45)
+        XCTAssertEqual(loaded.state.targetWarmth, 32)
+        XCTAssertEqual(loaded.schedule.first?.minuteOfDay, 600)
+        XCTAssertEqual(loaded.shortcuts.first?.action, .brightnessDown)
+        XCTAssertEqual(loaded.shortcuts.first?.modifiers, [.option, .shift])
     }
 }
