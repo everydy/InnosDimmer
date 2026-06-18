@@ -18,21 +18,21 @@ This matrix tracks requested dimming contexts. Manual visual QA remains pending 
 | Shortcut conflict recovery | not tested | Confirm duplicate enabled bindings are rejected and user can restore safe defaults. |
 | Schedule boundary | not tested | Confirm manual slider changes are not overwritten until the next schedule boundary. |
 
-## Commit 5 Checks
+## Software Routing Checks
 
-- Software dimming activates immediately and does not wait for hardware DDC probing.
+- Software dimming activates immediately and does not wait for hardware probing.
 - Diagnostics can force software mode through `forcedSoftwareTest`.
 - Overlay panels are configured as non-opaque, click-through, all-Spaces, stationary windows.
 - Overlay appearance computes separate black dimming opacity and warm tint opacity.
 
-## Commit 9 Checks
+## Shortcut Checks
 
 - Default shortcut bindings cover brightness up/down, warmth up/down, quick disable, and restore previous dimming.
 - Enabled duplicate shortcuts are validation errors; disabled duplicates are ignored.
 - Unsafe bindings without an anchor modifier plus Shift are rejected before registration.
 - Native brightness/media key interception remains out of MVP scope.
 
-## Commit 11 Checks
+## Verification Matrix Checks
 
 - Verification matrix rows cover general desktop, full-screen Spaces, presentation, browser full-screen video, DRM/protected playback, screen sharing/recording, sleep/wake, HDMI reconnect, shortcut conflict, and schedule boundary.
 - `platformBlocked` is not treated as pass; it can count as handled only with a visible explanatory note.

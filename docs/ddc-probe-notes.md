@@ -1,8 +1,8 @@
 # DDC Probe Notes
 
-Status: archived internal reference. The current user-facing MVP is software-overlay only and does not expose DDC probing or hardware brightness control in normal operation.
+Status: archived internal reference. The current user-facing app is software-overlay only and does not expose DDC probing or hardware brightness control in normal operation.
 
-The app implements the hardware DDC probe strategy as a testable state machine. It does not yet include a real reviewed IOKit DDC adapter for the INNOS 27QA100M.
+This document records the earlier DDC probe design. It is not current runtime policy. The active app should not call DDC probe or hardware brightness paths during normal operation.
 
 ## Safety Policy
 
@@ -12,7 +12,7 @@ The app implements the hardware DDC probe strategy as a testable state machine. 
 - Write the probe value.
 - Read back and require the probe value to match.
 - Restore the original brightness.
-- Enable `hardwareDDC` only after write/readback succeeds and restore succeeds.
+- Historical policy: enable `hardwareDDC` only after write/readback succeeds and restore succeeds.
 
 ## Failure Classification
 
@@ -24,13 +24,13 @@ The app implements the hardware DDC probe strategy as a testable state machine. 
 
 ## Current Adapter
 
-`NoopDDCAdapter` is the default adapter and always fails reads/writes. This prevents accidental monitor writes before a real IOKit adapter is implemented and reviewed.
+`NoopDDCAdapter` was the default adapter for the archived DDC state machine and always failed reads/writes. This prevented accidental monitor writes before a real IOKit adapter could be reviewed.
 
-`HardwareDDCController.applyHardware(_:)` writes through the injected adapter only after policy has classified the display as write/readback supported. With the default adapter, real hardware writes still fail safely and route back through the software fallback policy.
+The active software-only runtime no longer routes brightness commands through `HardwareDDCController`.
 
 ## M1 Direct HDMI Notes
 
-- Treat DDC as unverified until the local probe succeeds on the actual HDMI connection.
-- A failed read means hardware mode is unsupported for the current run.
-- A failed write/readback or failed restore means hardware mode is exhausted and software dimming may activate with an explicit reason.
+- Treat DDC as unverified and outside the current app runtime.
+- A failed read previously meant hardware mode was unsupported for the current run.
+- A failed write/readback or failed restore previously meant hardware mode was exhausted.
 - Never mark hardware control as verified based only on the display name or vendor/model identifiers.

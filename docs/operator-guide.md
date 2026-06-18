@@ -35,8 +35,9 @@ Manual changes pause automation until the next schedule boundary.
 
 ## Local QA
 
-1. Run the compiler-level verification command from the README.
-2. Launch the app locally from Xcode once the local Xcode plug-in issue is resolved.
+1. Run the Debug verification command from the README.
+2. Build the Release app from the README.
+3. Launch the Release app locally.
 3. Complete `docs/qa-matrix.md` with notes for every row.
 4. Export diagnostics after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
 
