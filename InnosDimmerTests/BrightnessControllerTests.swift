@@ -21,7 +21,6 @@ final class BrightnessControllerTests: XCTestCase {
 
         controller.apply(.fixture(source: .startupRestore))
 
-        XCTAssertNil(controller.pendingCommand)
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .startupRestore)])
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
@@ -34,7 +33,6 @@ final class BrightnessControllerTests: XCTestCase {
 
         controller.apply(.fixture(source: .schedule))
 
-        XCTAssertNil(controller.pendingCommand)
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
         XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)

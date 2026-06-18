@@ -22,7 +22,7 @@ Historical DDC/CI probe notes are archived in [docs/ddc-probe-notes.md](docs/ddc
 - Time-table schedule engine with manual override until the next schedule boundary.
 - Custom global shortcut defaults, validation, conflict detection, and Carbon EventHotKey registration backend.
 - Login item wrapper using `SMAppService` where available.
-- Diagnostics events, snapshots, JSON export, and verification matrix guardrails.
+- Diagnostics events, snapshots, Settings-window JSON export, and verification matrix guardrails.
 
 ## Current Limitations
 
@@ -48,9 +48,12 @@ Use the Debug command after implementation changes. Use the Release command befo
 
 Use [docs/qa-matrix.md](docs/qa-matrix.md) as the manual QA checklist. Use [docs/operator-guide.md](docs/operator-guide.md) for local operation notes.
 
+Diagnostics export lives in `Settings` under the `Diagnostics` section as `Export diagnostics`. Use it after a successful dimming command and after any observed blocked/failed scenario.
+
 ## Planning References
 
 - Software-only implementation plan: [docs/2026-06-18-software-only-dimming-plan.md](docs/2026-06-18-software-only-dimming-plan.md)
+- Overlay reliability plan: [docs/2026-06-19-overlay-reliability-plan-first.md](docs/2026-06-19-overlay-reliability-plan-first.md)
 - Software-only research basis: [research.md](research.md)
 - Archived DDC/CI reference: [docs/ddc-probe-notes.md](docs/ddc-probe-notes.md)
 - Full-context manual evidence checklist: [docs/qa-matrix.md](docs/qa-matrix.md)

@@ -202,7 +202,6 @@ final class ScheduleRuntimeTests: XCTestCase {
 
         menuBarController.start()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
         XCTAssertEqual(brightnessController.state.targetWarmth, 12)
@@ -213,7 +212,6 @@ final class ScheduleRuntimeTests: XCTestCase {
         currentMinute = 1_140
         factory.timers.last?.fire()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule, .schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
         XCTAssertEqual(brightnessController.state.targetWarmth, 32)
@@ -273,7 +271,6 @@ final class ScheduleRuntimeTests: XCTestCase {
         menuBarController.perform(.brightnessUp)
 
         XCTAssertTrue(startupTimer?.isInvalidated == true)
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.source).suffix(1), [.menuSlider])
         XCTAssertTrue(brightnessController.state.automationPausedUntilNextBoundary)
         XCTAssertEqual(brightnessController.state.automationPausedAtMinuteOfDay, 1_000)
@@ -284,7 +281,6 @@ final class ScheduleRuntimeTests: XCTestCase {
         currentMinute = 1_140
         factory.timers.last?.fire()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.source).suffix(1), [.schedule])
         XCTAssertFalse(brightnessController.state.automationPausedUntilNextBoundary)
         XCTAssertNil(brightnessController.state.automationPausedAtMinuteOfDay)

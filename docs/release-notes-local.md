@@ -2,13 +2,14 @@
 
 ## MVP State
 
-This local MVP contains the menu bar shell, state model, display target persistence, software-only overlay dimming path, brightness routing, schedule engine, shortcut validation/registration backend, login item wrapper, diagnostics export, and verification matrix guardrails.
+This local MVP contains the menu bar shell, state model, display target persistence, software-only overlay dimming path, brightness routing, schedule engine, shortcut validation/registration backend, login item wrapper, Settings-window diagnostics export, and verification matrix guardrails.
 
 ## Known Limitations
 
 - Hardware brightness control is intentionally not part of the user-facing app.
 - Full manual QA is still pending.
 - `xcodebuild -scheme InnosDimmer -configuration Debug build-for-testing CODE_SIGNING_ALLOWED=NO` is the current compiler/test-build verification source.
+- On 2026-06-19, the Debug test build passed after overlay failure reporting, stale display resolution, reconnect debounce, diagnostics export, and pending-preview cleanup.
 - `xcodebuild -scheme InnosDimmer -configuration Release build CODE_SIGNING_ALLOWED=NO` passed on 2026-06-18.
 - The Release app was observed running from the local Xcode build products path on 2026-06-18.
 - Manual smoke QA on 2026-06-18 confirmed menu bar popover opening, visible overlay dimming on `27QA100M`, brightness/warmth command updates, quick disable/restore, Finder-focused brightness shortcut, and settings window opening.
@@ -26,5 +27,5 @@ This local MVP contains the menu bar shell, state model, display target persiste
 | Schedule | engine implemented | Near-future boundary manual check. |
 | Shortcuts | Finder smoke pass | Browser, full-screen, presentation, conflict recovery, and customization manual checks. |
 | Login item | wrapper implemented | Manual toggle and relaunch check after signing/entitlement status is known. |
-| Diagnostics | snapshot/export implemented | Export after overlay and platform-blocked scenarios. |
+| Diagnostics | Settings export implemented | Use `Settings` -> `Export diagnostics` after overlay and platform-blocked scenarios. |
 | Verification matrix | implemented | Fill every row with evidence notes. |

@@ -40,7 +40,7 @@ Manual changes pause automation until the next schedule boundary.
 3. Launch the Release app locally.
 4. Confirm the `InnosDimmer` process is running from the Release build path.
 5. Complete `docs/qa-matrix.md` with notes for every row.
-6. Export diagnostics after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
+6. Open `Settings` and use `Export diagnostics` after testing overlay mode, shortcut conflicts, sleep/wake, and reconnect.
 
 Latest implementation verification on 2026-06-18:
 
@@ -49,6 +49,11 @@ Latest implementation verification on 2026-06-18:
 - Release app launch: process observed running from `Build/Products/Release/InnosDimmer.app`.
 - Manual smoke QA: popover opened on `27QA100M`; brightness/warmth controls, quick disable/restore, Finder-focused brightness shortcut, and settings window opening were verified.
 - Narrow `xcodebuild test -only-testing` was attempted, but the Xcode test runner stalled during app launch/finalization and was interrupted.
+
+Latest reliability implementation verification on 2026-06-19:
+
+- Debug `build-for-testing`: passed after explicit overlay failure reporting, stale display resolution, reconnect debounce, diagnostics export, and pending-preview cleanup.
+- Narrow `xcodebuild test -only-testing:InnosDimmerTests/MenuBarStateTests` was attempted, but macOS denied the Debug dylib load during app test launch and the run was interrupted.
 
 ## No Package Dependency Policy
 

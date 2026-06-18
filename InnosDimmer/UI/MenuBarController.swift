@@ -350,9 +350,6 @@ final class MenuBarController: NSObject {
         let previousMode = brightnessController.state.activeMode
         brightnessController.apply(command)
         let softwareFailed = brightnessController.lastSoftwareDimmingFailure?.command == command
-        if brightnessController.pendingCommand == command {
-            applyPendingPreview(command)
-        }
         if !softwareFailed && updatesManualOverride {
             pauseAutomationAfterManualCommandIfNeeded(command)
         }
@@ -364,15 +361,6 @@ final class MenuBarController: NSObject {
             refreshPopover()
         }
         return !softwareFailed
-    }
-
-    private func applyPendingPreview(_ command: BrightnessCommand) {
-        var state = brightnessController.state
-        state.display = command.display
-        state.targetBrightness = command.brightness
-        state.targetWarmth = command.warmth
-        state.lastAppliedCommandSource = command.source
-        brightnessController.applyPreviewState(state)
     }
 
     private func makeCommand(brightness: Int, warmth: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
@@ -637,14 +625,6 @@ final class MenuBarController: NSObject {
     }
 
     private func recordAppliedCommand(_ command: BrightnessCommand, previousMode: DimmingMode) {
-        if brightnessController.pendingCommand == command {
-            record(
-                .display,
-                "Queued brightness \(command.brightness)% warmth \(command.warmth)% for \(command.display.localizedName)"
-            )
-            return
-        }
-
         if let failure = brightnessController.lastSoftwareDimmingFailure,
            failure.command == command {
             record(

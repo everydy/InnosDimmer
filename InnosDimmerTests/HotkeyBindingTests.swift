@@ -136,7 +136,6 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.brightnessUp)
         await Task.yield()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
@@ -146,7 +145,6 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.warmthDown)
         await Task.yield()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
         XCTAssertEqual(brightnessController.state.targetWarmth, 7)
@@ -169,7 +167,6 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.quickDisableOverlay)
         await Task.yield()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
@@ -178,7 +175,6 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         backend.trigger(.restorePreviousDimming)
         await Task.yield()
 
-        XCTAssertNil(brightnessController.pendingCommand)
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 12])
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)

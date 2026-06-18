@@ -8,7 +8,6 @@ struct SoftwareDimmingFailure: Equatable {
 @MainActor
 final class BrightnessController {
     private(set) var state: BrightnessState
-    private(set) var pendingCommand: BrightnessCommand?
     private(set) var lastSoftwareDimmingFailure: SoftwareDimmingFailure?
     private let softwareStrategy: SoftwareDimmingStrategy
 
@@ -56,7 +55,6 @@ final class BrightnessController {
     private func applySoftware(_ command: BrightnessCommand, reason: SoftwareActivationReason) {
         do {
             try softwareStrategy.apply(command, reason: reason)
-            pendingCommand = nil
             lastSoftwareDimmingFailure = nil
             recordApplied(command)
             state.activeMode = .overlay
