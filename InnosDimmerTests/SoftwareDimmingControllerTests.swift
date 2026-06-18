@@ -117,6 +117,37 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         ))
 
         XCTAssertEqual(controller.state.activeMode, .platformBlocked)
+        XCTAssertEqual(controller.lastSoftwareDimmingFailure?.message, "protected surface")
+    }
+
+    @MainActor
+    func testSoftwareApplyFailurePreservesPreviousSuccessfulTargets() {
+        let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(404))
+        var state = BrightnessState.defaultState()
+        state.display = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Previous")
+        state.targetBrightness = 67
+        state.targetWarmth = 22
+        state.lastAppliedCommandSource = .hotkey
+        let controller = BrightnessController(state: state, softwareStrategy: software)
+        let failedCommand = BrightnessCommand(
+            display: DisplayIdentity.fixture(cgDisplayID: 404, localizedName: "Missing"),
+            brightness: 20,
+            warmth: 80,
+            source: .menuSlider
+        )
+
+        controller.apply(failedCommand)
+
+        XCTAssertEqual(controller.state.activeMode, .platformBlocked)
+        XCTAssertEqual(controller.state.display?.localizedName, "Previous")
+        XCTAssertEqual(controller.state.targetBrightness, 67)
+        XCTAssertEqual(controller.state.targetWarmth, 22)
+        XCTAssertEqual(controller.state.lastAppliedCommandSource, .hotkey)
+        XCTAssertEqual(controller.lastSoftwareDimmingFailure?.command, failedCommand)
+        XCTAssertEqual(
+            controller.lastSoftwareDimmingFailure?.message,
+            "Display 404 is not currently available for overlay dimming."
+        )
     }
 
     @MainActor
@@ -151,7 +182,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         )
         let manager = OverlayWindowManager()
 
-        manager.apply(display: display, brightness: 45, warmth: 32)
+        try manager.apply(display: display, brightness: 45, warmth: 32)
         defer {
             manager.clear(display: display)
         }
@@ -185,8 +216,8 @@ final class SoftwareDimmingControllerTests: XCTestCase {
             return nil
         }
 
-        manager.apply(display: first, brightness: 45, warmth: 32)
-        manager.apply(display: second, brightness: 45, warmth: 32)
+        XCTAssertNoThrow(try manager.apply(display: first, brightness: 45, warmth: 32))
+        XCTAssertNoThrow(try manager.apply(display: second, brightness: 45, warmth: 32))
         manager.clearPanels(excluding: [first.cgDisplayID])
         defer {
             manager.clear(display: first)
@@ -194,6 +225,17 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         }
 
         XCTAssertEqual(manager.managedDisplayIDsForTesting(), [first.cgDisplayID])
+    }
+
+    @MainActor
+    func testApplyThrowsWhenDisplayFrameIsUnavailable() {
+        let display = DisplayIdentity.fixture(cgDisplayID: 404, localizedName: "Missing")
+        let manager = OverlayWindowManager { _ in nil }
+
+        XCTAssertThrowsError(try manager.apply(display: display, brightness: 45, warmth: 32)) { error in
+            XCTAssertEqual(error as? SoftwareDimmingError, .displayUnavailable(404))
+        }
+        XCTAssertEqual(manager.managedDisplayIDsForTesting(), [])
     }
 }
 

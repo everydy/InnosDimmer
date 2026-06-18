@@ -6,9 +6,19 @@ enum SoftwareActivationReason: Codable, Equatable {
     case platformBlocked(String)
 }
 
-enum SoftwareDimmingError: Error, Equatable {
+enum SoftwareDimmingError: Error, Equatable, LocalizedError {
+    case displayUnavailable(UInt32)
     case platformBlocked(String)
     case applyFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .displayUnavailable(let displayID):
+            return "Display \(displayID) is not currently available for overlay dimming."
+        case .platformBlocked(let reason), .applyFailed(let reason):
+            return reason
+        }
+    }
 }
 
 @MainActor
@@ -39,7 +49,7 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
 
     func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
         _ = reason
-        overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: command.warmth)
+        try overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: command.warmth)
     }
 
     func clear(display: DisplayIdentity) throws {

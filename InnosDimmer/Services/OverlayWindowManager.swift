@@ -37,9 +37,9 @@ final class OverlayWindowManager {
         panel.hasShadow = false
     }
 
-    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) {
+    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) throws {
         guard let frame = displayFrameProvider(display) else {
-            return
+            throw SoftwareDimmingError.displayUnavailable(display.cgDisplayID)
         }
 
         let panel = panelsByDisplayID[display.cgDisplayID] ?? makePanel()

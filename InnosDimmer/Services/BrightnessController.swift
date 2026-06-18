@@ -1,9 +1,15 @@
 import Foundation
 
+struct SoftwareDimmingFailure: Equatable {
+    var command: BrightnessCommand
+    var message: String
+}
+
 @MainActor
 final class BrightnessController {
     private(set) var state: BrightnessState
     private(set) var pendingCommand: BrightnessCommand?
+    private(set) var lastSoftwareDimmingFailure: SoftwareDimmingFailure?
     private let softwareStrategy: SoftwareDimmingStrategy
 
     init(
@@ -51,11 +57,20 @@ final class BrightnessController {
         do {
             try softwareStrategy.apply(command, reason: reason)
             pendingCommand = nil
+            lastSoftwareDimmingFailure = nil
             recordApplied(command)
             state.activeMode = .overlay
-        } catch SoftwareDimmingError.platformBlocked {
+        } catch let SoftwareDimmingError.platformBlocked(reason) {
+            lastSoftwareDimmingFailure = SoftwareDimmingFailure(
+                command: command,
+                message: reason
+            )
             state.activeMode = .platformBlocked
         } catch {
+            lastSoftwareDimmingFailure = SoftwareDimmingFailure(
+                command: command,
+                message: errorMessage(from: error)
+            )
             state.activeMode = .platformBlocked
         }
     }
@@ -73,5 +88,14 @@ final class BrightnessController {
         }
 
         return nil
+    }
+
+    private func errorMessage(from error: Error) -> String {
+        if let localizedError = error as? LocalizedError,
+           let description = localizedError.errorDescription {
+            return description
+        }
+
+        return String(describing: error)
     }
 }
