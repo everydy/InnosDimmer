@@ -16,6 +16,28 @@ final class DisplayInventory {
         return displayIDs.map(identity(for:))
     }
 
+    func selectedDisplay(using targetStore: DisplayTargetStore) -> DisplayIdentity? {
+        Self.resolveSelectedDisplay(
+            saved: targetStore.load().selectedDisplay,
+            candidates: activeDisplays(),
+            mainDisplayID: CGMainDisplayID()
+        )
+    }
+
+    static func resolveSelectedDisplay(
+        saved: DisplayIdentity?,
+        candidates: [DisplayIdentity],
+        mainDisplayID: CGDirectDisplayID
+    ) -> DisplayIdentity? {
+        if let saved {
+            return DisplayTargetResolver.resolve(saved: saved, candidates: candidates)
+        }
+
+        return candidates.first { candidate in
+            candidate.cgDisplayID != mainDisplayID
+        }
+    }
+
     func preferredExternalDisplay() -> DisplayIdentity? {
         activeDisplays().first { identity in
             CGDisplayIsMain(identity.cgDisplayID) == 0

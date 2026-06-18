@@ -16,12 +16,19 @@ struct OverlayAppearance: Equatable {
 
 @MainActor
 final class OverlayWindowManager {
+    typealias DisplayFrameProvider = @MainActor (DisplayIdentity) -> CGRect?
+
     private var panelsByDisplayID: [UInt32: NSPanel] = [:]
+    private let displayFrameProvider: DisplayFrameProvider
+
+    init(displayFrameProvider: @escaping DisplayFrameProvider = OverlayWindowManager.screenFrame(for:)) {
+        self.displayFrameProvider = displayFrameProvider
+    }
 
     static func configureOverlayPanel(_ panel: NSPanel, for frame: CGRect) {
         panel.setFrame(frame, display: true)
         panel.level = .screenSaver
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         panel.ignoresMouseEvents = true
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -29,8 +36,14 @@ final class OverlayWindowManager {
     }
 
     func apply(display: DisplayIdentity, brightness: Int, warmth: Int) {
+        guard let frame = displayFrameProvider(display) else {
+            return
+        }
+
         let panel = panelsByDisplayID[display.cgDisplayID] ?? makePanel()
         panelsByDisplayID[display.cgDisplayID] = panel
+        Self.configureOverlayPanel(panel, for: frame)
+        panel.contentView?.frame = NSRect(origin: .zero, size: frame.size)
         let appearance = OverlayAppearance.make(brightness: brightness, warmth: warmth)
         updateLayers(for: panel, appearance: appearance)
         panel.alphaValue = 1.0
@@ -49,6 +62,20 @@ final class OverlayWindowManager {
         Self.configureOverlayPanel(panel, for: .zero)
         installOverlayLayers(in: panel)
         return panel
+    }
+
+    private static func screenFrame(for display: DisplayIdentity) -> CGRect? {
+        NSScreen.screens.first { screen in
+            screenDisplayID(screen) == display.cgDisplayID
+        }?.frame
+    }
+
+    private static func screenDisplayID(_ screen: NSScreen) -> CGDirectDisplayID? {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            return nil
+        }
+
+        return number.uint32Value
     }
 
     private func installOverlayLayers(in panel: NSPanel) {

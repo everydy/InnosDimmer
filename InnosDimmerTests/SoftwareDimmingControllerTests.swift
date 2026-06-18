@@ -17,6 +17,31 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
+    func testDisplayInventoryFallsBackToFirstNonMainDisplayWhenNoSavedTarget() {
+        let main = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Built-in Display")
+        let external = DisplayIdentity.fixture(cgDisplayID: 2, localizedName: "INNOS 27QA100M")
+
+        let selected = DisplayInventory.resolveSelectedDisplay(
+            saved: nil,
+            candidates: [main, external],
+            mainDisplayID: main.cgDisplayID
+        )
+
+        XCTAssertEqual(selected, external)
+    }
+
+    func testDisplayInventoryDoesNotSilentlyChooseMainDisplayWithoutExternalTarget() {
+        let main = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Built-in Display")
+
+        let selected = DisplayInventory.resolveSelectedDisplay(
+            saved: nil,
+            candidates: [main],
+            mainDisplayID: main.cgDisplayID
+        )
+
+        XCTAssertNil(selected)
+    }
+
     @MainActor
     func testNormalStartupDoesNotApplySoftwareWhileHardwareIsNotProbed() {
         let software = RecordingSoftwareDimmingStrategy()
@@ -101,6 +126,44 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertTrue(panel.collectionBehavior.contains(.canJoinAllSpaces))
         XCTAssertTrue(panel.collectionBehavior.contains(.stationary))
         XCTAssertTrue(panel.collectionBehavior.contains(.ignoresCycle))
+        XCTAssertTrue(panel.collectionBehavior.contains(.fullScreenAuxiliary))
+    }
+
+    @MainActor
+    func testApplySetsOverlayPanelFrameToDisplayScreenFrame() throws {
+        let app = NSApplication.shared
+        guard let screen = NSScreen.screens.first,
+              let displayID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else {
+            throw XCTSkip("No screen available for overlay frame test")
+        }
+        let display = DisplayIdentity(
+            cgDisplayID: displayID.uint32Value,
+            localizedName: screen.localizedName,
+            vendorNumber: nil,
+            modelNumber: nil,
+            serialNumber: nil,
+            frameDescription: "test"
+        )
+        let manager = OverlayWindowManager()
+
+        manager.apply(display: display, brightness: 45, warmth: 32)
+        defer {
+            manager.clear(display: display)
+        }
+
+        let overlayPanel = try XCTUnwrap(app.windows.compactMap { $0 as? NSPanel }.first { panel in
+            panel.level == .screenSaver
+                && panel.ignoresMouseEvents
+                && panel.contentView?.layer?.sublayers?.contains { $0.name == "InnosDimmer.dim" } == true
+        })
+
+        XCTAssertEqual(overlayPanel.frame.origin.x, screen.frame.origin.x, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.origin.y, screen.frame.origin.y, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.size.width, screen.frame.size.width, accuracy: 0.5)
+        XCTAssertEqual(overlayPanel.frame.size.height, screen.frame.size.height, accuracy: 0.5)
+        let contentView = try XCTUnwrap(overlayPanel.contentView)
+        XCTAssertEqual(contentView.bounds.size.width, screen.frame.size.width, accuracy: 0.5)
+        XCTAssertEqual(contentView.bounds.size.height, screen.frame.size.height, accuracy: 0.5)
     }
 }
 
@@ -126,10 +189,10 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
 }
 
 private extension DisplayIdentity {
-    static func fixture() -> DisplayIdentity {
+    static func fixture(cgDisplayID: UInt32 = 1, localizedName: String = "INNOS 27QA100M") -> DisplayIdentity {
         DisplayIdentity(
-            cgDisplayID: 1,
-            localizedName: "INNOS 27QA100M",
+            cgDisplayID: cgDisplayID,
+            localizedName: localizedName,
             vendorNumber: 1,
             modelNumber: 2,
             serialNumber: 3,

@@ -9,16 +9,25 @@ final class MenuBarController: NSObject {
 
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let brightnessController: BrightnessController
+    private let displayInventory: DisplayInventory
+    private let displayTargetStore: DisplayTargetStore
     private let popover = NSPopover()
     private lazy var settingsWindowController = SettingsWindowController()
     private var commandBeforeQuickDisable: BrightnessCommand?
 
-    init(brightnessController: BrightnessController = BrightnessController()) {
+    init(
+        brightnessController: BrightnessController = BrightnessController(),
+        displayInventory: DisplayInventory = DisplayInventory(),
+        displayTargetStore: DisplayTargetStore = DisplayTargetStore()
+    ) {
         self.brightnessController = brightnessController
+        self.displayInventory = displayInventory
+        self.displayTargetStore = displayTargetStore
         super.init()
     }
 
     func start() {
+        let initialState = stateResolvingSelectedDisplayIfNeeded()
         statusItem.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "InnosDimmer")
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
@@ -26,7 +35,7 @@ final class MenuBarController: NSObject {
         popover.contentSize = NSSize(width: 320, height: 300)
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = MenuBarPopoverView(
-            state: brightnessController.state,
+            state: initialState,
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
             }
@@ -112,7 +121,7 @@ final class MenuBarController: NSObject {
     }
 
     private func makeCommand(brightness: Int, warmth: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
-        guard let display = brightnessController.state.display else {
+        guard let display = brightnessController.state.display ?? resolveSelectedDisplay() else {
             return nil
         }
 
@@ -122,6 +131,26 @@ final class MenuBarController: NSObject {
             warmth: warmth,
             source: source
         )
+    }
+
+    private func stateResolvingSelectedDisplayIfNeeded() -> BrightnessState {
+        if brightnessController.state.display == nil {
+            _ = resolveSelectedDisplay()
+        }
+
+        return brightnessController.state
+    }
+
+    @discardableResult
+    private func resolveSelectedDisplay() -> DisplayIdentity? {
+        guard let display = displayInventory.selectedDisplay(using: displayTargetStore) else {
+            return nil
+        }
+
+        var state = brightnessController.state
+        state.display = display
+        brightnessController.applyPreviewState(state)
+        return display
     }
 
     private func refreshPopover() {
