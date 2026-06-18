@@ -63,6 +63,48 @@ final class MenuBarStateTests: XCTestCase {
         )
     }
 
+    func testAppDashboardViewModelShowsFailureSummaryAndRecentDiagnostics() {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.activeMode = .overlay
+        state.targetBrightness = 35
+        state.targetWarmth = 20
+        let events = [
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 0),
+                category: .softwareDimming,
+                message: "Software dimming active",
+                severity: .info
+            ),
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 1),
+                category: .display,
+                message: "No eligible external display found",
+                severity: .warning
+            ),
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 2),
+                category: .softwareDimming,
+                message: "Overlay platform blocked",
+                severity: .error
+            )
+        ]
+
+        let viewModel = AppDashboardViewModel(
+            state: state,
+            schedule: [ScheduleEntry(minuteOfDay: 540, brightness: 80, warmth: 12)],
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: events
+        )
+
+        XCTAssertEqual(viewModel.displayLine, "Display: INNOS 27QA100M")
+        XCTAssertEqual(viewModel.modeLine, "Mode: Overlay active")
+        XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Warmth: 20%")
+        XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
+        XCTAssertTrue(viewModel.diagnosticsLog.contains("ERROR softwareDimming: Overlay platform blocked"))
+        XCTAssertTrue(viewModel.diagnosticsLog.contains("WARNING display: No eligible external display found"))
+    }
+
     @MainActor
     func testMenuBarPopoverButtonsRouteEveryCommand() {
         var routedCommands: [MenuBarCommand] = []

@@ -28,6 +28,7 @@ final class MenuBarController: NSObject {
     private let loginItemController: LoginItemControlling
     private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
+    private var dashboardWindowController: AppDashboardWindowController?
     private lazy var settingsWindowController = SettingsWindowController(actions: makeSettingsActions())
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
@@ -92,6 +93,7 @@ final class MenuBarController: NSObject {
         }
         registerScheduleReconciliationObservers()
         scheduleNextBoundaryTimer()
+        showAppWindow()
     }
 
     func stop() {
@@ -135,6 +137,8 @@ final class MenuBarController: NSObject {
             quickDisable(source: source)
         case .restorePrevious:
             restorePrevious()
+        case .openAppWindow:
+            showAppWindow()
         case .openSettings:
             openSettings()
         case .pauseAutomation:
@@ -202,6 +206,14 @@ final class MenuBarController: NSObject {
 
         applyCommand(command)
         commandBeforeQuickDisable = nil
+    }
+
+    private func showAppWindow() {
+        let controller = dashboardWindowController ?? AppDashboardWindowController()
+        dashboardWindowController = controller
+        refreshAppWindow()
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func openSettings() {
@@ -427,6 +439,15 @@ final class MenuBarController: NSObject {
         )
     }
 
+    private func refreshAppWindow() {
+        dashboardWindowController?.update(
+            state: brightnessController.state,
+            schedule: scheduleEntries,
+            shortcuts: shortcutBindings,
+            events: diagnosticsStore.events
+        )
+    }
+
     private func applyScheduleDecision() {
         let decision = ScheduleEngine.decision(
             at: currentMinuteOfDay(),
@@ -617,11 +638,13 @@ final class MenuBarController: NSObject {
         _ message: String,
         _ severity: DiagnosticsSeverity = .info
     ) -> DiagnosticsEvent {
-        diagnosticsStore.record(
+        let event = diagnosticsStore.record(
             category: category,
             message: message,
             severity: severity
         )
+        refreshAppWindow()
+        return event
     }
 
     private func recordAppliedCommand(_ command: BrightnessCommand, previousMode: DimmingMode) {

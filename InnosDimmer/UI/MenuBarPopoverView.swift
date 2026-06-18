@@ -8,6 +8,7 @@ enum MenuBarCommand: CaseIterable, Equatable, Hashable {
     case pauseAutomation
     case quickDisable
     case restorePrevious
+    case openAppWindow
     case openSettings
 }
 
@@ -84,7 +85,7 @@ struct MenuBarViewModel: Equatable {
 }
 
 final class MenuBarPopoverView: NSView {
-    static let preferredContentSize = NSSize(width: 460, height: 520)
+    static let preferredContentSize = NSSize(width: 480, height: 620)
 
     private let modeBadge: StatusBadgeView
     private let actions: MenuBarActions
@@ -187,6 +188,7 @@ final class MenuBarPopoverView: NSView {
         let warmthUpButton = button("Warmth up", command: .warmthUp, action: #selector(warmthUpPressed))
         let quickDisableButton = button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed))
         let restorePreviousButton = button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
+        let appWindowButton = button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed))
         let settingsButton = button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
 
         let stack = NSStackView(views: [
@@ -203,6 +205,7 @@ final class MenuBarPopoverView: NSView {
             row(label: warmthDownButton, value: warmthUpButton),
             row(label: quickDisableButton, value: restorePreviousButton),
             pauseButton,
+            appWindowButton,
             settingsButton
         ])
         stack.orientation = .vertical
@@ -268,7 +271,189 @@ final class MenuBarPopoverView: NSView {
         actions.perform(.restorePrevious)
     }
 
+    @objc private func openAppWindowPressed() {
+        actions.perform(.openAppWindow)
+    }
+
     @objc private func openSettingsPressed() {
         actions.perform(.openSettings)
+    }
+}
+
+struct AppDashboardViewModel: Equatable {
+    var displayLine: String
+    var modeLine: String
+    var brightnessLine: String
+    var automationLine: String
+    var scheduleLine: String
+    var shortcutLine: String
+    var failureLine: String
+    var diagnosticsLog: String
+
+    init(
+        state: BrightnessState,
+        schedule: [ScheduleEntry],
+        shortcuts: [ShortcutBinding],
+        events: [DiagnosticsEvent]
+    ) {
+        displayLine = state.display.map { "Display: \($0.localizedName)" } ?? "Display: Not selected"
+        modeLine = "Mode: \(ModeStatusLabel.title(for: state.activeMode))"
+        brightnessLine = "Brightness: \(state.targetBrightness)% / Warmth: \(state.targetWarmth)%"
+        if state.automationPausedUntilNextBoundary {
+            automationLine = state.automationResumeMinuteOfDay.map {
+                "Automation: paused until \(Self.timeLabel(for: $0))"
+            } ?? "Automation: paused until next schedule boundary"
+        } else {
+            automationLine = "Automation: active"
+        }
+        scheduleLine = MenuBarViewModel(
+            state: state,
+            schedule: schedule,
+            shortcuts: shortcuts
+        ).scheduleSummary
+        shortcutLine = HotkeyManager.summary(for: shortcuts)
+
+        let warnings = events.filter { $0.severity == .warning }.count
+        let errors = events.filter { $0.severity == .error }.count
+        failureLine = "Failures: \(errors) errors, \(warnings) warnings"
+        diagnosticsLog = Self.logText(for: events)
+    }
+
+    private static func logText(for events: [DiagnosticsEvent]) -> String {
+        guard !events.isEmpty else {
+            return "No diagnostics recorded yet."
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return events.reversed().map { event in
+            "[\(formatter.string(from: event.timestamp))] \(event.severity.rawValue.uppercased()) \(event.category.rawValue): \(event.message)"
+        }.joined(separator: "\n")
+    }
+
+    private static func timeLabel(for minuteOfDay: Int) -> String {
+        let minute = max(0, min(1_439, minuteOfDay))
+        return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+}
+
+@MainActor
+final class AppDashboardWindowController: NSWindowController {
+    private let displayLabel = NSTextField(labelWithString: "")
+    private let modeLabel = NSTextField(labelWithString: "")
+    private let brightnessLabel = NSTextField(labelWithString: "")
+    private let automationLabel = NSTextField(labelWithString: "")
+    private let scheduleLabel = NSTextField(labelWithString: "")
+    private let shortcutLabel = NSTextField(labelWithString: "")
+    private let failureLabel = NSTextField(labelWithString: "")
+    private let diagnosticsTextView = NSTextView()
+
+    init() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 640),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "InnosDimmer"
+        super.init(window: window)
+        installContent()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    func update(
+        state: BrightnessState,
+        schedule: [ScheduleEntry],
+        shortcuts: [ShortcutBinding],
+        events: [DiagnosticsEvent]
+    ) {
+        let viewModel = AppDashboardViewModel(
+            state: state,
+            schedule: schedule,
+            shortcuts: shortcuts,
+            events: events
+        )
+        displayLabel.stringValue = viewModel.displayLine
+        modeLabel.stringValue = viewModel.modeLine
+        brightnessLabel.stringValue = viewModel.brightnessLine
+        automationLabel.stringValue = viewModel.automationLine
+        scheduleLabel.stringValue = viewModel.scheduleLine
+        shortcutLabel.stringValue = viewModel.shortcutLine
+        failureLabel.stringValue = viewModel.failureLine
+        diagnosticsTextView.string = viewModel.diagnosticsLog
+    }
+
+    private func installContent() {
+        let title = NSTextField(labelWithString: "InnosDimmer")
+        title.font = .systemFont(ofSize: 22, weight: .semibold)
+
+        [
+            displayLabel,
+            modeLabel,
+            brightnessLabel,
+            automationLabel,
+            scheduleLabel,
+            shortcutLabel,
+            failureLabel
+        ].forEach(Self.configureWrappingLabel)
+        failureLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+
+        diagnosticsTextView.isEditable = false
+        diagnosticsTextView.isSelectable = true
+        diagnosticsTextView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        diagnosticsTextView.textColor = .labelColor
+        diagnosticsTextView.backgroundColor = .textBackgroundColor
+
+        let diagnosticsScrollView = NSScrollView()
+        diagnosticsScrollView.borderType = .bezelBorder
+        diagnosticsScrollView.hasVerticalScroller = true
+        diagnosticsScrollView.documentView = diagnosticsTextView
+        diagnosticsScrollView.translatesAutoresizingMaskIntoConstraints = false
+        diagnosticsScrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
+
+        let stack = NSStackView(views: [
+            title,
+            sectionLabel("Current state"),
+            displayLabel,
+            modeLabel,
+            brightnessLabel,
+            automationLabel,
+            sectionLabel("Configuration"),
+            scheduleLabel,
+            shortcutLabel,
+            sectionLabel("Diagnostics"),
+            failureLabel,
+            diagnosticsScrollView
+        ])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        guard let contentView = window?.contentView else {
+            return
+        }
+        contentView.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
+            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24)
+        ])
+    }
+
+    private func sectionLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        return label
+    }
+
+    private static func configureWrappingLabel(_ label: NSTextField) {
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 0
     }
 }
