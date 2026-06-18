@@ -47,6 +47,7 @@ Latest implementation verification on 2026-06-18:
 - Debug `build-for-testing`: passed.
 - Release build: passed.
 - Release app launch: process observed running from `Build/Products/Release/InnosDimmer.app`.
+- Manual smoke QA: popover opened on `27QA100M`; brightness/warmth controls, quick disable/restore, Finder-focused brightness shortcut, and settings window opening were verified.
 - Narrow `xcodebuild test -only-testing` was attempted, but the Xcode test runner stalled during app launch/finalization and was interrupted.
 
 ## No Package Dependency Policy
