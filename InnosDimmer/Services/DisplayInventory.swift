@@ -1,6 +1,11 @@
 import AppKit
 import CoreGraphics
 
+protocol DisplayInventoryProviding {
+    func activeDisplays() -> [DisplayIdentity]
+    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity?
+}
+
 final class DisplayInventory {
     func activeDisplays() -> [DisplayIdentity] {
         var count: UInt32 = 0
@@ -80,5 +85,15 @@ final class DisplayInventory {
 
     private func optionalHardwareNumber(_ value: UInt32) -> UInt32? {
         value == 0 ? nil : value
+    }
+}
+
+extension DisplayInventory: DisplayInventoryProviding {
+    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+        Self.resolveSelectedDisplay(
+            saved: saved,
+            candidates: candidates,
+            mainDisplayID: CGMainDisplayID()
+        )
     }
 }

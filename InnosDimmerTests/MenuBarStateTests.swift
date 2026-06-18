@@ -212,6 +212,67 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
     }
 
+    @MainActor
+    func testMenuBarControllerResolvesStaleDisplayBeforeApplyingCommand() throws {
+        let staleDisplay = DisplayIdentity.menuBarTestDisplay
+        let activeDisplay = DisplayIdentity(
+            cgDisplayID: 200,
+            localizedName: "INNOS 27QA100M",
+            vendorNumber: staleDisplay.vendorNumber,
+            modelNumber: staleDisplay.modelNumber,
+            serialNumber: staleDisplay.serialNumber,
+            frameDescription: "2560x1440@0,0"
+        )
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(staleDisplay)
+        var state = BrightnessState.defaultState()
+        state.display = staleDisplay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let inventory = RecordingDisplayInventory(displays: [activeDisplay], mainDisplayID: 1)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [activeDisplay])
+        XCTAssertEqual(brightnessController.state.display, activeDisplay)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 75)
+    }
+
+    @MainActor
+    func testMenuBarControllerDoesNotApplyCommandToMainDisplayWhenExternalTargetIsMissing() {
+        let mainDisplay = DisplayIdentity(
+            cgDisplayID: 1,
+            localizedName: "Built-in Display",
+            vendorNumber: nil,
+            modelNumber: nil,
+            serialNumber: nil,
+            frameDescription: "1728x1117@0,0"
+        )
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [mainDisplay], mainDisplayID: mainDisplay.cgDisplayID),
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertNil(brightnessController.state.display)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.category, .display)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Skipped dimming command because no display is selected")
+    }
+
 }
 
 @MainActor
@@ -225,6 +286,28 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     func clear(display: DisplayIdentity) throws {}
 }
 
+private final class RecordingDisplayInventory: DisplayInventoryProviding {
+    var displays: [DisplayIdentity]
+    var mainDisplayID: UInt32
+
+    init(displays: [DisplayIdentity], mainDisplayID: UInt32) {
+        self.displays = displays
+        self.mainDisplayID = mainDisplayID
+    }
+
+    func activeDisplays() -> [DisplayIdentity] {
+        displays
+    }
+
+    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+        DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: candidates,
+            mainDisplayID: mainDisplayID
+        )
+    }
+}
+
 private extension DisplayIdentity {
     static let menuBarTestDisplay = DisplayIdentity(
         cgDisplayID: 1,
@@ -234,4 +317,11 @@ private extension DisplayIdentity {
         serialNumber: 3,
         frameDescription: "2560x1440"
     )
+}
+
+private func makeTemporaryDefaults() throws -> UserDefaults {
+    let suiteName = "InnosDimmer.MenuBarStateTests.\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    return defaults
 }

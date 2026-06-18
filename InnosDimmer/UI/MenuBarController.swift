@@ -17,7 +17,7 @@ final class MenuBarController: NSObject {
 
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let brightnessController: BrightnessController
-    private let displayInventory: DisplayInventory
+    private let displayInventory: DisplayInventoryProviding
     private let displayTargetStore: DisplayTargetStore
     private let diagnosticsStore: DiagnosticsStore
     private var shortcutBindings: [ShortcutBinding]
@@ -32,11 +32,12 @@ final class MenuBarController: NSObject {
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
     private var scheduleReconciliationObservers: [(NotificationCenter, NSObjectProtocol)] = []
+    private var runtimeBoundaryReconcileTask: Task<Void, Never>?
     private var hasStarted = false
 
     init(
         brightnessController: BrightnessController = BrightnessController(),
-        displayInventory: DisplayInventory = DisplayInventory(),
+        displayInventory: DisplayInventoryProviding = DisplayInventory(),
         displayTargetStore: DisplayTargetStore = DisplayTargetStore(),
         diagnosticsStore: DiagnosticsStore = DiagnosticsStore(),
         shortcutBindings: [ShortcutBinding] = ShortcutBinding.defaultBindings,
@@ -96,6 +97,8 @@ final class MenuBarController: NSObject {
     func stop() {
         stopHotkeys()
         scheduleTimerController.invalidate()
+        runtimeBoundaryReconcileTask?.cancel()
+        runtimeBoundaryReconcileTask = nil
         unregisterScheduleReconciliationObservers()
         hasStarted = false
     }
@@ -348,7 +351,7 @@ final class MenuBarController: NSObject {
     }
 
     private func makeCommand(brightness: Int, warmth: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
-        guard let display = brightnessController.state.display ?? resolveSelectedDisplay() else {
+        guard let display = resolveFreshDisplay() else {
             record(.display, "Skipped dimming command because no display is selected", .warning)
             return nil
         }
@@ -362,16 +365,31 @@ final class MenuBarController: NSObject {
     }
 
     private func stateResolvingSelectedDisplayIfNeeded() -> BrightnessState {
-        if brightnessController.state.display == nil {
-            _ = resolveSelectedDisplay()
-        }
+        _ = resolveFreshDisplay()
 
         return brightnessController.state
     }
 
     @discardableResult
     private func resolveSelectedDisplay() -> DisplayIdentity? {
-        guard let display = displayInventory.selectedDisplay(using: displayTargetStore) else {
+        resolveFreshDisplay()
+    }
+
+    @discardableResult
+    private func resolveFreshDisplay(activeDisplays: [DisplayIdentity]? = nil) -> DisplayIdentity? {
+        let candidates = activeDisplays ?? displayInventory.activeDisplays()
+        if let current = brightnessController.state.display,
+           candidates.contains(where: { $0.cgDisplayID == current.cgDisplayID }) {
+            return current
+        }
+
+        guard let display = displayInventory.resolveSelectedDisplay(
+            saved: displayTargetStore.load().selectedDisplay,
+            candidates: candidates
+        ) else {
+            var state = brightnessController.state
+            state.display = nil
+            brightnessController.applyPreviewState(state)
             record(.display, "No eligible external display found", .warning)
             return nil
         }
@@ -499,12 +517,30 @@ final class MenuBarController: NSObject {
     }
 
     private func reconcileScheduleAfterRuntimeBoundaryChange() {
-        _ = stateResolvingSelectedDisplayIfNeeded()
-        let activeDisplayIDs = Set(displayInventory.activeDisplays().map(\.cgDisplayID))
+        let activeDisplays = displayInventory.activeDisplays()
+        let activeDisplayIDs = Set(activeDisplays.map(\.cgDisplayID))
         brightnessController.clearStaleSoftwarePanels(activeDisplayIDs: activeDisplayIDs)
+        _ = resolveFreshDisplay(activeDisplays: activeDisplays)
         brightnessController.reapplyCurrentSoftwareState()
         applyScheduleDecision()
         scheduleNextBoundaryTimer()
+    }
+
+    private func scheduleRuntimeBoundaryReconcile() {
+        runtimeBoundaryReconcileTask?.cancel()
+        runtimeBoundaryReconcileTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 250_000_000)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else {
+                return
+            }
+            await MainActor.run {
+                self?.reconcileScheduleAfterRuntimeBoundaryChange()
+            }
+        }
     }
 
     private func registerScheduleReconciliationObservers() {
@@ -519,7 +555,17 @@ final class MenuBarController: NSObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.reconcileScheduleAfterRuntimeBoundaryChange()
+                self?.scheduleRuntimeBoundaryReconcile()
+            }
+        }
+
+        let screensWakeObserver = workspaceCenter.addObserver(
+            forName: NSWorkspace.screensDidWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.scheduleRuntimeBoundaryReconcile()
             }
         }
 
@@ -529,12 +575,13 @@ final class MenuBarController: NSObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.reconcileScheduleAfterRuntimeBoundaryChange()
+                self?.scheduleRuntimeBoundaryReconcile()
             }
         }
 
         scheduleReconciliationObservers = [
             (workspaceCenter, wakeObserver),
+            (workspaceCenter, screensWakeObserver),
             (NotificationCenter.default, screenObserver)
         ]
     }
