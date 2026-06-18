@@ -1,1002 +1,773 @@
 # Research
 
+Date: 2026-06-18
+Mode: Pre-Plan Research Gate
+Project: `/Users/moonsoo/projects/InnosDimmer`
+User direction: pivot away from direct monitor control and focus on making the screen look darker through software.
+
 ## Goal
 
-Finish the current InnosDimmer macOS menu bar app from its present "running shell plus tested service pieces" state into a personally usable external-monitor dimming utility for:
+Define the evidence base for a software-only dimming pivot before writing the next implementation plan.
 
-- macOS only.
-- M1 Mac.
-- Direct HDMI.
-- INNOS 27QA100M secondary display.
-- Hardware brightness first where empirically verified.
-- Software perceived dimming when hardware control is exhausted or explicitly forced for diagnostics.
-- Time-table automation, customizable global shortcuts, warmth/color adjustment, diagnostics, and manual QA evidence.
+The research must answer:
 
-This research is a pre-plan hypothesis ladder. It is not an implementation patch. Its purpose is to define the method choices, ranked hypotheses, failure tests, and next attempts before writing the next `plan-first-implementation` document.
+- What hardware/DDC code can be removed now.
+- What code should remain until the software path is proven stable.
+- What code can be removed after the software implementation is complete.
+- Which macOS software dimming techniques are viable for this personal M1 Mac + direct HDMI + INNOS external monitor setup.
+- Which implementation hypothesis should be tried first, and what should be tried next if that hypothesis is falsified.
+
+The intended product outcome is not real monitor backlight control. The intended outcome is a reliable personal macOS menu bar app that reduces perceived brightness and adjusts warmth on the selected secondary display.
 
 ## Scope And Entry Points
 
-Starting mode: `Pre-Plan Research Gate`.
+### Local Scope
 
-Evidence lanes used:
+Read and evaluate the current InnosDimmer codebase after the recent software-only pivot:
 
-- `codebase`: current InnosDimmer source, tests, docs, and git history.
-- `official`: Apple documentation/search snippets for AppKit windows, Quartz Display Services, Timer, ServiceManagement, screen-change and wake notifications.
-- `community`: MonitorControl, Lunar, ddcctl, and GitHub discussions around Apple Silicon HDMI DDC/CI behavior.
-- `reasoning`: ranked implementation hypotheses and failure chains based on the current architecture.
+- App/menu runtime entry point: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+- Menu popover: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
+- Brightness policy: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/BrightnessController.swift`
+- Software dimming: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/SoftwareDimmingController.swift`
+- Overlay window path: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/OverlayWindowManager.swift`
+- Gamma path: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/GammaDimmingController.swift`
+- Display selection: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/DisplayInventory.swift`
+- Settings persistence: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/DisplayTargetStore.swift`
+- State/domain models: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/*.swift`
+- Diagnostics/verification: `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Diagnostics/*.swift`
+- Tests: `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/*.swift`
+- Local docs: `/Users/moonsoo/projects/InnosDimmer/README.md`, `/Users/moonsoo/projects/InnosDimmer/docs/*.md`
 
-Primary app entry points:
+### External Scope
 
-- `InnosDimmer/App/InnosDimmerApp.swift`
-- `InnosDimmer/App/AppDelegate.swift`
-- `InnosDimmer/UI/MenuBarController.swift`
-- `InnosDimmer/UI/MenuBarPopoverView.swift`
-- `InnosDimmer/UI/SettingsWindowController.swift`
+Use official Apple documentation and community/product evidence to evaluate macOS software dimming approaches:
 
-Primary policy/services:
-
-- `InnosDimmer/Services/BrightnessController.swift`
-- `InnosDimmer/Services/SoftwareDimmingController.swift`
-- `InnosDimmer/Services/OverlayWindowManager.swift`
-- `InnosDimmer/Services/HardwareDDCController.swift`
-- `InnosDimmer/Services/ScheduleEngine.swift`
-- `InnosDimmer/Services/HotkeyManager.swift`
-- `InnosDimmer/Services/DisplayInventory.swift`
-- `InnosDimmer/Services/DisplayTargetStore.swift`
-- `InnosDimmer/Services/LoginItemController.swift`
+- AppKit overlay windows and collection behaviors.
+- CoreGraphics gamma/display transfer tables.
+- Quartz display fade reservations.
+- Display change and wake notifications.
+- Existing macOS display-control apps that use DDC, gamma, overlay/shade, or combined dimming.
 
 ## Relevant Files
 
-Files read in this pass:
+### Current User-Facing Software Path
 
-- `/Users/moonsoo/projects/InnosDimmer/README.md`
-- `/Users/moonsoo/projects/InnosDimmer/docs/operator-guide.md`
-- `/Users/moonsoo/projects/InnosDimmer/docs/release-notes-local.md`
-- `/Users/moonsoo/projects/InnosDimmer/docs/qa-matrix.md`
-- `/Users/moonsoo/projects/InnosDimmer/docs/ddc-probe-notes.md`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/App/InnosDimmerApp.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/App/AppDelegate.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/App/Info.plist`
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+  - Starts the status item and popover.
+  - Resolves the selected display.
+  - Applies menu, hotkey, schedule, quick disable, and restore commands.
+  - Observes wake and display-parameter changes.
+  - Still contains dead DDC probe internals.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/SettingsWindowController.swift`
+  - Shows the current mode, selected display, brightness, warmth, automation, schedule, shortcut, diagnostics, and command buttons.
+  - No longer exposes a DDC probe button.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/BrightnessController.swift`
+  - Current `apply(_:)` routes normal commands to software dimming.
+  - Still stores a hardware strategy and private hardware application path that is no longer reachable.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/SoftwareDimmingController.swift`
+  - Delegates `apply` to `OverlayWindowManager`.
+  - Delegates `clear` to overlay clear and gamma clear.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/OverlayWindowManager.swift`
+  - Creates click-through `NSPanel` overlays per display ID.
+  - Uses `NSScreenNumber` to match `DisplayIdentity.cgDisplayID`.
+  - Applies black dimming and warm tint through layers.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/GammaDimmingController.swift`
+  - Currently a no-op stub with only `clear(display:)`.
+
+### Hardware/DDC Code Still Present
+
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/HardwareDDCController.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/ScheduleEngine.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/HotkeyManager.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/DisplayInventory.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/DisplayTargetStore.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/DisplayTargetResolver.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/LoginItemController.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Diagnostics/DiagnosticsStore.swift`
+  - Contains `DDCAdapter`, `NoopDDCAdapter`, safe probe, and hardware write abstraction.
+  - No user-facing path currently calls the probe.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/HardwareCapability.swift`
+  - Still part of `BrightnessState` and diagnostics snapshots.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ProbeStep.swift`
+  - Supports DDC probe diagnostics.
 - `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Diagnostics/DiagnosticsExporter.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Diagnostics/VerificationMatrix.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/BrightnessState.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ScheduleEntry.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ShortcutBinding.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/SmokeTests.swift`
-- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/SoftwareDimmingControllerTests.swift`
-- `/Users/moonsoo/projects/Chat-Bot/docs/superpowers/plans/2026-06-18-external-monitor-brightness-app-plan.md`
+  - Exports both DDC probe results and general diagnostics snapshots.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Diagnostics/CapabilityProbe.swift`
+  - Thin wrapper around `ProbeResult`.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/HardwareDDCControllerTests.swift`
+  - Tests DDC probe/write behavior even though the product direction is now software-only.
 
-Official and external sources used:
+### Docs With Mixed State
 
-- Apple Developer Documentation: `SMAppService`, `loginItem(identifier:)`, Quartz Display Services, Core Graphics display functions, `NSWindow.CollectionBehavior`, `NSWindow.Level.screenSaver`, `Timer`, `NSApplication.didChangeScreenParametersNotification`, `NSWorkspace.didWakeNotification`, `NSWorkspace.activeSpaceDidChangeNotification`.
-- Apple Energy Efficiency Guide for Mac Apps: timer usage and tolerance.
-- MonitorControl GitHub README and discussions.
-- Lunar M1 DDC writeup.
-- ddcctl GitHub README.
+- `/Users/moonsoo/projects/InnosDimmer/docs/operator-guide.md`
+  - Correctly says software overlay dimming is the primary and only user-facing dimming path.
+- `/Users/moonsoo/projects/InnosDimmer/docs/release-notes-local.md`
+  - Correctly says hardware brightness control is intentionally not user-facing.
+- `/Users/moonsoo/projects/InnosDimmer/docs/qa-matrix.md`
+  - Correctly focuses on overlay QA and platform-blocked disclosure.
+- `/Users/moonsoo/projects/InnosDimmer/README.md`
+  - Still says the app is hardware-first and describes DDC as a brightness mode. This is now stale.
+- `/Users/moonsoo/projects/InnosDimmer/docs/2026-06-18-completion-plan-first.md`
+  - Still reflects the previous hardware-first plan and should be treated as historical, not current execution policy.
+- `/Users/moonsoo/projects/InnosDimmer/docs/ddc-probe-notes.md`
+  - Should remain archived reference only if DDC code is retained temporarily.
 
 ## Current Behavior
 
-Confirmed current state:
+### Confirmed Local Behavior
 
-- The app builds and tests under Xcode after Swift 6 `@MainActor` fixes.
-- The app can launch as an `LSUIElement=true` menu bar utility.
-- The menu bar icon opens a popover.
-- The popover displays labels and buttons, but button actions are currently `nil`.
-- `SettingsWindowController` exists but is mostly a static summary view.
-- `BrightnessController` owns hardware-vs-software policy and queues commands while hardware state is `.notProbed`, `.probing`, or `.readSupported`.
-- `SoftwareDimmingController` can invoke `OverlayWindowManager`, but production activation is blocked until policy chooses software mode or diagnostics force it.
-- `OverlayWindowManager` creates click-through `NSPanel` overlays but currently configures new panels with `.zero` frame and never repositions them to the target display frame at apply time.
-- `HardwareDDCController` implements a safe read -> one-step write -> readback -> restore probe state machine, but its default `NoopDDCAdapter` always fails. Real IOKit DDC transport is not implemented.
-- `ScheduleEngine` is pure and tested, but no runtime timer calls it.
-- `HotkeyManager` can validate and register Carbon hotkeys, but no app startup code instantiates it or maps actions to brightness commands.
-- `DisplayInventory` can enumerate active displays and prefer the first non-main display.
-- `DisplayTargetStore` persists `SettingsSnapshot` in `UserDefaults`, but the app lifecycle does not yet load, apply, or save live changes.
-- `DiagnosticsStore`, `DiagnosticsExporter`, and `VerificationMatrix` exist, but the UI does not yet record runtime events or expose export.
+- `BrightnessController.apply(_:)` always calls `applySoftware(command, reason: .softwareOnly)` for normal commands.
+- Forced diagnostic software mode still uses `.forcedForDiagnostics`.
+- `applyHardware(_:)` exists but is not called from `apply(_:)`.
+- `MenuBarCommand` no longer includes a DDC probe command.
+- `MenuBarPopoverView` no longer renders a DDC probe button.
+- `MenuBarController.perform(_:)` no longer switches on a DDC probe command.
+- `MenuBarController` still has:
+  - `private let hardwareDDCController`
+  - `runDDCProbe()`
+  - `probeExportNote(for:)`
+  - `diagnosticsSeverity(for capability:)`
+  These have no current user entry point.
+- `OverlayWindowManager` is the only real dimming implementation.
+- `GammaDimmingController` is a stub.
+- `DisplayInventory` refuses to silently select the main display when no external display exists.
+- `DisplayTargetResolver` uses stable hardware identity when vendor/model/serial are available.
+- Tests already assert that brightness commands route to software and do not wait for DDC.
+
+### Current Product Mismatch
+
+The implementation has been pivoted to software-only in behavior, but stale code and docs still imply a hardware-first product in several places:
+
+- README still describes a hardware-first app.
+- `DimmingMode.hardwareDDC` is still a normal mode label.
+- `BrightnessState` still stores `hardwareCapability` and `lastHardwareProbeResult`.
+- `BrightnessController` still accepts `HardwareBrightnessStrategy`.
+- DDC probe/export/test code still exists.
+
+This mismatch is not immediately harmful because the user-facing popover no longer exposes DDC, but it will confuse future planning and tests unless the next plan explicitly cleans it up.
 
 ## Data Flow And Control Flow
 
-Current intended flow:
+### Current Software Dimming Flow
 
-1. `InnosDimmerApp.main()` creates `NSApplication`, assigns `AppDelegate`, and runs the app.
-2. `AppDelegate.applicationDidFinishLaunching` sets `.accessory`, creates `MenuBarController`, and starts it.
-3. `MenuBarController.start()` creates the `NSStatusItem`, configures `NSPopover`, and installs `MenuBarPopoverView`.
-4. `MenuBarPopoverView` renders `BrightnessState`, default schedule text, default shortcut summary, and diagnostic summary.
-5. No user command currently leaves the view, because all buttons are created with `target: nil, action: nil`.
+```mermaid
+flowchart TD
+    User["Menu button / hotkey / schedule"] --> MenuBarController
+    MenuBarController --> MakeCommand["makeCommand(brightness, warmth, source)"]
+    MakeCommand --> DisplayResolution["state display or DisplayInventory.selectedDisplay"]
+    DisplayResolution --> BrightnessController["BrightnessController.apply"]
+    BrightnessController --> Software["SoftwareDimmingController.apply"]
+    Software --> Overlay["OverlayWindowManager.apply"]
+    Overlay --> NSScreen["Match NSScreen by NSScreenNumber == cgDisplayID"]
+    NSScreen --> Panel["Create/update click-through NSPanel"]
+    Panel --> Layers["Set black dim layer and warm tint layer"]
+    BrightnessController --> State["Record state.activeMode = overlay"]
+    MenuBarController --> Diagnostics["Record diagnostics event"]
+    MenuBarController --> Popover["Refresh visible state"]
+```
 
-Current service flow when called by tests or future runtime code:
+### Current Schedule/Wake/Reconnect Flow
 
-1. A caller builds a `BrightnessCommand`.
-2. `BrightnessController.apply(_:)` checks forced software mode, then hardware capability.
-3. If hardware is verified, `HardwareBrightnessStrategy.applyHardware(_:)` is attempted.
-4. If hardware fails or capability is exhausted, `SoftwareDimmingStrategy.apply(_:reason:)` is attempted.
-5. `SoftwareDimmingController` delegates to `OverlayWindowManager`.
-6. `OverlayWindowManager` updates black and warm overlay layers and shows the panel.
+```mermaid
+flowchart TD
+    Start["MenuBarController.start"] --> LoadSettings["load persisted settings"]
+    LoadSettings --> ResolveDisplay["resolve selected display if needed"]
+    ResolveDisplay --> ApplySchedule["applyScheduleDecision"]
+    ApplySchedule --> ApplyCommand["applyCommand"]
+    Start --> Observers["register wake/display observers"]
+    Observers --> Wake["NSWorkspace.didWakeNotification"]
+    Observers --> ScreenChange["NSApplication.didChangeScreenParametersNotification"]
+    Wake --> Reconcile["reconcileScheduleAfterRuntimeBoundaryChange"]
+    ScreenChange --> Reconcile
+    Reconcile --> ResolveDisplay
+    Reconcile --> ApplySchedule
+```
 
-Missing runtime flow:
+### Dead DDC Flow
 
-- App lifecycle does not yet select a display.
-- App lifecycle does not yet load `SettingsSnapshot`.
-- App lifecycle does not yet probe DDC.
-- UI controls do not send commands.
-- Schedule engine is not driven by a timer.
-- Hotkeys are not started.
-- Diagnostics are not recorded/exported from real runtime events.
-- Overlay frames are not refreshed on display/screen/Space changes.
+The following flow exists in code but is no longer reachable from user UI:
+
+```mermaid
+flowchart TD
+    NoButton["No current popover button or command"] -.-> RunDDC["MenuBarController.runDDCProbe"]
+    RunDDC --> HardwareDDC["HardwareDDCController.probe"]
+    HardwareDDC --> State["state.hardwareCapability / lastHardwareProbeResult"]
+    State --> Export["DiagnosticsExporter.export(ProbeResult)"]
+```
 
 ## Existing Abstractions And Boundaries
 
-Boundaries to preserve:
+### Boundaries To Preserve
 
-- `BrightnessController` is the policy boundary. UI, hotkeys, and schedule should not call DDC or overlay directly.
-- `HardwareDDCController` is the hardware safety boundary. Real DDC transport should enter through `DDCAdapter`, not by rewriting routing policy.
-- `SoftwareDimmingController` is the software perceived-dimming boundary. Overlay and gamma variants should remain behind this strategy.
-- `DisplayTargetStore` is the persistence boundary for settings snapshots.
-- `DisplayInventory` and `DisplayTargetResolver` own display enumeration and identity resolution.
-- `ScheduleEngine` is pure scheduling logic. Runtime timer code should be outside it.
-- `HotkeyManager` owns validation and registration. UI should update `ShortcutBinding` values, not duplicate validation.
-- `DiagnosticsStore` and `VerificationMatrix` own evidence and claim safety.
-- `@MainActor` on UI/dimming policy must be respected because AppKit windows and menu bar objects are main-thread/UI state.
+- `BrightnessController` should remain the policy boundary for applying a brightness command.
+  - UI, schedule, and hotkeys should not call overlay or gamma directly.
+- `SoftwareDimmingController` should remain the software strategy boundary.
+  - Overlay and possible gamma/color-table strategies should stay behind it.
+- `OverlayWindowManager` should remain the AppKit window boundary.
+  - It owns `NSPanel`, `NSWindow.Level`, collection behavior, layer updates, and display frame lookup.
+- `DisplayInventory` and `DisplayTargetResolver` should remain the display-selection boundary.
+  - Avoid choosing the main display silently.
+  - Prefer stable hardware identity when available.
+- `DisplayTargetStore` should remain the settings persistence boundary.
+  - Schema migrations should happen here or adjacent to settings snapshot code, not in UI.
+- `HotkeyManager` and shortcut validation should remain the global shortcut boundary.
+  - Do not create an additional ad hoc event-tap path for the same shortcuts.
+- `VerificationMatrix` should remain the truth gate for claims like "all requested contexts are handled."
+
+### Boundaries To Retire Or Shrink
+
+- `HardwareBrightnessStrategy` should be removed from `BrightnessController` once software-only policy is fully accepted.
+- `HardwareDDCController` should be moved to archive or removed after the software path is stable and docs no longer reference hardware.
+- `HardwareCapability`, `ProbeStep`, `ProbeResult`, and `lastHardwareProbeResult` should be removed from the runtime state once persistence migration is planned.
+- `DimmingMode.hardwareDDC` should be removed from user-facing labels after tests/docs no longer need it.
 
 ## Side Effects And Integration Points
 
-Side effects:
+### Overlay Side Effects
 
-- Hardware DDC writes can change real monitor settings; probe must stay reversible and readback-gated.
-- Software overlay can obscure the user's screen; it must stay click-through and easy to disable.
-- Global hotkeys affect system-wide input and can conflict with apps; validation and recovery defaults are required.
-- Login item registration changes user launch behavior; it should remain explicit and reversible.
-- Timer/automation can unexpectedly change brightness; manual override must pause until the next schedule boundary.
-- Screen/Space/wake/reconnect events can leave overlays on the wrong display or stale display identity if not handled.
-- Diagnostics export writes local JSON; it should avoid sensitive user content.
+- A top-level transparent panel can obscure visual content even when it is click-through.
+- `.screenSaver` level and `.fullScreenAuxiliary` can help with visibility, but full-screen Spaces, Stage Manager, DRM playback, and presentation contexts still require real visual QA.
+- Overlay dimming may not dim the hardware cursor. Community evidence from MonitorControl shade mode explicitly reports cursor-related drawbacks.
+- Overlay may appear in screen sharing or screenshots depending the capture path.
+- Overlay does not reduce panel backlight power or improve LCD black level. It only changes perceived brightness.
+- If overlay opacity can reach too high a value, the user can effectively black out the screen. Quick disable and minimum brightness limits are safety requirements, not optional polish.
 
-Integration points:
+### Gamma/Color Table Side Effects
 
-- AppKit: status item, popover, panels, settings window, screen/Space/wake notifications.
-- CoreGraphics/NSScreen: display inventory and frames.
-- Carbon: global hotkey registration.
-- ServiceManagement: login item status/register/unregister.
-- IOKit/private-ish display paths: possible DDC adapter implementation.
-- UserDefaults: settings persistence.
-- Local filesystem: diagnostics export and QA notes.
+- Gamma/color table changes affect display output more globally than a window overlay and may include surfaces a window overlay misses.
+- Gamma can conflict with Night Shift, True Tone, f.lux, color profiles, HDR, calibration tools, and other brightness apps.
+- Gamma changes must snapshot and restore the original transfer table per display.
+- Gamma changes can be reset by the OS or other apps.
+- Recent Apple Developer Forum evidence suggests gamma APIs can return success but fail to visibly apply on some newer Mac hardware. This does not prove failure on the user's M1 Mac, but it increases risk.
+
+### Display Fade Side Effects
+
+- Quartz display fade APIs are designed around reserving fade hardware and performing fade operations.
+- This is useful for transitions or temporary blackout effects, not as the main persistent per-display brightness control.
+
+### Persistence Side Effects
+
+- `BrightnessState` is part of `SettingsSnapshot`.
+- Removing `hardwareCapability` and `lastHardwareProbeResult` without a schema/migration decision can invalidate saved settings.
+- Since `DisplayTargetStore.load()` falls back to `.defaultSnapshot()` if decoding or validation fails, an unplanned model deletion could silently reset user schedule/shortcuts.
+
+### Diagnostics Side Effects
+
+- Removing DDC diagnostics is safe only if the app still exposes enough software diagnostics:
+  - selected display
+  - overlay active/blocked
+  - latest brightness/warmth command
+  - wake/reconnect handling
+  - verification status for known difficult contexts
 
 ## Risk To Surrounding Systems
 
-High risks:
+### High Risk
 
-- Bypassing `BrightnessController` would make software fallback activate before hardware exhaustion, violating the project policy.
-- Implementing real DDC directly in UI would make it hard to test and unsafe to recover from failed restore.
-- Reusing GPL code from `ddcctl` inside this app would contaminate licensing for a personal project unless explicitly accepted. Use as conceptual reference only.
-- Copying MonitorControl/Lunar internals is out of scope and unnecessary for the first runtime-completion pass.
-- Using a repeating per-second schedule timer would waste energy and fight the schedule engine's boundary model.
-- Overlay windows may not cover some full-screen/DRM/protected contexts. This must become `partial` or `platformBlocked`, not hidden success.
-- Native brightness/media key interception may require Accessibility/Input Monitoring permissions. The current MVP should keep custom shortcuts first.
-- Display identity can change after sleep/reconnect; silently picking a different display would be dangerous.
+- Directly calling overlay/gamma from UI would bypass `BrightnessController`, duplicate command policy, and make schedule/hotkey/manual behavior inconsistent.
+- Removing hardware fields from `BrightnessState` without migration can reset settings due to decode fallback.
+- Adding gamma as the default path can conflict with other color-management tools and can be harder to recover from if it makes the display too dark.
+- Treating overlay success on the desktop as success in all contexts would overclaim. Full-screen, DRM, screen sharing, presentation, sleep/wake, and HDMI reconnect must be checked separately.
+
+### Medium Risk
+
+- Leaving dead DDC code in runtime classes keeps the mental model inconsistent and can mislead future tests.
+- Leaving README hardware-first language can cause future implementation to reintroduce hardware-first behavior by mistake.
+- Removing DDC files too early can break tests and diagnostics snapshots before the software-only state model is simplified.
+
+### Low Risk
+
+- Removing unreachable `MenuBarController.runDDCProbe()` and `hardwareDDCController` injection is low risk because there is no UI command path.
+- Removing `BrightnessController` hardware injection is low risk once tests are updated to assert software-only behavior via a software strategy spy.
+- Marking DDC docs as archived/historical is low risk and improves consistency.
 
 ## Do Not Duplicate Or Bypass
 
-Do not duplicate:
-
-- `BrightnessController.apply(_:)`
-- `HardwareDDCController.probe(display:)`
-- `HardwareDDCController.reversibleProbeValue(current:range:)`
-- `ScheduleEngine.decision(at:entries:state:)`
-- `ScheduleEngine.stateAfterManualOverride(from:at:entries:)`
-- `ScheduleEngine.stateAfterApplying(_:to:)`
-- `HotkeyManager.validate(_:)`
-- `DisplayTargetResolver.resolve(saved:candidates:)`
-- `DisplayTargetStore.load()` / `save(_:)`
-- `DiagnosticsStore.snapshot(...)`
-- `VerificationMatrix.canClaimAllRequestedContextsHandled(_:)`
-
-Do not bypass:
-
-- Hardware write/readback/restore probe before enabling `.hardwareDDC`.
-- Main actor for AppKit overlay/menu paths.
-- Shortcut safety validation.
-- Manual QA matrix before claiming coverage across all requested contexts.
-- User-controlled setting for login item.
-
-## Method Hypotheses
-
-### Overall Completion Strategy
-
-#### H1: Runtime-Orchestrator-First Completion
-
-Hypothesis:
-
-The lowest-risk path is to keep all existing domain/services and add a thin main-actor runtime orchestration layer that wires menu UI, selected display, settings, software dimming, schedule timer, hotkeys, diagnostics, and settings window together. Real DDC transport remains behind `DDCAdapter` and can be completed after software dimming and command routing are usable.
-
-Why H1 ranks first:
-
-- It matches the current architecture: most business logic already exists as testable services.
-- It avoids touching hardware until the app has a visible status, diagnostics, and safe software disable path.
-- It fixes the user's immediate gap: the menu bar app currently opens but does not do anything.
-- It preserves the rule that software fallback activation only happens after hardware exhaustion, while still allowing explicit forced software testing.
-- It can be verified without changing monitor firmware or needing third-party dependencies.
-
-Success test:
-
-- Menu buttons and hotkeys visibly change perceived brightness/warmth on the selected external display in forced software test mode.
-- Runtime state and popover labels update after each command.
-- Schedule automation can apply the default timetable.
-- Manual changes pause automation until the next boundary.
-- Xcode build/test pass.
-- QA matrix has concrete manual notes for general desktop, full-screen Space, shortcut, schedule boundary, sleep/wake, and HDMI reconnect.
-
-Failure conditions:
-
-- Overlay does not appear on the selected external display.
-- Overlay steals focus/clicks.
-- State updates but UI does not refresh.
-- Timer fires too often or overwrites manual changes.
-- Hotkeys register but action handler is not called.
-- Display reconnect moves overlay to the wrong display.
-
-Next hypotheses if H1 fails:
-
-- H2: Split the orchestration into `AppCoordinator`, `DimmingCommandController`, and `MenuBarController` instead of extending `MenuBarController`.
-- H3: Replace the static `NSView` popover with a small `NSViewController` that owns callbacks and refreshes, keeping layout AppKit-native.
-- H4: Use a `NotificationCenter`/observer state propagation model only if direct callback refresh becomes tangled.
-
-#### H2: DDC-First Completion
-
-Hypothesis:
-
-Implement real DDC/CI transport before UI wiring so the app can become hardware-first immediately.
-
-Why H2 is lower priority:
-
-- It touches the highest-risk area first.
-- M1 direct HDMI DDC has conflicting community evidence.
-- The app currently lacks enough visible diagnostics/recovery UI to safely expose hardware failures.
-- It does not solve the current "menu bar buttons do nothing" issue.
-
-Use H2 only if:
-
-- The user explicitly prioritizes hardware DDC before perceived dimming.
-- We first add diagnostics/probe UI and a no-op safety mode.
-
-#### H3: Software-Only Product Completion
-
-Hypothesis:
-
-Ship a robust overlay/gamma dimmer and postpone hardware DDC indefinitely.
-
-Why H3 is lower priority:
-
-- The project requirement is hardware-first where possible.
-- It would be honest and useful, but incomplete against the requested hardware path.
-
-Use H3 if:
-
-- Real DDC is blocked on M1 HDMI or INNOS firmware after repeated probe attempts.
-- The overlay passes the user's practical contexts and diagnostics clearly says `Overlay active`.
-
-### Runtime Wiring Hypotheses
-
-#### H1: Extend `MenuBarController` With Injected Runtime Services
-
-Hypothesis:
-
-For the next implementation slice, extend `MenuBarController` to own:
-
-- `DisplayInventory`
-- `DisplayTargetStore`
-- `BrightnessController`
-- `HardwareDDCController`
-- `HotkeyManager`
-- `DiagnosticsStore`
-- `SettingsWindowController`
-- `Timer?` or dispatch timer wrapper
-- current `SettingsSnapshot`
-- current selected `DisplayIdentity`
-
-Why H1 ranks first:
-
-- The current app is small.
-- It keeps the visible command source and state refresh in one main-actor object.
-- It minimizes new abstraction before behavior exists.
-- It is easy to unit test with injected doubles.
-
-Failure conditions:
-
-- `MenuBarController` becomes too large or hard to test.
-- Test setup needs too many injected dependencies.
-- Schedule/hotkey/display notification code becomes tangled with UI layout.
-
-Next hypotheses:
-
-- H2: Extract `AppCoordinator` as the owner of services and let `MenuBarController` only render and forward actions.
-- H3: Extract `DimmingCommandRouter` for commands only, while `MenuBarController` keeps status item/popover.
-
-H1 code snippet pack:
-
-```swift
-@MainActor
-final class MenuBarController: NSObject {
-    private let statusItem: NSStatusItem
-    private let popover = NSPopover()
-    private let brightnessController: BrightnessController
-    private let displayInventory: DisplayInventory
-    private let settingsStore: DisplayTargetStore
-    private let hardwareController: HardwareDDCController
-    private let diagnosticsStore: DiagnosticsStore
-    private var hotkeyManager: HotkeyManager?
-    private var settings = SettingsSnapshot.defaultSnapshot()
-    private var selectedDisplay: DisplayIdentity?
-    private weak var popoverView: MenuBarPopoverView?
-
-    init(
-        statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength),
-        brightnessController: BrightnessController = BrightnessController(),
-        displayInventory: DisplayInventory = DisplayInventory(),
-        settingsStore: DisplayTargetStore = DisplayTargetStore(),
-        hardwareController: HardwareDDCController = HardwareDDCController(),
-        diagnosticsStore: DiagnosticsStore = DiagnosticsStore()
-    ) {
-        self.statusItem = statusItem
-        self.brightnessController = brightnessController
-        self.displayInventory = displayInventory
-        self.settingsStore = settingsStore
-        self.hardwareController = hardwareController
-        self.diagnosticsStore = diagnosticsStore
-        super.init()
-    }
-}
-```
-
-```swift
-func start() {
-    settings = settingsStore.load()
-    refreshSelectedDisplay()
-    configureStatusItem()
-    configurePopover()
-    registerHotkeys()
-    observeDisplayLifecycle()
-    applyStartupScheduleIfReady()
-    scheduleNextBoundaryTimer()
-}
-```
-
-### Menu Button And UI Action Hypotheses
-
-#### H1: Make `MenuBarPopoverView` Callback-Based
-
-Hypothesis:
-
-Keep `MenuBarPopoverView` as AppKit `NSView`, but give it callbacks for commands:
-
-- `onBrightnessUp`
-- `onBrightnessDown`
-- `onWarmthUp`
-- `onWarmthDown`
-- `onProbe`
-- `onPauseAutomation`
-- `onSettings`
-- `onQuickDisable`
-- `onRestore`
-
-Why H1 ranks first:
-
-- It requires the fewest structural changes.
-- It keeps UI layout separate from app policy.
-- It lets tests instantiate the view and verify buttons have actions.
-
-Failure conditions:
-
-- Callback memory cycles or selector bridging becomes awkward.
-- Buttons need enabled/disabled state and richer binding than callbacks provide.
-
-Next hypotheses:
-
-- H2: Introduce `MenuBarPopoverViewController` with target/action methods.
-- H3: Use SwiftUI for the popover content only, keeping AppKit app shell.
-
-H1 code snippet pack:
-
-```swift
-struct MenuBarActions {
-    var brightnessDown: () -> Void
-    var brightnessUp: () -> Void
-    var warmthDown: () -> Void
-    var warmthUp: () -> Void
-    var probeDDC: () -> Void
-    var pauseAutomation: () -> Void
-    var openSettings: () -> Void
-}
-```
-
-```swift
-final class MenuBarPopoverView: NSView {
-    private let actions: MenuBarActions
-
-    init(state: BrightnessState, actions: MenuBarActions) {
-        self.actions = actions
-        self.modeBadge = StatusBadgeView(mode: state.activeMode)
-        super.init(frame: NSRect(x: 0, y: 0, width: 320, height: 260))
-        buildLayout()
-        update(state: state)
-    }
-
-    @objc private func brightnessUpPressed() {
-        actions.brightnessUp()
-    }
-}
-```
-
-### Command Semantics Hypotheses
-
-#### H1: Fixed Step Commands With Clamping
-
-Hypothesis:
-
-Use fixed increments for menu buttons and hotkeys:
-
-- Brightness: `+/- 5`
-- Warmth: `+/- 5`
-- Quick disable overlay: clear software dimming and mark mode/status visibly.
-- Restore previous dimming: reapply last non-disabled brightness/warmth.
-
-Why H1 ranks first:
-
-- Simple and predictable.
-- Existing `Clamped.percent` and `BrightnessState` already bound values.
-- Easy to test.
-
-Failure conditions:
-
-- User wants smoother control.
-- Hardware DDC monitor reacts slowly or with visible flicker.
-
-Next hypotheses:
-
-- H2: Use `+/- 2` for warmth and `+/- 5` for brightness.
-- H3: Add press-and-hold repeat only after the single-step path is stable.
-- H4: Add sliders in the popover after button/hotkey command routing is reliable.
-
-H1 code snippet pack:
-
-```swift
-private enum DimmingStep {
-    static let brightness = 5
-    static let warmth = 5
-}
-
-private func adjust(brightnessDelta: Int = 0, warmthDelta: Int = 0, source: BrightnessCommandSource) {
-    guard let display = selectedDisplay else {
-        record(.display, "No selected display", .warning)
-        return
-    }
-
-    let command = BrightnessCommand(
-        display: display,
-        brightness: brightnessController.state.targetBrightness + brightnessDelta,
-        warmth: brightnessController.state.targetWarmth + warmthDelta,
-        source: source
-    )
-
-    brightnessController.apply(command)
-    pauseAutomationForManualOverrideIfNeeded(source: source)
-    persistCurrentState()
-    refreshPopover()
-}
-```
-
-### Software Dimming Hypotheses
-
-#### H1: Fix Per-Display Overlay Frame And Use It As The First Usable Runtime Path
-
-Hypothesis:
-
-Before DDC work, make overlay dimming visually correct:
-
-- Look up the selected display's current `NSScreen.frame`.
-- Set the panel frame on every apply, not only at creation.
-- Include `.fullScreenAuxiliary` in addition to `.canJoinAllSpaces`, `.stationary`, `.ignoresCycle`.
-- Keep `ignoresMouseEvents = true`, transparent background, no shadow.
-- Rebuild/reapply on screen parameter, active Space, wake, and HDMI reconnect notifications.
-
-Why H1 ranks first:
-
-- Overlay is the lowest-risk way to give the user working perceived dimming now.
-- It does not write monitor firmware.
-- It is already partially implemented and tested.
-- Community tools also use software/shade/gamma paths when DDC is unavailable.
-
-Failure conditions:
-
-- Overlay does not appear in full-screen Spaces.
-- Overlay appears on the wrong display after reconnect.
-- Overlay is captured in screen sharing when the user expects local-only dimming.
-- DRM/protected playback ignores/overrides/blocks visible dimming.
-
-Next hypotheses:
-
-- H2: Add `.canJoinAllApplications` where available and test whether it improves Stage Manager/full-screen contexts.
-- H3: Use a separate overlay panel per `NSScreen` plus selected-display filter after reconnect.
-- H4: Add gamma dimming as a separate optional strategy for contexts where overlay is not suitable.
-- H5: Mark the scenario `platformBlocked` with visible app status if macOS prevents a requested context.
-
-H1 code snippet pack:
-
-```swift
-func apply(display: DisplayIdentity, brightness: Int, warmth: Int) {
-    guard let screen = screen(for: display) else {
-        return
-    }
-
-    let panel = panelsByDisplayID[display.cgDisplayID] ?? makePanel()
-    panelsByDisplayID[display.cgDisplayID] = panel
-    Self.configureOverlayPanel(panel, for: screen.frame)
-
-    let appearance = OverlayAppearance.make(brightness: brightness, warmth: warmth)
-    updateLayers(for: panel, appearance: appearance)
-    panel.contentView?.frame = NSRect(origin: .zero, size: screen.frame.size)
-    panel.contentView?.layer?.sublayers?.forEach { $0.frame = panel.contentView?.bounds ?? .zero }
-    panel.orderFrontRegardless()
-}
-```
-
-```swift
-static func configureOverlayPanel(_ panel: NSPanel, for frame: CGRect) {
-    panel.setFrame(frame, display: true)
-    panel.level = .screenSaver
-    panel.collectionBehavior = [
-        .canJoinAllSpaces,
-        .fullScreenAuxiliary,
-        .stationary,
-        .ignoresCycle
-    ]
-    panel.ignoresMouseEvents = true
-    panel.isOpaque = false
-    panel.backgroundColor = .clear
-    panel.hasShadow = false
-}
-```
-
-### Hardware DDC Hypotheses
-
-#### H1: Keep Real DDC Behind `DDCAdapter` And Implement Probe UI Before Transport
-
-Hypothesis:
-
-The next hardware step is not raw IOKit writes first. It is a probe button that calls `HardwareDDCController.probe(display:)`, records the result, updates `BrightnessState.hardwareCapability`, and persists diagnostics. Initially it will fail with `NoopDDCAdapter`, which verifies UI/status flow safely.
-
-Why H1 ranks first:
-
-- It exercises all safety and diagnostics paths before hardware writes.
-- It lets the app show honest state: DDC not implemented/unsupported.
-- It protects against accidental brightness changes.
-
-Failure conditions:
-
-- User expects hardware probe to actually change brightness immediately.
-
-Next hypotheses:
-
-- H2: Add a clearly labeled `Real DDC experimental probe` mode after the safe probe UI exists.
-
-#### H2: Implement Native IOKit/I2C DDC Adapter
-
-Hypothesis:
-
-Add `IOKitDDCAdapter: DDCAdapter` using IOKit display/framebuffer/I2C access to send VCP code `0x10` brightness commands, then reuse the existing read/write/readback/restore policy.
-
-Why H2 is second:
-
-- It is the only route to real monitor backlight control inside this app.
-- It is high variance on Apple Silicon and direct HDMI.
-- Official Apple display APIs expose display enumeration and window-server control, but they do not provide a simple public "set external monitor VCP brightness" API.
-
-Failure conditions:
-
-- IOKit framebuffer path is inaccessible on M1 HDMI.
-- Read succeeds but write fails.
-- Write succeeds but readback mismatches.
-- Restore fails.
-- INNOS firmware exposes DDC/CI inconsistently.
-
-Next hypotheses:
-
-- H3: Probe multiple candidate services/paths for the display, keyed by `CGDirectDisplayID`, vendor/model/serial, and IORegistry metadata.
-- H4: Separate read-only capability from write capability and keep software dimming for write failure.
-- H5: Document hardware as unsupported for this connection and rely on overlay/gamma.
-- H6: Optional later external-helper route only if the user explicitly accepts a helper tool or dependency review. Do not use `ddcctl` code directly because of GPL and maintenance risks.
-
-Community observations supporting caution:
-
-- MonitorControl lists DDC, gamma, shade/software, and combined hardware/software dimming as separate protocols and explicitly supports software alternatives for TVs/virtual displays.
-- MonitorControl maintainer comments in a 2023 discussion say MonitorControl does not support the HDMI port of M1 Macs and points to BetterDisplay for all connection types.
-- Lunar's M1 writeup describes old Intel `IOFramebuffer`/`IOI2C*` assumptions breaking on M1 and requiring Apple-Silicon-specific work.
-- `ddcctl` is a useful conceptual reference but is maintenance-mode and GPLv3.
-
-### Schedule Automation Hypotheses
-
-#### H1: One-Shot Boundary Timer, Not Polling
-
-Hypothesis:
-
-Use the existing `ScheduleEngine.minutesUntilNextBoundary` to schedule one timer for the next boundary, apply the decision, then schedule the next one. Also evaluate once at app startup and after wake/reconnect.
-
-Why H1 ranks first:
-
-- It matches the schedule engine's boundary model.
-- It minimizes energy use.
-- Apple energy guidance recommends avoiding unnecessary timers, invalidating timers, and using tolerance.
-
-Failure conditions:
-
-- Timer misses due to sleep/wake.
-- Manual override is cleared too early or too late.
-- System clock/time zone changes are not handled.
-
-Next hypotheses:
-
-- H2: Re-evaluate on `NSWorkspace.didWakeNotification` and `NSApplication.didChangeScreenParametersNotification`.
-- H3: Add a low-frequency safety reconciliation timer, e.g. every 5-15 minutes, only if event-driven boundary timers prove unreliable.
-- H4: Add date/time-change notifications if manual tests show clock changes break schedule state.
-
-H1 code snippet pack:
-
-```swift
-private func scheduleNextBoundaryTimer() {
-    scheduleTimer?.invalidate()
-
-    let minute = currentMinuteOfDay()
-    guard let minutes = ScheduleEngine.minutesUntilNextBoundary(after: minute, entries: settings.schedule) else {
-        return
-    }
-
-    let interval = TimeInterval(max(1, minutes) * 60)
-    let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
-        Task { @MainActor in
-            self?.applyScheduleDecision(reason: .schedule)
-            self?.scheduleNextBoundaryTimer()
-        }
-    }
-    timer.tolerance = min(60, interval * 0.1)
-    scheduleTimer = timer
-}
-```
-
-### Global Shortcut Hypotheses
-
-#### H1: Custom Carbon Hotkeys Only
-
-Hypothesis:
-
-Use the existing `HotkeyManager` and default `Option + Shift + Arrow/0/R` shortcuts. Do not intercept native brightness/media keys in the MVP.
-
-Why H1 ranks first:
-
-- The code already implements validation and Carbon registration.
-- It avoids Accessibility/Input Monitoring permission prompts for media-key interception.
-- It matches `docs/operator-guide.md`.
-
-Failure conditions:
-
-- Hotkeys do not fire in full-screen apps.
-- A user's existing apps conflict with the defaults.
-- Carbon registration returns nonzero status.
-
-Next hypotheses:
-
-- H2: Add settings UI to change bindings and persist them.
-- H3: Add conflict recovery: disable failing binding, keep others, show diagnostics.
-- H4: Only later consider event taps/native media keys if the user explicitly wants F1/F2-style keys and accepts permissions.
-
-H1 code snippet pack:
-
-```swift
-private func registerHotkeys() {
-    hotkeyManager = HotkeyManager { [weak self] action in
-        Task { @MainActor in
-            self?.handleShortcut(action)
-        }
-    }
-
-    do {
-        try hotkeyManager?.start(bindings: settings.shortcuts)
-        record(.shortcut, "Registered \(settings.shortcuts.filter(\.isEnabled).count) shortcuts", .info)
-    } catch {
-        record(.shortcut, "Shortcut registration failed: \(error)", .warning)
-    }
-}
-```
-
-```swift
-private func handleShortcut(_ action: ShortcutAction) {
-    switch action {
-    case .brightnessUp:
-        adjust(brightnessDelta: DimmingStep.brightness, source: .hotkey)
-    case .brightnessDown:
-        adjust(brightnessDelta: -DimmingStep.brightness, source: .hotkey)
-    case .warmthUp:
-        adjust(warmthDelta: DimmingStep.warmth, source: .hotkey)
-    case .warmthDown:
-        adjust(warmthDelta: -DimmingStep.warmth, source: .hotkey)
-    case .quickDisableOverlay:
-        clearSoftwareDimming()
-    case .restorePreviousDimming:
-        restorePreviousDimming()
-    }
-}
-```
-
-### Settings Hypotheses
-
-#### H1: Incremental AppKit Settings Window
-
-Hypothesis:
-
-Upgrade `SettingsWindowController` incrementally:
-
-- Display picker.
-- Schedule table or simple editable fields.
-- Shortcut list with reset defaults.
-- Launch at login toggle.
-- Diagnostics export button.
-- QA matrix summary.
-
-Why H1 ranks first:
-
-- Existing class is AppKit.
-- No new framework complexity.
-- Personal-use MVP can start with compact controls.
-
-Failure conditions:
-
-- AppKit manual layout becomes slow to evolve.
-- Shortcut capture UI becomes too custom.
-
-Next hypotheses:
-
-- H2: Use SwiftUI only for Settings, embedded in `NSHostingController`.
-- H3: Postpone rich settings editing and store defaults until core dimming is verified.
-
-### Diagnostics And QA Hypotheses
-
-#### H1: Diagnostics-First Runtime Evidence
-
-Hypothesis:
-
-Every meaningful runtime event should record diagnostics:
-
-- app start
-- selected display
-- probe start/result
-- hardware failure
-- software activation reason
-- hotkey registration/action
-- schedule apply/pause/resume
-- display reconnect/wake
-- platform-blocked observation
-
-Why H1 ranks first:
-
-- Manual QA is required for this app.
-- The user wants certainty across a hypothesis chain.
-- Diagnostics make failure recovery concrete.
-
-Failure conditions:
-
-- Diagnostics becomes noisy or includes sensitive data.
-
-Next hypotheses:
-
-- H2: Keep only last 200 events, already supported.
-- H3: Add severity filters in UI.
-- H4: Keep raw diagnostics local JSON only; no external reporting.
-
-### Login Item Hypotheses
-
-#### H1: Settings Toggle Using `SMAppService.mainApp`
-
-Hypothesis:
-
-Use existing `LoginItemController` to expose launch-at-login in settings.
-
-Why H1 ranks first:
-
-- App targets macOS 14 and `SMAppService` is the modern path for macOS 13+.
-- Existing controller already maps known statuses.
-
-Failure conditions:
-
-- Unsigned local debug app cannot fully register as expected.
-- System Settings requires user approval.
-
-Next hypotheses:
-
-- H2: Show `requiresApproval` with a clear note and leave final signing/login QA until packaging.
-- H3: Treat login item as post-MVP packaging if local debug behavior is inconsistent.
-
-## Prioritized Implementation Hypothesis Ladder
-
-### Stage 1: Make The Current App Actually Control Perceived Dimming
-
-H1:
-
-- Add callback-based menu actions.
-- Add selected-display resolution on startup.
-- Add forced software diagnostic command path for manual dimming before real DDC.
-- Fix overlay frame to selected display.
-- Refresh popover after state changes.
-
-If H1 fails:
-
-- H2: Extract `AppCoordinator` and keep `MenuBarController` only as UI.
-- H3: Replace popover `NSView` with `NSViewController`.
-- H4: Use SwiftUI popover only if AppKit target/action becomes too costly.
-
-### Stage 2: Wire Hotkeys To The Same Command Path
-
-H1:
-
-- Start `HotkeyManager` from app startup.
-- Route every shortcut to the same `adjust(...)` and clear/restore functions used by menu buttons.
-
-If H1 fails:
-
-- H2: Disable only failing bindings and expose diagnostics.
-- H3: Add settings-based rebinding before enabling defaults broadly.
-- H4: Defer native media keys until custom shortcuts pass.
-
-### Stage 3: Wire Schedule Automation
-
-H1:
-
-- Evaluate schedule at startup.
-- Use one-shot next-boundary timer with tolerance.
-- Manual commands pause automation until the next boundary.
-- Re-evaluate after wake and screen changes.
-
-If H1 fails:
-
-- H2: Add a low-frequency reconciliation timer.
-- H3: Add explicit pause/resume UI state and require user resume if boundary logic is ambiguous.
-
-### Stage 4: Add Safe DDC Probe UI
-
-H1:
-
-- Probe button calls `HardwareDDCController.probe(display:)`.
-- Store result in `BrightnessState.hardwareCapability`.
-- Keep default `NoopDDCAdapter` so the first UI pass is safe.
-
-If H1 fails:
-
-- H2: Show probe result in diagnostics only, not state, until UI state handling is stable.
-
-### Stage 5: Implement Real DDC Adapter
-
-H1:
-
-- Add `IOKitDDCAdapter` behind `DDCAdapter`.
-- Reuse existing probe safety ladder.
-- Enable hardware mode only after read/write/readback/restore succeeds.
-
-If H1 fails:
-
-- H2: Try alternate IORegistry/framebuffer service matching.
-- H3: Classify as read-only if reads work but writes do not.
-- H4: Mark hardware unsupported for M1 HDMI/INNOS and use overlay.
-- H5: Consider optional external helper only with explicit user approval and license/dependency review.
-
-### Stage 6: Complete Settings And Persistence
-
-H1:
-
-- Persist selected display, schedule, shortcuts, and login preference through `SettingsSnapshot`.
-- Keep settings UI simple and AppKit-native.
-
-If H1 fails:
-
-- H2: Use SwiftUI settings view inside AppKit.
-- H3: Postpone custom schedule editor and keep operator-guide defaults.
-
-### Stage 7: Manual QA And Claim Gate
-
-H1:
-
-- Fill `docs/qa-matrix.md` row by row with actual observations.
-- Keep `VerificationMatrix.canClaimAllRequestedContextsHandled` as the app's claim gate.
-
-If H1 fails:
-
-- H2: Mark context `partial` or `platformBlocked` with visible UI copy.
-- H3: Restrict the app's claim to contexts that passed.
+- Do not bypass `BrightnessController.apply(_:)`.
+- Do not call `OverlayWindowManager.apply` directly from menu, hotkey, schedule, or settings UI.
+- Do not add a second display selection system outside `DisplayInventory` and `DisplayTargetResolver`.
+- Do not add a second shortcut registration path outside `HotkeyManager`.
+- Do not add a separate schedule timer path outside `ScheduleEngine` and `ScheduleTimerController`.
+- Do not add new package dependencies for MVP software dimming; AppKit/CoreGraphics/Foundation are enough.
+- Do not use private Night Shift APIs or private display frameworks for the core path.
+- Do not keep user-facing strings that imply real monitor backlight control.
+- Do not mark platform-limited contexts as pass without notes in `VerificationMatrix`.
 
 ## Open Questions
 
-- Does the actual INNOS 27QA100M expose DDC/CI brightness over this M1 direct HDMI path?
-- Does the monitor OSD have a DDC/CI toggle that must be enabled manually?
-- Does the user want native F1/F2 brightness key interception later, accepting permissions, or are custom shortcuts enough?
-- Should screen sharing dim the shared output, or should dimming be local-only when possible?
-- How should DRM/protected playback be classified after observation: `pass`, `partial`, or `platformBlocked`?
-- Is the user comfortable with an experimental real DDC probe changing brightness by one step during testing?
+- Does the overlay remain visible on the user's INNOS external display in full-screen Spaces on the current macOS version?
+- Does the overlay appear in the user's screen sharing/recording output, and is that desired?
+- Does the overlay dim browser full-screen video and DRM/protected playback enough for the user's actual use?
+- Should gamma/color-table dimming be shipped as an advanced optional mode after overlay QA, or kept as an experiment only?
+- What minimum brightness should be enforced to prevent accidental black screen? A reasonable starting policy is a visual floor around 10-15 percent plus always-available quick disable.
+- Should persisted `SettingsSnapshot.currentSchemaVersion` be bumped when hardware fields are removed from `BrightnessState`?
+- Should historical DDC files be deleted entirely or moved into an archive document after software-only implementation is accepted?
 
 ## Plan Implications
 
-Plan-ready recommendation:
+### Direction Decision
 
-1. Do not start with real DDC transport.
-2. First implement the runtime wiring that makes menu actions, hotkeys, software dimming, state refresh, selected display, diagnostics, and schedule automation work together.
-3. Keep hardware DDC behind the existing `DDCAdapter` and add probe UI before implementing real IOKit transport.
-4. Treat software dimming as a first-class strategy but activate it only through policy: forced diagnostic mode, hardware exhausted, or explicit platform-blocked handling.
-5. Use one-shot schedule timers with tolerance and wake/screen-change re-evaluation.
-6. Keep custom global shortcuts as MVP; defer native media keys.
-7. Only claim complete context coverage after `docs/qa-matrix.md` has evidence rows.
+The next implementation plan should be software-only. The first-ranked approach is a robust per-display overlay. Gamma/color-table dimming should not be the default because it has higher conflict and recovery risk, despite being a useful later experiment.
 
-Likely next plan-first implementation slices:
+### Ranked Implementation Hypotheses
 
-- Slice 1: Runtime command wiring and overlay frame correctness.
-- Slice 2: Hotkey startup and command handling.
-- Slice 3: Schedule timer and manual override.
-- Slice 4: Probe button and diagnostics result surface.
-- Slice 5: Settings persistence/editing.
-- Slice 6: Real DDC adapter experiment.
-- Slice 7: Manual QA matrix and packaging.
+#### H1: Per-Display AppKit Overlay Is The Primary Implementation
+
+Hypothesis:
+
+Use one click-through `NSPanel` per target display. Keep it above normal content, join all Spaces, resize/rebuild it on display changes, and update black/warm layers for brightness and warmth.
+
+Why this is first:
+
+- It matches the current codebase; `OverlayWindowManager` is already implemented and tested.
+- It avoids DDC/CI and hardware monitor writes entirely.
+- It is reversible through `orderOut`, app quit, and quick disable.
+- It avoids global gamma/color-profile conflicts.
+- It can be reasoned about and tested with AppKit window inspection plus manual visual QA.
+
+Primary implementation notes:
+
+```swift
+@MainActor
+final class OverlayWindowManager {
+    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) {
+        guard let frame = displayFrameProvider(display) else {
+            return
+        }
+
+        let panel = panelsByDisplayID[display.cgDisplayID] ?? makePanel()
+        panelsByDisplayID[display.cgDisplayID] = panel
+        Self.configureOverlayPanel(panel, for: frame)
+        panel.contentView?.frame = NSRect(origin: .zero, size: frame.size)
+        updateLayers(
+            for: panel,
+            appearance: OverlayAppearance.make(brightness: brightness, warmth: warmth)
+        )
+        panel.orderFrontRegardless()
+    }
+}
+```
+
+H1 must include these hardening tasks:
+
+- Store the last requested command in the software layer or controller so wake/display changes can reapply the current overlay without waiting for a schedule boundary.
+- Add an explicit overlay `reconcile(activeDisplays:)` or `reapplyLastCommand()` path.
+- On screen parameter change, rebuild or resize the panel for the selected display.
+- On wake/screens-wake, reapply the overlay after display identities settle.
+- On HDMI disconnect, clear stale panels for disappeared display IDs and show an honest "display not selected" state.
+- Keep quick disable and restore previous working from both popover and global shortcuts.
+- Cap maximum dimming or enforce a minimum visual brightness to avoid accidental blackout.
+- Keep platform-blocked/partial status visible instead of claiming universal success.
+
+Falsification conditions:
+
+- Overlay does not appear on top of the user's full-screen apps even with correct collection behavior.
+- Overlay appears on the wrong display after reconnect and cannot be stabilized with display identity matching.
+- Overlay breaks the user's required screen sharing/presentation behavior.
+- Overlay fails to dim the actual content surfaces the user cares about.
+
+If falsified, try H2 for the specific failed context rather than replacing the whole product.
+
+#### H2: Optional CoreGraphics Gamma/Color Table Strategy For Contexts Overlay Cannot Cover
+
+Hypothesis:
+
+Keep overlay as default, but add an advanced software strategy using `CGGetDisplayTransferByTable` and `CGSetDisplayTransferByTable` or `CGSetDisplayTransferByFormula` for cases where overlay is insufficient.
+
+Why this is second:
+
+- Apple exposes public CoreGraphics gamma/display transfer APIs.
+- It can affect display output below normal app windows and may cover cursor/content cases an overlay cannot.
+- Existing apps such as BetterDisplay and MonitorControl distinguish color-table software dimming from overlay/shade dimming.
+
+Why it is not first:
+
+- It can conflict with color calibration, Night Shift, f.lux, HDR, and other display tools.
+- It needs robust snapshot/restore handling.
+- It can be reset by OS/app changes.
+- Recent Apple Developer Forum reports suggest gamma APIs can sometimes return success without visual effect on newer hardware.
+
+Possible implementation skeleton:
+
+```swift
+@MainActor
+final class GammaDimmingController {
+    private struct OriginalTable {
+        var red: [CGGammaValue]
+        var green: [CGGammaValue]
+        var blue: [CGGammaValue]
+    }
+
+    private var originalsByDisplayID: [CGDirectDisplayID: OriginalTable] = [:]
+
+    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) throws {
+        let displayID = CGDirectDisplayID(display.cgDisplayID)
+        if originalsByDisplayID[display.cgDisplayID] == nil {
+            originalsByDisplayID[display.cgDisplayID] = try readOriginalTable(displayID)
+        }
+
+        let factor = Float(max(10, Clamped.percent(brightness))) / 100.0
+        let tableSize = 256
+        var red = [CGGammaValue]()
+        var green = [CGGammaValue]()
+        var blue = [CGGammaValue]()
+
+        for index in 0..<tableSize {
+            let x = Float(index) / Float(tableSize - 1)
+            red.append(CGGammaValue(min(1.0, x * factor * warmthRedMultiplier(warmth))))
+            green.append(CGGammaValue(min(1.0, x * factor)))
+            blue.append(CGGammaValue(min(1.0, x * factor * warmthBlueMultiplier(warmth))))
+        }
+
+        let error = CGSetDisplayTransferByTable(displayID, UInt32(tableSize), red, green, blue)
+        guard error == .success else {
+            throw SoftwareDimmingError.applyFailed("CGSetDisplayTransferByTable failed: \(error)")
+        }
+    }
+
+    func clear(display: DisplayIdentity) throws {
+        let displayID = CGDirectDisplayID(display.cgDisplayID)
+        guard let original = originalsByDisplayID.removeValue(forKey: display.cgDisplayID) else {
+            return
+        }
+
+        let count = UInt32(original.red.count)
+        let error = CGSetDisplayTransferByTable(displayID, count, original.red, original.green, original.blue)
+        guard error == .success else {
+            throw SoftwareDimmingError.applyFailed("Restoring gamma table failed: \(error)")
+        }
+    }
+}
+```
+
+This snippet is a design sketch, not ready code. A real implementation must handle table capacity, readback, display removal, app termination restore, and repeated OS resets.
+
+Falsification conditions:
+
+- API succeeds but no visible effect on the user's M1 HDMI display.
+- It conflicts with the user's color/brightness tools.
+- It makes the display too dark and restore is unreliable.
+- It causes worse image quality than overlay.
+
+If falsified, keep gamma disabled and continue with overlay-only plus explicit platform-blocked labels for uncovered contexts.
+
+#### H3: Hybrid Overlay Plus Gamma For Specific Modes
+
+Hypothesis:
+
+Keep overlay for normal dimming and optionally add gamma for one narrow purpose, such as cursor or full-screen video contexts that overlay cannot cover.
+
+Why this is third:
+
+- BetterDisplay product evidence shows combined dimming is a real product pattern.
+- It can reduce the weaknesses of each individual method.
+
+Why it is not first:
+
+- It doubles state restoration complexity.
+- It requires a user-visible mode selector and diagnostics.
+- It can make debugging "why did the screen change" harder.
+
+Implementation constraint:
+
+Hybrid mode must still be controlled by `SoftwareDimmingController`, not by UI directly.
+
+Falsification conditions:
+
+- Hybrid behavior is unpredictable across wake/reconnect.
+- Gamma restore is unreliable.
+- The user cannot tell which layer is active.
+
+#### H4: Quartz Display Fade For Temporary Transitions Only
+
+Hypothesis:
+
+Use `CGAcquireDisplayFadeReservation` and `CGDisplayFade` only for temporary fade/restore effects, not persistent brightness.
+
+Why this is fourth:
+
+- Apple documents display fade reservations as time-bound operations.
+- It does not map cleanly to a persistent menu bar dimmer with schedule, shortcuts, and per-display warmth.
+
+Use only if:
+
+- The app needs a transition animation when applying overlay or quick disable.
+- The implementation can keep it optional and never rely on it for persistent dimming.
+
+#### H5: Screen Capture / CoreImage / Metal Re-rendering Is Not Appropriate
+
+Hypothesis:
+
+Capture the screen, process it through CoreImage/Metal, and present a re-rendered dimmed desktop.
+
+Why rejected:
+
+- Requires screen recording permissions.
+- Adds latency and privacy risk.
+- Cannot safely replace the real desktop interaction model.
+- Too complex for a personal dimmer when overlay already solves the main need.
+
+#### H6: Private Night Shift Or Private Display APIs Are Not Appropriate
+
+Hypothesis:
+
+Use private macOS APIs to manipulate color temperature or brightness.
+
+Why rejected:
+
+- Private APIs are unstable and unnecessary for this personal MVP.
+- They increase maintenance and security risk.
+- Current requirements can be met with public AppKit/CoreGraphics APIs.
+
+### Code Removal Plan
+
+#### Remove Now
+
+These items are no longer part of user-visible behavior and can be removed in the next implementation slice:
+
+- `MenuBarController.hardwareDDCController`
+- `MenuBarController` initializer parameter `hardwareDDCController`
+- `MenuBarController.runDDCProbe()`
+- `MenuBarController.probeExportNote(for:)`
+- `MenuBarController.diagnosticsSeverity(for capability:)`
+- `BrightnessController.hardwareStrategy`
+- `BrightnessController` initializer parameter `hardwareStrategy`
+- `BrightnessController.applyHardware(_:)`
+- `BrightnessController.hardwareFailureMessage(from:)`
+- `HardwareBrightnessStrategy` protocol if no other tests still need it after cleanup.
+- Test spies that only prove hardware is not called. Replace them with simpler software-route assertions.
+- README hardware-first language.
+
+Representative target shape:
+
+```swift
+@MainActor
+final class BrightnessController {
+    private(set) var state: BrightnessState
+    private(set) var pendingCommand: BrightnessCommand?
+    private let softwareStrategy: SoftwareDimmingStrategy
+
+    init(
+        state: BrightnessState = .defaultState(),
+        softwareStrategy: SoftwareDimmingStrategy = SoftwareDimmingController()
+    ) {
+        self.state = state
+        self.softwareStrategy = softwareStrategy
+    }
+
+    func apply(_ command: BrightnessCommand) {
+        let reason: SoftwareActivationReason = forcedSoftwareActivationReason(for: command) ?? .softwareOnly
+        applySoftware(command, reason: reason)
+    }
+}
+```
+
+#### Keep Until Software Path Is Complete
+
+These are useful guardrails or migration anchors until the overlay-only implementation has passed QA:
+
+- `VerificationMatrix`
+- `DiagnosticsStore` and `DiagnosticsExporter.export(_ snapshot:)`
+- `DimmingMode.overlay`
+- `DimmingMode.platformBlocked`
+- `DimmingMode.gamma` if gamma remains a planned experiment
+- `SoftwareActivationReason.softwareOnly`
+- `SoftwareActivationReason.forcedForDiagnostics`
+- `DisplayInventory`
+- `DisplayTargetResolver`
+- `DisplayTargetStore`
+- `HotkeyManager`
+- `ScheduleEngine`
+- `SettingsWindowController`
+
+#### Keep Temporarily As Archive Or Delete In A Later Slice
+
+These are not needed for the software-only product, but removing them should be a separate cleanup after state migration and docs are aligned:
+
+- `HardwareDDCController.swift`
+- `HardwareCapability.swift`
+- `ProbeStep.swift`
+- `CapabilityProbe.swift`
+- `DiagnosticsExporter.export(_ result: ProbeResult)`
+- `HardwareDDCControllerTests.swift`
+- `DimmingMode.hardwareDDC`
+- `BrightnessState.hardwareCapability`
+- `BrightnessState.lastHardwareProbeResult`
+- `BrightnessCommandSource.diagnosticsProbe` if nothing else uses it
+- `SoftwareActivationReason.hardwareNotReady`
+- `SoftwareActivationReason.hardwareExhausted`
+- `docs/ddc-probe-notes.md`
+- historical plan files that say hardware-first, or at least their current-status labels
+
+Reason to delay:
+
+- These types are encoded through `BrightnessState` and `SettingsSnapshot`.
+- Removing them should include a schema version and decode compatibility decision.
+
+#### Do Not Remove Yet
+
+- Quick disable and restore previous.
+- Global shortcut customization.
+- Schedule/manual override logic.
+- Wake and screen-parameter observers.
+- Popover diagnostics summary.
+- QA matrix and platform-blocked concept.
+- Display target selection and persistence.
+
+These are necessary for a software-only dimmer to be usable and recoverable.
+
+### Next Plan Shape
+
+A plan-first document should use these slices:
+
+1. Clean runtime DDC dead code from `BrightnessController` and `MenuBarController`.
+2. Align docs and labels with software-only policy.
+3. Add overlay lifecycle hardening:
+   - remember last applied command
+   - reapply on wake/display change
+   - clear stale panels
+   - surface no-display/platform-blocked status
+4. Add safety constraints:
+   - minimum visual brightness
+   - always-available quick disable
+   - diagnostics for overlay active/blocked
+5. Add tests for software-only state, overlay reapply, stale display cleanup, persistence decode behavior.
+6. Run xcodebuild and manual app/browser/desktop QA.
+7. Only after H1 is stable, decide whether H2 gamma should be implemented as optional advanced mode.
 
 ## Evidence
 
-Local code evidence:
+### Local Commands
 
-- `MenuBarPopoverView.swift` creates buttons with `target: nil, action: nil`; buttons are not connected.
-- `MenuBarController.swift` starts status item/popover only; no display selection, hotkey manager, schedule timer, settings window, or diagnostics.
-- `OverlayWindowManager.swift` calls `configureOverlayPanel(panel, for: .zero)` when creating panels and does not resolve `NSScreen.frame` during apply.
-- `HardwareDDCController.swift` has a safe probe state machine and `NoopDDCAdapter` default.
-- `ScheduleEngine.swift` has next-boundary and manual-override decisions but no runtime caller.
-- `HotkeyManager.swift` validates and registers Carbon hotkeys but is not started by app lifecycle.
-- `DisplayInventory.swift` enumerates active displays and can prefer a non-main display.
-- `DisplayTargetStore.swift` persists `SettingsSnapshot` in `UserDefaults`.
-- `VerificationMatrix.swift` prevents claiming all contexts while rows are `notTested` or `fail`.
-- `docs/operator-guide.md` defines default schedule and shortcuts and says not to intercept native brightness/media keys in the MVP.
-- `docs/ddc-probe-notes.md` says hardware DDC is not yet implemented and must be verified with read/write/readback/restore.
-- `docs/qa-matrix.md` requires concrete manual notes before changing rows to handled states.
+- `pwd && git status --short && rg --files`
+- `sed -n '1,260p' InnosDimmer/Services/BrightnessController.swift`
+- `sed -n '1,320p' InnosDimmer/Services/SoftwareDimmingController.swift`
+- `sed -n '1,360p' InnosDimmer/Services/OverlayWindowManager.swift`
+- `sed -n '1,180p' InnosDimmer/Services/GammaDimmingController.swift`
+- `sed -n '1,760p' InnosDimmer/UI/MenuBarController.swift`
+- `sed -n '1,320p' InnosDimmer/UI/MenuBarPopoverView.swift`
+- `sed -n '1,260p' InnosDimmer/Domain/BrightnessState.swift`
+- `sed -n '1,180p' InnosDimmer/Domain/DimmingMode.swift`
+- `sed -n '1,220p' InnosDimmer/Domain/HardwareCapability.swift`
+- `sed -n '1,220p' InnosDimmer/Domain/BrightnessCommand.swift`
+- `sed -n '1,300p' InnosDimmerTests/BrightnessControllerTests.swift`
+- `sed -n '1,260p' InnosDimmerTests/SoftwareDimmingControllerTests.swift`
+- `sed -n '1,260p' InnosDimmerTests/MenuBarStateTests.swift`
+- `sed -n '1,260p' README.md`
+- `sed -n '1,260p' docs/operator-guide.md`
+- `sed -n '1,240p' docs/qa-matrix.md`
+- `sed -n '1,220p' docs/release-notes-local.md`
+- `rg -n "DDC|Hardware|hardware|Gamma|gamma|Overlay|overlay|probe|HardwareCapability|hardwareDDC|lastHardwareProbeResult|SoftwareActivationReason|platformBlocked" InnosDimmer InnosDimmerTests docs README.md research.md`
 
-Commands run:
+### Confirmed Local File Evidence
 
-- `rg --files /Users/moonsoo/projects/InnosDimmer/InnosDimmer /Users/moonsoo/projects/InnosDimmer/InnosDimmerTests /Users/moonsoo/projects/InnosDimmer/docs | sort`
-- `rg -n "TODO|MVP|milestone|phase|DDC Probe|Pause automation|Settings|HotkeyManager|ScheduleEngine|Timer|start\\(|action:|target:" /Users/moonsoo/projects/InnosDimmer -g '*.swift' -g '*.md'`
-- `git -C /Users/moonsoo/projects/InnosDimmer log --oneline --decorate -5`
-- `git -C /Users/moonsoo/projects/InnosDimmer status --short`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/BrightnessController.swift`
+  - `apply(_:)` routes normal commands to `.softwareOnly`.
+  - `applyHardware(_:)` remains present but unreachable.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+  - `perform(_:)` does not include DDC.
+  - `runDDCProbe()` remains present but unreachable.
+  - wake and display-change observers already exist.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
+  - no DDC probe command in `MenuBarCommand`.
+  - popover shows overlay mode, display, brightness, warmth, automation, schedule, shortcuts, diagnostics.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/OverlayWindowManager.swift`
+  - overlay uses `NSPanel`, `.screenSaver`, `.canJoinAllSpaces`, `.stationary`, `.ignoresCycle`, `.fullScreenAuxiliary`, and `ignoresMouseEvents`.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Services/GammaDimmingController.swift`
+  - no real gamma implementation yet.
+- `/Users/moonsoo/projects/InnosDimmer/README.md`
+  - stale hardware-first language remains.
+- `/Users/moonsoo/projects/InnosDimmer/docs/operator-guide.md`
+  - software overlay is primary and only user-facing dimming path.
+- `/Users/moonsoo/projects/InnosDimmer/docs/qa-matrix.md`
+  - manual QA rows cover full-screen, DRM, screen sharing, sleep/wake, HDMI reconnect, shortcuts, and schedule.
 
-Official evidence:
+### Official Documentation Evidence
 
-- Apple `SMAppService` documentation states macOS 13+ apps use it to register/control login items, launch agents, and launch daemons.
-- Apple Quartz Display Services documentation describes access to macOS window-server display hardware configuration and control, supporting the current use of CoreGraphics for display enumeration but not establishing a simple public external-monitor DDC brightness setter.
-- Apple Core Graphics functions include display vendor/model/serial access, matching current `DisplayInventory` identity collection.
-- Apple `NSWindow.CollectionBehavior` and `NSWindow.Level.screenSaver` documentation/search snippets support the overlay-window strategy but do not guarantee all full-screen/Stage Manager/DRM behavior.
-- Apple `Timer` and Energy Efficiency Guide support avoiding unnecessary timers, invalidating timers, and setting tolerance.
-- Apple `NSApplication.didChangeScreenParametersNotification`, `NSWorkspace.didWakeNotification`, and `NSWorkspace.activeSpaceDidChangeNotification` are relevant to display reconnect, wake, and Spaces overlay refresh.
+Apple Developer pages were checked on 2026-06-18. Some Apple documentation pages render primarily through JavaScript, so the research uses Apple Developer search snippets plus linked official pages rather than long quoted page text.
 
-Community evidence:
+- AppKit `NSWindow.CollectionBehavior`
+  - https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct
+  - Supports the idea that collection behavior controls how windows participate in Spaces/full-screen window management.
+- AppKit `canJoinAllSpaces`
+  - https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/canjoinallspaces
+  - Relevant to making an overlay visible across Spaces.
+- AppKit `fullScreenAuxiliary`
+  - https://developer.apple.com/documentation/appkit/nswindow/collectionbehavior-swift.struct/fullscreenauxiliary
+  - Relevant to making a non-main overlay window participate alongside full-screen content.
+- AppKit `NSApplication.didChangeScreenParametersNotification`
+  - https://developer.apple.com/documentation/appkit/nsapplication/didchangescreenparametersnotification
+  - Relevant to display reconfiguration and HDMI reconnect handling.
+- AppKit `NSWorkspace.didWakeNotification`
+  - https://developer.apple.com/documentation/appkit/nsworkspace/didwakenotification
+  - Relevant to wake handling and overlay reapply.
+- CoreGraphics `CGSetDisplayTransferByTable`
+  - https://developer.apple.com/documentation/coregraphics/cgsetdisplaytransferbytable%28_%3A_%3A_%3A_%3A_%3A%29
+  - Public API for setting RGB display transfer/gamma tables.
+- CoreGraphics `CGGetDisplayTransferByTable`
+  - https://developer.apple.com/documentation/coregraphics/cggetdisplaytransferbytable%28_%3A_%3A_%3A_%3A_%3A_%3A%29
+  - Relevant to snapshot/restore for gamma implementation.
+- CoreGraphics `CGSetDisplayTransferByFormula`
+  - https://developer.apple.com/documentation/coregraphics/1454126-cgsetdisplaytransferbyformula
+  - Alternative public gamma formula API.
+- CoreGraphics `CGAcquireDisplayFadeReservation`
+  - https://developer.apple.com/documentation/coregraphics/cgacquiredisplayfadereservation%28_%3A_%3A%29
+  - Relevant only to temporary fades, not persistent software brightness.
+- CoreGraphics `CGDisplayFade`
+  - https://developer.apple.com/documentation/coregraphics/cgdisplayfade%28_%3A_%3A_%3A_%3A_%3A_%3A_%3A_%3A%29
+  - Fade operation API tied to fade reservation.
 
-- MonitorControl README lists multiple brightness protocols: DDC for external displays, native Apple protocols, gamma table software dimming, and shade/overlay control for AirPlay, Sidecar, DisplayLink, and virtual screens. It also lists combined hardware/software dimming and custom shortcuts.
-- MonitorControl README says most modern external LCD displays support DDC/CI through USB-C, DisplayPort, HDMI, DVI, or VGA, but TVs often need software alternatives.
-- MonitorControl discussion #1460 includes a maintainer comment that MonitorControl does not support the HDMI port of any M1 Macs and suggests BetterDisplay for all connection types.
-- Lunar's M1 DDC article says Intel-era `IOFramebuffer`/`IOI2C*` assumptions stopped working on M1 and required Apple-Silicon-specific investigation.
-- ddcctl README confirms external monitor brightness/contrast control by DDC is possible on macOS in some environments, but the project is GPLv3 and maintenance-mode.
+### Community And Product Evidence
 
-Insufficient evidence:
+- MonitorControl GitHub repository
+  - https://github.com/MonitorControl/MonitorControl
+  - Shows a mature macOS external-display app exposes menu, keyboard, and software/hardware brightness concepts.
+- MonitorControl discussion 647
+  - https://github.com/MonitorControl/MonitorControl/discussions/647
+  - Maintainer discussion notes an alternate shade mode that avoids gamma table manipulation, with drawbacks such as cursor dimming limitations.
+- MonitorControl issue 1252
+  - https://github.com/MonitorControl/MonitorControl/issues/1252
+  - Describes dark overlay behavior when software dimming avoids gamma table manipulation.
+- MonitorControl discussion 866
+  - https://github.com/MonitorControl/MonitorControl/discussions/866
+  - Notes screenshot/capture effects for overlay-like dimming in an "avoid gamma table manipulation" mode.
+- MonitorControl discussion 1387
+  - https://github.com/MonitorControl/MonitorControl/discussions/1387
+  - Maintainer suggests overlay dimming as a last resort when gamma table manipulation is not supported.
+- BetterDisplay product page
+  - https://betterdisplay.pro/
+  - Lists software dimming by color table, software dimming by overlay, and combined dimming as distinct features.
+- BetterDisplay discussion 3937
+  - https://github.com/waydabber/BetterDisplay/discussions/3937
+  - Mentions disabling color table adjustments so the app uses DDC plus overlay dimming for combined brightness.
+- BetterDisplay issue 2006
+  - https://github.com/waydabber/BetterDisplay/issues/2006
+  - Shows software dimming can interact with macOS inverted colors in surprising ways.
+- Lunar product page
+  - https://lunar.fyi/
+  - Shows user value for sub-zero dimming and hotkey-driven monitor brightness workflows.
+- Lunar GitHub repository
+  - https://github.com/alin23/lunar
+  - Distinguishes DDC hardware control from software overlay behavior in a mature monitor-control app.
+- Gamma Dimmer warning page
+  - https://lowtechguys.com/gammadimmer/
+  - Product warning claims macOS gamma API issues can leave screens black in some cases, supporting a cautious stance toward gamma as default.
+- Apple Developer Forums thread about `CGSetDisplayTransferByTable`
+  - https://developer.apple.com/forums/thread/819331
+  - Recent report that gamma tables can read back as set while producing no visible effect on some hardware.
 
-- No local real DDC probe has been run against the user's INNOS 27QA100M HDMI connection.
-- No manual overlay QA has been recorded yet for full-screen Spaces, presentation, browser full-screen video, DRM playback, screen sharing, sleep/wake, or HDMI reconnect.
-- No settings/login-item behavior has been tested after signing/packaging.
-- No native media-key interception feasibility has been tested or approved.
+### Empirical Evidence Already Available From This Project
+
+Previous local verification before this research pass:
+
+- `git diff --check` passed.
+- `xcodebuild -scheme InnosDimmer -configuration Debug build-for-testing CODE_SIGNING_ALLOWED=NO` passed.
+- `xcodebuild -scheme InnosDimmer -configuration Release build CODE_SIGNING_ALLOWED=NO` passed.
+- Release app was launched locally.
+- Popover no longer showed `DDC Probe`.
+- Popover diagnostics reported `Overlay active`.
+- Clicking `Brightness down` produced diagnostics like `Applied brightness 55% warmth 32% on 27QA100M`.
+
+This evidence proves basic software routing is live, not that every requested visual context is handled.
+
+### Insufficient Evidence
+
+- No current manual QA notes prove full-screen Spaces behavior on the user's exact macOS environment.
+- No current manual QA notes prove browser full-screen video or DRM/protected playback behavior.
+- No current manual QA notes prove screen sharing/recording behavior.
+- No current manual QA notes prove HDMI reconnect behavior after the pivot.
+- No gamma experiment has been run on the user's M1 HDMI INNOS display.
+- No persistence migration test has been written for removing hardware fields from `BrightnessState`.
