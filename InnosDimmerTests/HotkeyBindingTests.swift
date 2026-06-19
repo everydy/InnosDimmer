@@ -96,6 +96,13 @@ final class HotkeyBindingTests: XCTestCase {
         XCTAssertEqual(ShortcutAction.quickDisableOverlay.menuBarCommand, .quickDisable)
         XCTAssertEqual(ShortcutAction.restorePreviousDimming.menuBarCommand, .restorePrevious)
     }
+
+    func testShortcutActionDecodesLegacyWarmthNames() throws {
+        let decoder = JSONDecoder()
+
+        XCTAssertEqual(try decoder.decode(ShortcutAction.self, from: Data(#""warmthUp""#.utf8)), .blueReductionUp)
+        XCTAssertEqual(try decoder.decode(ShortcutAction.self, from: Data(#""warmthDown""#.utf8)), .blueReductionDown)
+    }
 }
 
 final class MenuBarHotkeyRoutingTests: XCTestCase {

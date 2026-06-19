@@ -27,6 +27,12 @@ final class SettingsSnapshotTests: XCTestCase {
         )
 
         let data = try JSONEncoder().encode(snapshot)
+        let json = String(decoding: data, as: UTF8.self)
+        XCTAssertTrue(json.contains("\"targetBlueReduction\""))
+        XCTAssertTrue(json.contains("\"blueReduction\""))
+        XCTAssertFalse(json.contains("\"targetWarmth\""))
+        XCTAssertFalse(json.contains("\"warmth\""))
+
         let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: data)
 
         XCTAssertEqual(decoded, snapshot)
@@ -171,7 +177,7 @@ private func legacyHardwareSettingsJSON(
           "frameDescription": "2560x1440@2x"
         },
         "targetBrightness": 45,
-        "targetBlueReduction": 32,
+        "targetWarmth": 32,
         "activeMode": "overlay",
         "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
         "lastHardwareProbeResult": null,
@@ -186,7 +192,7 @@ private func legacyHardwareSettingsJSON(
           "id": "00000000-0000-0000-0000-000000000001",
           "minuteOfDay": 600,
           "brightness": 45,
-          "blueReduction": 32
+          "warmth": 32
         }
       ],
       "shortcuts": [
