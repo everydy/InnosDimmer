@@ -278,6 +278,100 @@ private final class ProgressTrackView: NSView {
     }
 }
 
+private final class ScheduleSummaryRowsView: NSView {
+    private let stack = NSStackView()
+    private(set) var plainSummary = "Not configured"
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    func update(schedule: [ScheduleEntry]) {
+        stack.arrangedSubviews.forEach { view in
+            stack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        let entries = SettingsSnapshot.sortedSchedule(schedule)
+        guard !entries.isEmpty else {
+            plainSummary = "Not configured"
+            let label = NSTextField(labelWithString: plainSummary)
+            label.textColor = .secondaryLabelColor
+            stack.addArrangedSubview(label)
+            return
+        }
+
+        plainSummary = entries.map { entry in
+            "\(Self.timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · ◐ \(entry.blueReduction)%"
+        }.joined(separator: "\n")
+        entries.map(Self.rowView(for:)).forEach(stack.addArrangedSubview)
+    }
+
+    private static func rowView(for entry: ScheduleEntry) -> NSView {
+        let time = NSTextField(labelWithString: timeLabel(for: entry.minuteOfDay))
+        time.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        time.textColor = .labelColor
+        time.widthAnchor.constraint(equalToConstant: 58).isActive = true
+
+        let brightness = metricView(systemSymbolName: "sun.max.fill", fallback: "☀", value: "\(entry.brightness)%", color: .systemYellow)
+        let blue = metricView(systemSymbolName: "drop.fill", fallback: "◐", value: "\(entry.blueReduction)%", color: .systemBlue)
+
+        let row = NSStackView(views: [time, brightness, blue])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 12
+        return row
+    }
+
+    private static func metricView(systemSymbolName: String, fallback: String, value: String, color: NSColor) -> NSStackView {
+        let icon: NSView
+        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
+            let imageView = NSImageView(image: image)
+            imageView.contentTintColor = color
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+            imageView.widthAnchor.constraint(equalToConstant: 16).isActive = true
+            icon = imageView
+        } else {
+            let label = NSTextField(labelWithString: fallback)
+            label.font = .systemFont(ofSize: 13, weight: .semibold)
+            label.textColor = color
+            label.alignment = .center
+            label.widthAnchor.constraint(equalToConstant: 16).isActive = true
+            icon = label
+        }
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        valueLabel.textColor = .labelColor
+
+        let stack = NSStackView(views: [icon, valueLabel])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 4
+        return stack
+    }
+
+    private static func timeLabel(for minuteOfDay: Int) -> String {
+        let minute = max(0, min(1_439, minuteOfDay))
+        return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+}
+
 private final class PopoverCommandButton: NSButton {
     static let minimumHeight: CGFloat = 30
 
@@ -395,7 +489,7 @@ struct MenuBarViewModel: Equatable {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% blue"
+            "\(timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · ◐ \(entry.blueReduction)%"
         }
         guard !labels.isEmpty else {
             return "Not configured"
@@ -411,8 +505,77 @@ struct MenuBarViewModel: Equatable {
     }
 
     private static func shortcutSummary(for shortcuts: [ShortcutBinding]) -> String {
-        let enabledCount = shortcuts.filter(\.isEnabled).count
-        return "\(enabledCount) enabled · Option + Shift controls"
+        let focusedActions: [ShortcutAction] = [
+            .brightnessUp,
+            .brightnessDown,
+            .blueReductionUp,
+            .blueReductionDown
+        ]
+        return focusedActions.map { action in
+            let binding = shortcuts.first { $0.action == action }
+            return "\(shortcutActionLabel(for: action))  \(shortcutLabel(for: binding))"
+        }.joined(separator: "\n")
+    }
+
+    private static func shortcutActionLabel(for action: ShortcutAction) -> String {
+        switch action {
+        case .brightnessUp:
+            return "Brightness up"
+        case .brightnessDown:
+            return "Brightness down"
+        case .blueReductionUp:
+            return "Blue up"
+        case .blueReductionDown:
+            return "Blue down"
+        case .quickDisableOverlay:
+            return "Quick disable"
+        case .restorePreviousDimming:
+            return "Restore previous"
+        }
+    }
+
+    private static func shortcutLabel(for binding: ShortcutBinding?) -> String {
+        guard let binding, binding.isEnabled else {
+            return "Off"
+        }
+
+        return modifierLabel(for: binding.modifiers) + keyLabel(for: binding.keyCode)
+    }
+
+    private static func modifierLabel(for modifiers: ShortcutModifiers) -> String {
+        var label = ""
+        if modifiers.contains(.control) {
+            label += "⌃"
+        }
+        if modifiers.contains(.option) {
+            label += "⌥"
+        }
+        if modifiers.contains(.shift) {
+            label += "⇧"
+        }
+        if modifiers.contains(.command) {
+            label += "⌘"
+        }
+        return label
+    }
+
+    private static func keyLabel(for keyCode: UInt16) -> String {
+        switch keyCode {
+        case 123:
+            return "←"
+        case 124:
+            return "→"
+        case 125:
+            return "↓"
+        case 126:
+            return "↑"
+        case 29:
+            return "0"
+        case 15:
+            return "R"
+        default:
+            return "Key \(keyCode)"
+        }
     }
 
     private static func diagnosticsSummary(
@@ -439,6 +602,7 @@ final class MenuBarPopoverView: NSView {
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleNextLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
+    private let scheduleSummaryRowsView = ScheduleSummaryRowsView()
     private let shortcutSummaryLabel = NSTextField(labelWithString: "")
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
     private let brightnessTrackView = ProgressTrackView()
@@ -499,6 +663,7 @@ final class MenuBarPopoverView: NSView {
         scheduleNextLabel.stringValue = viewModel.scheduleNextLabel
         scheduleNextLabel.invalidateIntrinsicContentSize()
         scheduleSummaryLabel.stringValue = viewModel.scheduleSummary
+        scheduleSummaryRowsView.update(schedule: schedule)
         shortcutSummaryLabel.stringValue = viewModel.shortcutSummary
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
@@ -534,7 +699,7 @@ final class MenuBarPopoverView: NSView {
     }
 
     func scheduleSummaryForTesting() -> String {
-        scheduleSummaryLabel.stringValue
+        scheduleSummaryRowsView.plainSummary
     }
 
     func shortcutSummaryForTesting() -> String {
@@ -614,7 +779,7 @@ final class MenuBarPopoverView: NSView {
             trailing: scheduleNextChip,
             views: [
                 makeSummaryRow(title: "Status", value: automationLabel),
-                makeSummaryRow(title: "Current", value: scheduleSummaryLabel),
+                makeSummaryRow(title: "Current", value: scheduleSummaryRowsView),
                 makeActionRow([
                     button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
                     automationActionButton
@@ -626,15 +791,10 @@ final class MenuBarPopoverView: NSView {
             trailing: chip("Enabled"),
             views: [
                 PopoverContainerView(style: .subtle, content: shortcutSummaryLabel),
-                button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
-            ]
-        )
-        let diagnostics = makeSection(
-            title: "Diagnostics",
-            trailing: chip("Latest"),
-            views: [
-                PopoverContainerView(style: .subtle, content: diagnosticsSummaryLabel),
-                button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
+                makeActionRow([
+                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
+                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
+                ])
             ]
         )
 
@@ -642,8 +802,7 @@ final class MenuBarPopoverView: NSView {
             header,
             controls,
             schedule,
-            shortcuts,
-            diagnostics
+            shortcuts
         ]
         let stack = NSStackView(views: arrangedSubviews)
         stack.orientation = .vertical
@@ -749,7 +908,7 @@ final class MenuBarPopoverView: NSView {
         return stack
     }
 
-    private func makeSummaryRow(title: String, value: NSTextField) -> NSStackView {
+    private func makeSummaryRow(title: String, value: NSView) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
         titleLabel.textColor = .secondaryLabelColor

@@ -277,7 +277,7 @@
 
     .schedule-item {
       display: grid;
-      grid-template-columns: 58px 1fr;
+      grid-template-columns: 58px 1fr 1fr;
       gap: 10px;
       min-height: 28px;
       align-items: center;
@@ -291,6 +291,61 @@
     .schedule-item time {
       font-variant-numeric: tabular-nums;
       color: var(--text);
+    }
+
+    .schedule-item .metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .metric-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .metric-icon.sun {
+      color: #221a00;
+      background: #f1c45f;
+    }
+
+    .metric-icon.blue {
+      color: #ffffff;
+      background: var(--blue);
+    }
+
+    .shortcut-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .shortcut-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 28px;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .keycap {
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      font-weight: 800;
     }
 
     .schedule-item span {
@@ -632,9 +687,9 @@
               <dd>Automation paused until 19:00</dd>
               <dt>Current</dt>
               <dd class="schedule-list">
-                <div class="schedule-item"><time>09:00</time><span>80% brightness · 12% blue</span></div>
-                <div class="schedule-item"><time>19:00</time><span>45% brightness · 32% blue</span></div>
-                <div class="schedule-item"><time>23:00</time><span>25% brightness · 58% blue</span></div>
+                <div class="schedule-item"><time>09:00</time><span class="metric"><span class="metric-icon sun">☀</span>80%</span><span class="metric"><span class="metric-icon blue">◐</span>12%</span></div>
+                <div class="schedule-item"><time>19:00</time><span class="metric"><span class="metric-icon sun">☀</span>45%</span><span class="metric"><span class="metric-icon blue">◐</span>32%</span></div>
+                <div class="schedule-item"><time>23:00</time><span class="metric"><span class="metric-icon sun">☀</span>25%</span><span class="metric"><span class="metric-icon blue">◐</span>58%</span></div>
               </dd>
             </dl>
             <div class="button-row">
@@ -645,14 +700,16 @@
 
           <section class="section">
             <div class="section-title"><span>Shortcuts</span><span class="chip">Enabled</span></div>
-            <div class="status-field">6 enabled · Option + Shift controls</div>
-            <button class="wide" type="button">Settings</button>
-          </section>
-
-          <section class="section">
-            <div class="section-title"><span>Diagnostics</span><span class="chip">Latest</span></div>
-            <div class="status-field">Applied brightness 45% blue reduction 32% on 27QA100M</div>
-            <button class="primary wide" type="button">Open app window</button>
+            <div class="shortcut-list">
+              <div class="shortcut-item"><span>Brightness up</span><span class="keycap">⌥⇧↑</span></div>
+              <div class="shortcut-item"><span>Brightness down</span><span class="keycap">⌥⇧↓</span></div>
+              <div class="shortcut-item"><span>Blue up</span><span class="keycap">⌥⇧→</span></div>
+              <div class="shortcut-item"><span>Blue down</span><span class="keycap">⌥⇧←</span></div>
+            </div>
+            <div class="button-row">
+              <button type="button">Settings</button>
+              <button class="primary" type="button">Open app window</button>
+            </div>
           </section>
         </section>
 

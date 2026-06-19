@@ -42,8 +42,11 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationActionTitle, "Resume automation")
         XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
         XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
-        XCTAssertEqual(viewModel.scheduleSummary, "10:00 · 70% brightness / 20% blue")
-        XCTAssertEqual(viewModel.shortcutSummary, "5 enabled · Option + Shift controls")
+        XCTAssertEqual(viewModel.scheduleSummary, "10:00 · ☀ 70% · ◐ 20%")
+        XCTAssertEqual(
+            viewModel.shortcutSummary,
+            "Brightness up  Off\nBrightness down  ⌥⇧↓\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+        )
         XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
     }
 
@@ -111,7 +114,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationValue, "active")
         XCTAssertEqual(viewModel.automationActionTitle, "Pause automation")
         XCTAssertEqual(viewModel.automationActionCommand, .pauseAutomation)
-        XCTAssertEqual(viewModel.scheduleValue, "09:00 · 80% brightness / 12% blue")
+        XCTAssertEqual(viewModel.scheduleValue, "09:00 · ☀ 80% · ◐ 12%")
         XCTAssertEqual(viewModel.shortcutValue, "6 enabled")
         XCTAssertEqual(viewModel.failureValue, "1 errors, 1 warnings")
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
@@ -437,7 +440,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(snapshot.schedule[1].minuteOfDay, 645)
         XCTAssertEqual(
             controller.scheduleSummaryForTesting(),
-            "09:00 · 80% brightness / 12% blue\n10:45 · 62% brightness / 20% blue\n23:00 · 25% brightness / 58% blue"
+            "09:00 · ☀ 80% · ◐ 12%\n10:45 · ☀ 62% · ◐ 20%\n23:00 · ☀ 25% · ◐ 58%"
         )
     }
 
@@ -620,8 +623,11 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(view.blueReductionLabelForTesting(), "32%")
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
-        XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · 66% brightness / 21% blue")
-        XCTAssertEqual(view.shortcutSummaryForTesting(), "5 enabled · Option + Shift controls")
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · ◐ 21%")
+        XCTAssertEqual(
+            view.shortcutSummaryForTesting(),
+            "Brightness up  ⌥⇧↑\nBrightness down  Off\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+        )
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
             "Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
