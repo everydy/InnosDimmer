@@ -2,11 +2,11 @@ import XCTest
 @testable import InnosDimmer
 
 final class BrightnessStateTests: XCTestCase {
-    func testBrightnessStateClampsBrightnessAndWarmth() {
+    func testBrightnessStateClampsBrightnessAndBlueReduction() {
         let state = BrightnessState(
             display: nil,
             targetBrightness: 140,
-            targetWarmth: -20,
+            targetBlueReduction: -20,
             activeMode: .unknown,
             automationPausedUntilNextBoundary: false,
             automationPausedAtMinuteOfDay: nil,
@@ -15,7 +15,7 @@ final class BrightnessStateTests: XCTestCase {
         )
 
         XCTAssertEqual(state.targetBrightness, 100)
-        XCTAssertEqual(state.targetWarmth, 0)
+        XCTAssertEqual(state.targetBlueReduction, 0)
     }
 
     func testDefaultStateStartsUnknown() {
@@ -28,7 +28,7 @@ final class BrightnessStateTests: XCTestCase {
         let state = BrightnessState(
             display: nil,
             targetBrightness: 80,
-            targetWarmth: 12,
+            targetBlueReduction: 12,
             activeMode: .unknown,
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: -50,

@@ -14,7 +14,7 @@ final class MenuBarStateTests: XCTestCase {
         let state = BrightnessState(
             display: nil,
             targetBrightness: 45,
-            targetWarmth: 32,
+            targetBlueReduction: 32,
             activeMode: .overlay,
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: 1_000,
@@ -29,14 +29,14 @@ final class MenuBarStateTests: XCTestCase {
         }
         let viewModel = MenuBarViewModel(
             state: state,
-            schedule: [ScheduleEntry(minuteOfDay: 600, brightness: 70, warmth: 20)],
+            schedule: [ScheduleEntry(minuteOfDay: 600, brightness: 70, blueReduction: 20)],
             shortcuts: shortcuts
         )
 
         XCTAssertEqual(viewModel.modeTitle, "Overlay active")
         XCTAssertEqual(viewModel.displaySummary, "No display selected")
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
-        XCTAssertEqual(viewModel.warmthLabel, "32%")
+        XCTAssertEqual(viewModel.blueReductionLabel, "32%")
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
         XCTAssertEqual(viewModel.scheduleSummary, "10:00 · 70% brightness / 20% blue")
@@ -68,7 +68,7 @@ final class MenuBarStateTests: XCTestCase {
         state.display = .menuBarTestDisplay
         state.activeMode = .overlay
         state.targetBrightness = 35
-        state.targetWarmth = 20
+        state.targetBlueReduction = 20
         let events = [
             DiagnosticsEvent(
                 timestamp: Date(timeIntervalSince1970: 0),
@@ -92,7 +92,7 @@ final class MenuBarStateTests: XCTestCase {
 
         let viewModel = AppDashboardViewModel(
             state: state,
-            schedule: [ScheduleEntry(minuteOfDay: 540, brightness: 80, warmth: 12)],
+            schedule: [ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12)],
             shortcuts: ShortcutBinding.defaultBindings,
             events: events
         )
@@ -163,9 +163,9 @@ final class MenuBarStateTests: XCTestCase {
         )
 
         view.simulateBrightnessTrackChangeForTesting(percent: 73)
-        view.simulateWarmthTrackChangeForTesting(percent: 18)
+        view.simulateBlueReductionTrackChangeForTesting(percent: 18)
 
-        XCTAssertEqual(routedCommands, [.setBrightness(73), .setWarmth(18)])
+        XCTAssertEqual(routedCommands, [.setBrightness(73), .setBlueReduction(18)])
     }
 
     @MainActor
@@ -173,8 +173,8 @@ final class MenuBarStateTests: XCTestCase {
         let dashboardCommands: [MenuBarCommand] = [
             .brightnessDown,
             .brightnessUp,
-            .warmthDown,
-            .warmthUp,
+            .blueReductionDown,
+            .blueReductionUp,
             .quickDisable,
             .restorePrevious,
             .pauseAutomation,
@@ -206,8 +206,8 @@ final class MenuBarStateTests: XCTestCase {
         let dashboardCommands: [MenuBarCommand] = [
             .brightnessDown,
             .brightnessUp,
-            .warmthDown,
-            .warmthUp,
+            .blueReductionDown,
+            .blueReductionUp,
             .quickDisable,
             .restorePrevious,
             .pauseAutomation,
@@ -238,7 +238,7 @@ final class MenuBarStateTests: XCTestCase {
         controller.simulateBrightnessTrackChangeForTesting(percent: 66)
         controller.simulateBlueReductionTrackChangeForTesting(percent: 21)
 
-        XCTAssertEqual(routedCommands, [.setBrightness(66), .setWarmth(21)])
+        XCTAssertEqual(routedCommands, [.setBrightness(66), .setBlueReduction(21)])
     }
 
     @MainActor
@@ -279,7 +279,7 @@ final class MenuBarStateTests: XCTestCase {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         state.targetBrightness = 45
-        state.targetWarmth = 32
+        state.targetBlueReduction = 32
         state.activeMode = .overlay
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
@@ -300,7 +300,7 @@ final class MenuBarStateTests: XCTestCase {
 
             let view = MenuBarPopoverView(
                 state: state,
-                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, warmth: 32)],
+                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 32)],
                 shortcuts: ShortcutBinding.defaultBindings,
                 latestDiagnosticEvent: event
             )
@@ -331,7 +331,7 @@ final class MenuBarStateTests: XCTestCase {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         state.targetBrightness = 45
-        state.targetWarmth = 32
+        state.targetBlueReduction = 32
         state.activeMode = .overlay
         state.automationPausedUntilNextBoundary = true
         state.automationResumeMinuteOfDay = 1_140
@@ -364,7 +364,7 @@ final class MenuBarStateTests: XCTestCase {
             controller.window?.appearance = appearance
             controller.update(
                 state: state,
-                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, warmth: 32)],
+                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 32)],
                 shortcuts: ShortcutBinding.defaultBindings,
                 events: events
             )
@@ -394,7 +394,7 @@ final class MenuBarStateTests: XCTestCase {
         state.display = .menuBarTestDisplay
         let view = MenuBarPopoverView(state: state)
         state.targetBrightness = 45
-        state.targetWarmth = 32
+        state.targetBlueReduction = 32
         state.activeMode = .overlay
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
@@ -410,16 +410,16 @@ final class MenuBarStateTests: XCTestCase {
         }
         view.update(
             state: state,
-            schedule: [ScheduleEntry(minuteOfDay: 615, brightness: 66, warmth: 21)],
+            schedule: [ScheduleEntry(minuteOfDay: 615, brightness: 66, blueReduction: 21)],
             shortcuts: shortcuts,
             latestDiagnosticEvent: event
         )
 
         XCTAssertEqual(view.displaySummaryForTesting(), "INNOS 27QA100M · software dimming")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
-        XCTAssertEqual(view.warmthLabelForTesting(), "32%")
+        XCTAssertEqual(view.blueReductionLabelForTesting(), "32%")
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
-        XCTAssertEqual(view.warmthTrackFractionForTesting(), 0.32, accuracy: 0.001)
+        XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
         XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · 66% brightness / 21% blue")
         XCTAssertEqual(view.shortcutSummaryForTesting(), "5 enabled · Option + Shift controls")
         XCTAssertEqual(
@@ -444,16 +444,16 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(software.appliedCommands.map(\.display), [.menuBarTestDisplay])
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [12])
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
-        menuBarController.perform(.warmthDown)
+        menuBarController.perform(.blueReductionDown)
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 7)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [12, 7])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 7)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 
@@ -470,12 +470,12 @@ final class MenuBarStateTests: XCTestCase {
         )
 
         menuBarController.perform(.setBrightness(42))
-        menuBarController.perform(.setWarmth(27))
+        menuBarController.perform(.setBlueReduction(27))
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [42, 42])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 27])
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [12, 27])
         XCTAssertEqual(brightnessController.state.targetBrightness, 42)
-        XCTAssertEqual(brightnessController.state.targetWarmth, 27)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 27)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 
@@ -494,16 +494,16 @@ final class MenuBarStateTests: XCTestCase {
         menuBarController.perform(.quickDisable)
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 0)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [0])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 0)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         menuBarController.perform(.restorePrevious)
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0, 12])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [0, 12])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 

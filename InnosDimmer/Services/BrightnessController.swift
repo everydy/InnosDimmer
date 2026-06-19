@@ -36,7 +36,7 @@ final class BrightnessController {
             BrightnessCommand(
                 display: display,
                 brightness: state.targetBrightness,
-                warmth: state.targetWarmth,
+                blueReduction: state.targetBlueReduction,
                 source: state.lastAppliedCommandSource ?? .startupRestore
             )
         )
@@ -59,7 +59,7 @@ final class BrightnessController {
             let command = BrightnessCommand(
                 display: display,
                 brightness: state.targetBrightness,
-                warmth: state.targetWarmth,
+                blueReduction: state.targetBlueReduction,
                 source: state.lastAppliedCommandSource ?? .startupRestore
             )
             lastSoftwareDimmingFailure = SoftwareDimmingFailure(
@@ -94,7 +94,7 @@ final class BrightnessController {
     private func recordApplied(_ command: BrightnessCommand) {
         state.display = command.display
         state.targetBrightness = command.brightness
-        state.targetWarmth = command.warmth
+        state.targetBlueReduction = command.blueReduction
         state.lastAppliedCommandSource = command.source
     }
 

@@ -12,10 +12,32 @@ struct ShortcutModifiers: OptionSet, Codable, Hashable, Sendable {
 enum ShortcutAction: String, Codable, Equatable, CaseIterable, Sendable {
     case brightnessUp
     case brightnessDown
-    case warmthUp
-    case warmthDown
+    case blueReductionUp
+    case blueReductionDown
     case quickDisableOverlay
     case restorePreviousDimming
+
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        switch rawValue {
+        case "warmthUp":
+            self = .blueReductionUp
+        case "warmthDown":
+            self = .blueReductionDown
+        default:
+            guard let action = ShortcutAction(rawValue: rawValue) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Unknown shortcut action: \(rawValue)")
+                )
+            }
+            self = action
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct ShortcutBinding: Codable, Equatable, Sendable {
@@ -50,8 +72,8 @@ extension ShortcutBinding {
     static let defaultBindings: [ShortcutBinding] = [
         ShortcutBinding(action: .brightnessUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
         ShortcutBinding(action: .brightnessDown, keyCode: 125, modifiers: [.option, .shift], isEnabled: true),
-        ShortcutBinding(action: .warmthUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true),
-        ShortcutBinding(action: .warmthDown, keyCode: 123, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .blueReductionUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .blueReductionDown, keyCode: 123, modifiers: [.option, .shift], isEnabled: true),
         ShortcutBinding(action: .quickDisableOverlay, keyCode: 29, modifiers: [.option, .shift], isEnabled: true),
         ShortcutBinding(action: .restorePreviousDimming, keyCode: 15, modifiers: [.option, .shift], isEnabled: true)
     ]

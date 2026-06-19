@@ -53,19 +53,19 @@ final class SettingsSnapshotTests: XCTestCase {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
             minuteOfDay: 1_380,
             brightness: 25,
-            warmth: 58
+            blueReduction: 58
         )
         let early = ScheduleEntry(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
             minuteOfDay: 540,
             brightness: 80,
-            warmth: 12
+            blueReduction: 12
         )
         let evening = ScheduleEntry(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
             minuteOfDay: 1_140,
             brightness: 45,
-            warmth: 32
+            blueReduction: 32
         )
 
         let snapshot = SettingsSnapshot.defaultSnapshot().replacingSchedule([late, early, evening])
@@ -93,7 +93,7 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.selectedDisplay?.localizedName, "INNOS 27QA100M")
         XCTAssertEqual(decoded.state.display?.cgDisplayID, 42)
         XCTAssertEqual(decoded.state.targetBrightness, 45)
-        XCTAssertEqual(decoded.state.targetWarmth, 32)
+        XCTAssertEqual(decoded.state.targetBlueReduction, 32)
         XCTAssertEqual(decoded.state.activeMode, .overlay)
         XCTAssertTrue(decoded.state.automationPausedUntilNextBoundary)
         XCTAssertEqual(decoded.state.automationPausedAtMinuteOfDay, 600)
@@ -123,7 +123,7 @@ final class SettingsSnapshotTests: XCTestCase {
         let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: Data(legacyJSON.utf8))
 
         XCTAssertEqual(decoded.state.lastAppliedCommandSource, .startupRestore)
-        XCTAssertEqual(decoded.state.targetWarmth, 32)
+        XCTAssertEqual(decoded.state.targetBlueReduction, 32)
         XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
     }
 
@@ -139,7 +139,7 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded.schemaVersion, SettingsSnapshot.currentSchemaVersion)
         XCTAssertEqual(loaded.selectedDisplay?.localizedName, "INNOS 27QA100M")
         XCTAssertEqual(loaded.state.targetBrightness, 45)
-        XCTAssertEqual(loaded.state.targetWarmth, 32)
+        XCTAssertEqual(loaded.state.targetBlueReduction, 32)
         XCTAssertEqual(loaded.schedule.first?.minuteOfDay, 600)
         XCTAssertEqual(loaded.shortcuts.first?.action, .brightnessDown)
         XCTAssertEqual(loaded.shortcuts.first?.modifiers, [.option, .shift])
@@ -171,7 +171,7 @@ private func legacyHardwareSettingsJSON(
           "frameDescription": "2560x1440@2x"
         },
         "targetBrightness": 45,
-        "targetWarmth": 32,
+        "targetBlueReduction": 32,
         "activeMode": "overlay",
         "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
         "lastHardwareProbeResult": null,
@@ -186,7 +186,7 @@ private func legacyHardwareSettingsJSON(
           "id": "00000000-0000-0000-0000-000000000001",
           "minuteOfDay": 600,
           "brightness": 45,
-          "warmth": 32
+          "blueReduction": 32
         }
       ],
       "shortcuts": [

@@ -4,9 +4,9 @@ import XCTest
 final class ScheduleEngineTests: XCTestCase {
     func testActiveEntryUsesLatestEntryBeforeMinuteAcrossMidnight() {
         let entries = [
-            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000019")!, minuteOfDay: 1_140, brightness: 45, warmth: 32),
-            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000009")!, minuteOfDay: 540, brightness: 80, warmth: 12),
-            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000023")!, minuteOfDay: 1_380, brightness: 25, warmth: 58)
+            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000019")!, minuteOfDay: 1_140, brightness: 45, blueReduction: 32),
+            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000009")!, minuteOfDay: 540, brightness: 80, blueReduction: 12),
+            ScheduleEntry(id: UUID(uuidString: "00000000-0000-0000-0000-000000000023")!, minuteOfDay: 1_380, brightness: 25, blueReduction: 58)
         ]
 
         XCTAssertEqual(ScheduleEngine.activeEntry(at: 1_200, entries: entries)?.minuteOfDay, 1_140)
@@ -15,9 +15,9 @@ final class ScheduleEngineTests: XCTestCase {
 
     func testNextBoundaryUsesSortedEntriesAndWrapsAtMidnight() {
         let entries = [
-            ScheduleEntry(minuteOfDay: 1_380, brightness: 25, warmth: 58),
-            ScheduleEntry(minuteOfDay: 540, brightness: 80, warmth: 12),
-            ScheduleEntry(minuteOfDay: 1_140, brightness: 45, warmth: 32)
+            ScheduleEntry(minuteOfDay: 1_380, brightness: 25, blueReduction: 58),
+            ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12),
+            ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 32)
         ]
 
         XCTAssertEqual(ScheduleEngine.nextBoundary(after: 800, entries: entries), 1_140)
@@ -40,7 +40,7 @@ final class ScheduleEngineTests: XCTestCase {
     }
 
     func testOneEntryScheduleAppliesSingleEntryAndUsesSameBoundary() {
-        let entry = ScheduleEntry(minuteOfDay: 540, brightness: 80, warmth: 12)
+        let entry = ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12)
 
         let decision = ScheduleEngine.decision(
             at: 800,
@@ -205,7 +205,7 @@ final class ScheduleRuntimeTests: XCTestCase {
 
         XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
-        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
         XCTAssertEqual(factory.timers.last?.interval, 600)
@@ -215,7 +215,7 @@ final class ScheduleRuntimeTests: XCTestCase {
 
         XCTAssertEqual(software.appliedCommands.map(\.source), [.schedule, .schedule])
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
-        XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 32)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
         XCTAssertEqual(factory.timers.last?.interval, 14_400)
     }
@@ -244,7 +244,7 @@ final class ScheduleRuntimeTests: XCTestCase {
 
         XCTAssertEqual(software.appliedCommands, [])
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
-        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertFalse(diagnosticsStore.events.contains { event in
             event.message == "Applied scheduled brightness 80% blue reduction 12%"
@@ -290,7 +290,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         XCTAssertNil(brightnessController.state.automationPausedAtMinuteOfDay)
         XCTAssertNil(brightnessController.state.automationResumeMinuteOfDay)
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
-        XCTAssertEqual(brightnessController.state.targetWarmth, 32)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 32)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
     }
 

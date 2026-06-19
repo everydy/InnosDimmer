@@ -29,19 +29,19 @@ final class DisplayTargetStoreTests: XCTestCase {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
             minuteOfDay: 1_380,
             brightness: 25,
-            warmth: 58
+            blueReduction: 58
         )
         let early = ScheduleEntry(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
             minuteOfDay: 540,
             brightness: 80,
-            warmth: 12
+            blueReduction: 12
         )
         let evening = ScheduleEntry(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
             minuteOfDay: 1_140,
             brightness: 45,
-            warmth: 32
+            blueReduction: 32
         )
 
         let snapshot = try store.saveSchedule([late, early, evening])

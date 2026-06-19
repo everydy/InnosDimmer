@@ -4,9 +4,9 @@ enum MenuBarCommand: Equatable, Hashable {
     case brightnessDown
     case brightnessUp
     case setBrightness(Int)
-    case warmthDown
-    case warmthUp
-    case setWarmth(Int)
+    case blueReductionDown
+    case blueReductionUp
+    case setBlueReduction(Int)
     case pauseAutomation
     case quickDisable
     case restorePrevious
@@ -16,8 +16,8 @@ enum MenuBarCommand: Equatable, Hashable {
     static let buttonCommands: [MenuBarCommand] = [
         .brightnessDown,
         .brightnessUp,
-        .warmthDown,
-        .warmthUp,
+        .blueReductionDown,
+        .blueReductionUp,
         .pauseAutomation,
         .quickDisable,
         .restorePrevious,
@@ -337,7 +337,7 @@ struct MenuBarViewModel: Equatable {
     var modeTitle: String
     var displaySummary: String
     var brightnessLabel: String
-    var warmthLabel: String
+    var blueReductionLabel: String
     var automationTitle: String
     var scheduleNextLabel: String
     var scheduleSummary: String
@@ -353,7 +353,7 @@ struct MenuBarViewModel: Equatable {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
         displaySummary = state.display.map { "\($0.localizedName) · software dimming" } ?? "No display selected"
         brightnessLabel = "\(state.targetBrightness)%"
-        warmthLabel = "\(state.targetWarmth)%"
+        blueReductionLabel = "\(state.targetBlueReduction)%"
         if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
             automationTitle = "Automation paused until \(Self.timeLabel(for: resumeMinute))"
         } else if state.automationPausedUntilNextBoundary {
@@ -377,7 +377,7 @@ struct MenuBarViewModel: Equatable {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.warmth)% blue"
+            "\(timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% blue"
         }
         guard !labels.isEmpty else {
             return "Not configured"
@@ -416,14 +416,14 @@ final class MenuBarPopoverView: NSView {
     private let actions: MenuBarActions
     private let displaySummaryLabel = NSTextField(labelWithString: "")
     private let brightnessValueLabel = NSTextField(labelWithString: "")
-    private let warmthValueLabel = NSTextField(labelWithString: "")
+    private let blueReductionValueLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleNextLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
     private let shortcutSummaryLabel = NSTextField(labelWithString: "")
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
     private let brightnessTrackView = ProgressTrackView()
-    private let warmthTrackView = ProgressTrackView()
+    private let blueReductionTrackView = ProgressTrackView()
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
     init(
@@ -464,7 +464,7 @@ final class MenuBarPopoverView: NSView {
         modeBadge.stringValue = viewModel.modeTitle
         displaySummaryLabel.stringValue = viewModel.displaySummary
         brightnessValueLabel.stringValue = viewModel.brightnessLabel
-        warmthValueLabel.stringValue = viewModel.warmthLabel
+        blueReductionValueLabel.stringValue = viewModel.blueReductionLabel
         automationLabel.stringValue = viewModel.automationTitle
         scheduleNextLabel.stringValue = viewModel.scheduleNextLabel
         scheduleNextLabel.invalidateIntrinsicContentSize()
@@ -472,7 +472,7 @@ final class MenuBarPopoverView: NSView {
         shortcutSummaryLabel.stringValue = viewModel.shortcutSummary
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
-        warmthTrackView.fraction = CGFloat(state.targetWarmth) / 100
+        blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
     }
 
     func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
@@ -487,16 +487,16 @@ final class MenuBarPopoverView: NSView {
         brightnessValueLabel.stringValue
     }
 
-    func warmthLabelForTesting() -> String {
-        warmthValueLabel.stringValue
+    func blueReductionLabelForTesting() -> String {
+        blueReductionValueLabel.stringValue
     }
 
     func brightnessTrackFractionForTesting() -> CGFloat {
         brightnessTrackView.fraction
     }
 
-    func warmthTrackFractionForTesting() -> CGFloat {
-        warmthTrackView.fraction
+    func blueReductionTrackFractionForTesting() -> CGFloat {
+        blueReductionTrackView.fraction
     }
 
     func diagnosticsSummaryForTesting() -> String {
@@ -515,8 +515,8 @@ final class MenuBarPopoverView: NSView {
         brightnessTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
     }
 
-    func simulateWarmthTrackChangeForTesting(percent: Int) {
-        warmthTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    func simulateBlueReductionTrackChangeForTesting(percent: Int) {
+        blueReductionTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
     }
 
     private func buildLayout() {
@@ -547,21 +547,21 @@ final class MenuBarPopoverView: NSView {
                 makeSeparator(),
                 makeControlGroup(
                     title: "Blue reduction",
-                    valueLabel: warmthValueLabel,
-                    trackView: warmthTrackView,
-                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .warmthDown, action: #selector(warmthDownPressed)),
-                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .warmthUp, action: #selector(warmthUpPressed))
+                    valueLabel: blueReductionValueLabel,
+                    trackView: blueReductionTrackView,
+                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
                 )
             ]
         )
         brightnessTrackView.onUserFractionChange = { [weak self] fraction in
             self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
         }
-        warmthTrackView.onUserFractionChange = { [weak self] fraction in
-            self?.actions.perform(.setWarmth(Self.percent(from: fraction)))
+        blueReductionTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Brightness percentage")
-        warmthTrackView.setAccessibilityLabel("Blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("Blue reduction percentage")
 
         let scheduleNextChip = chipView(scheduleNextLabel)
         scheduleNextChip.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
@@ -812,12 +812,12 @@ final class MenuBarPopoverView: NSView {
         actions.perform(.brightnessUp)
     }
 
-    @objc private func warmthDownPressed() {
-        actions.perform(.warmthDown)
+    @objc private func blueReductionDownPressed() {
+        actions.perform(.blueReductionDown)
     }
 
-    @objc private func warmthUpPressed() {
-        actions.perform(.warmthUp)
+    @objc private func blueReductionUpPressed() {
+        actions.perform(.blueReductionUp)
     }
 
     @objc private func pauseAutomationPressed() {
@@ -870,7 +870,7 @@ struct AppDashboardViewModel: Equatable {
         displayValue = state.display.map(\.localizedName) ?? "Not selected"
         modeValue = modeTitle
         brightnessValue = "\(state.targetBrightness)%"
-        blueReductionValue = "\(state.targetWarmth)%"
+        blueReductionValue = "\(state.targetBlueReduction)%"
         if state.automationPausedUntilNextBoundary {
             automationValue = state.automationResumeMinuteOfDay.map {
                 "paused until \(Self.timeLabel(for: $0))"
@@ -971,7 +971,7 @@ final class AppDashboardWindowController: NSWindowController {
         brightnessLabel.stringValue = viewModel.brightnessValue
         blueReductionLabel.stringValue = viewModel.blueReductionValue
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
-        blueReductionTrackView.fraction = CGFloat(state.targetWarmth) / 100
+        blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
         automationLabel.stringValue = viewModel.automationValue
         scheduleLabel.stringValue = viewModel.scheduleValue
         shortcutLabel.stringValue = viewModel.shortcutValue
@@ -1034,7 +1034,7 @@ final class AppDashboardWindowController: NSWindowController {
             self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
         }
         blueReductionTrackView.onUserFractionChange = { [weak self] fraction in
-            self?.actions.perform(.setWarmth(Self.percent(from: fraction)))
+            self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Dashboard brightness percentage")
         blueReductionTrackView.setAccessibilityLabel("Dashboard blue reduction percentage")
@@ -1069,13 +1069,13 @@ final class AppDashboardWindowController: NSWindowController {
                     decrement: compactButton(
                         "-",
                         accessibilityLabel: "Dashboard blue reduction down",
-                        command: .warmthDown,
+                        command: .blueReductionDown,
                         action: #selector(blueReductionDownPressed)
                     ),
                     increment: compactButton(
                         "+",
                         accessibilityLabel: "Dashboard blue reduction up",
-                        command: .warmthUp,
+                        command: .blueReductionUp,
                         action: #selector(blueReductionUpPressed)
                     )
                 ),
@@ -1268,11 +1268,11 @@ final class AppDashboardWindowController: NSWindowController {
     }
 
     @objc private func blueReductionDownPressed() {
-        actions.perform(.warmthDown)
+        actions.perform(.blueReductionDown)
     }
 
     @objc private func blueReductionUpPressed() {
-        actions.perform(.warmthUp)
+        actions.perform(.blueReductionUp)
     }
 
     @objc private func quickDisablePressed() {

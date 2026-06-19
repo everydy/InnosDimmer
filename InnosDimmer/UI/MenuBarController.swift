@@ -4,7 +4,7 @@ import AppKit
 final class MenuBarController: NSObject {
     private enum DimmingStep {
         static let brightness = 5
-        static let warmth = 5
+        static let blueReduction = 5
     }
 
     private enum SettingsRuntimeError: LocalizedError {
@@ -133,17 +133,17 @@ final class MenuBarController: NSObject {
         case .setBrightness(let brightness):
             apply(
                 brightness: brightness,
-                warmth: brightnessController.state.targetWarmth,
+                blueReduction: brightnessController.state.targetBlueReduction,
                 source: source
             )
-        case .warmthDown:
-            adjust(warmthDelta: -DimmingStep.warmth, source: source)
-        case .warmthUp:
-            adjust(warmthDelta: DimmingStep.warmth, source: source)
-        case .setWarmth(let warmth):
+        case .blueReductionDown:
+            adjust(blueReductionDelta: -DimmingStep.blueReduction, source: source)
+        case .blueReductionUp:
+            adjust(blueReductionDelta: DimmingStep.blueReduction, source: source)
+        case .setBlueReduction(let blueReduction):
             apply(
                 brightness: brightnessController.state.targetBrightness,
-                warmth: warmth,
+                blueReduction: blueReduction,
                 source: source
             )
         case .quickDisable:
@@ -189,13 +189,13 @@ final class MenuBarController: NSObject {
 
     private func adjust(
         brightnessDelta: Int = 0,
-        warmthDelta: Int = 0,
+        blueReductionDelta: Int = 0,
         source: BrightnessCommandSource = .menuSlider
     ) {
         let state = brightnessController.state
         apply(
             brightness: state.targetBrightness + brightnessDelta,
-            warmth: state.targetWarmth + warmthDelta,
+            blueReduction: state.targetBlueReduction + blueReductionDelta,
             source: source
         )
     }
@@ -204,10 +204,10 @@ final class MenuBarController: NSObject {
         let state = brightnessController.state
         commandBeforeQuickDisable = makeCommand(
             brightness: state.targetBrightness,
-            warmth: state.targetWarmth,
+            blueReduction: state.targetBlueReduction,
             source: source
         )
-        apply(brightness: 100, warmth: 0, source: source)
+        apply(brightness: 100, blueReduction: 0, source: source)
     }
 
     private func restorePrevious() {
@@ -272,7 +272,7 @@ final class MenuBarController: NSObject {
 
         var state = brightnessController.state
         state.targetBrightness = snapshot.state.targetBrightness
-        state.targetWarmth = snapshot.state.targetWarmth
+        state.targetBlueReduction = snapshot.state.targetBlueReduction
         brightnessController.applyPreviewState(state)
     }
 
@@ -360,8 +360,8 @@ final class MenuBarController: NSObject {
         }
     }
 
-    private func apply(brightness: Int, warmth: Int, source: BrightnessCommandSource) {
-        guard let command = makeCommand(brightness: brightness, warmth: warmth, source: source) else {
+    private func apply(brightness: Int, blueReduction: Int, source: BrightnessCommandSource) {
+        guard let command = makeCommand(brightness: brightness, blueReduction: blueReduction, source: source) else {
             refreshPopover()
             return
         }
@@ -392,7 +392,7 @@ final class MenuBarController: NSObject {
         return !softwareFailed
     }
 
-    private func makeCommand(brightness: Int, warmth: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
+    private func makeCommand(brightness: Int, blueReduction: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
         guard let display = resolveFreshDisplay() else {
             record(.display, "Skipped dimming command because no display is selected", .warning)
             return nil
@@ -401,7 +401,7 @@ final class MenuBarController: NSObject {
         return BrightnessCommand(
             display: display,
             brightness: brightness,
-            warmth: warmth,
+            blueReduction: blueReduction,
             source: source
         )
     }
@@ -495,7 +495,7 @@ final class MenuBarController: NSObject {
     private func applyScheduledEntry(_ entry: ScheduleEntry, decision: ScheduleDecision) {
         guard let command = makeCommand(
             brightness: entry.brightness,
-            warmth: entry.warmth,
+            blueReduction: entry.blueReduction,
             source: .schedule
         ) else {
             record(.schedule, "Skipped schedule because no display is selected", .warning)
@@ -516,7 +516,7 @@ final class MenuBarController: NSObject {
 
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
-        record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.warmth)%")
+        record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.blueReduction)%")
         refreshPopover()
     }
 
@@ -687,7 +687,7 @@ final class MenuBarController: NSObject {
         let state = brightnessController.state
         record(
             Self.diagnosticsCategory(for: state.activeMode),
-            "Applied brightness \(state.targetBrightness)% blue reduction \(state.targetWarmth)% on \(command.display.localizedName)",
+            "Applied brightness \(state.targetBrightness)% blue reduction \(state.targetBlueReduction)% on \(command.display.localizedName)",
             Self.diagnosticsSeverity(for: state.activeMode)
         )
 
@@ -783,10 +783,10 @@ extension ShortcutAction {
             return .brightnessUp
         case .brightnessDown:
             return .brightnessDown
-        case .warmthUp:
-            return .warmthUp
-        case .warmthDown:
-            return .warmthDown
+        case .blueReductionUp:
+            return .blueReductionUp
+        case .blueReductionDown:
+            return .blueReductionDown
         case .quickDisableOverlay:
             return .quickDisable
         case .restorePreviousDimming:

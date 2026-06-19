@@ -5,10 +5,10 @@ struct OverlayAppearance: Equatable {
     var warmOpacity: CGFloat
     private static let minimumVisibleBrightness = 10
 
-    static func make(brightness: Int, warmth: Int) -> OverlayAppearance {
+    static func make(brightness: Int, blueReduction: Int) -> OverlayAppearance {
         let clampedBrightness = Clamped.percent(brightness)
         let visualBrightness = max(minimumVisibleBrightness, clampedBrightness)
-        _ = warmth
+        _ = blueReduction
         return OverlayAppearance(
             blackOpacity: CGFloat(100 - visualBrightness) / 130.0,
             warmOpacity: 0
@@ -38,7 +38,7 @@ final class OverlayWindowManager {
         panel.hasShadow = false
     }
 
-    func apply(display: DisplayIdentity, brightness: Int, warmth: Int) throws {
+    func apply(display: DisplayIdentity, brightness: Int, blueReduction: Int) throws {
         guard let frame = displayFrameProvider(display) else {
             throw SoftwareDimmingError.displayUnavailable(display.cgDisplayID)
         }
@@ -47,7 +47,7 @@ final class OverlayWindowManager {
         panelsByDisplayID[display.cgDisplayID] = panel
         Self.configureOverlayPanel(panel, for: frame)
         panel.contentView?.frame = NSRect(origin: .zero, size: frame.size)
-        let appearance = OverlayAppearance.make(brightness: brightness, warmth: warmth)
+        let appearance = OverlayAppearance.make(brightness: brightness, blueReduction: blueReduction)
         updateLayers(for: panel, appearance: appearance)
         panel.alphaValue = 1.0
         panel.orderFrontRegardless()

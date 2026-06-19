@@ -42,9 +42,9 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
     }
 
     func apply(_ command: BrightnessCommand) throws {
-        try gammaDimmingController.apply(display: command.display, blueReduction: command.warmth)
+        try gammaDimmingController.apply(display: command.display, blueReduction: command.blueReduction)
         do {
-            try overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: 0)
+            try overlayWindowManager.apply(display: command.display, brightness: command.brightness, blueReduction: 0)
         } catch {
             try? gammaDimmingController.clear(display: command.display)
             throw error

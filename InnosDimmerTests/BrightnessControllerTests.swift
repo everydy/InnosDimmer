@@ -40,7 +40,7 @@ final class BrightnessControllerTests: XCTestCase {
         var state = BrightnessState.defaultState()
         state.display = BrightnessCommand.fixture(source: .startupRestore).display
         state.targetBrightness = 35
-        state.targetWarmth = 40
+        state.targetBlueReduction = 40
         state.lastAppliedCommandSource = .hotkey
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: state, softwareStrategy: software)
@@ -48,7 +48,7 @@ final class BrightnessControllerTests: XCTestCase {
         controller.reapplyCurrentSoftwareState()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [35])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [40])
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [40])
         XCTAssertEqual(software.appliedCommands.map(\.source), [.hotkey])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
@@ -70,7 +70,7 @@ final class BrightnessControllerTests: XCTestCase {
         var state = BrightnessState.defaultState()
         state.display = command.display
         state.targetBrightness = command.brightness
-        state.targetWarmth = command.warmth
+        state.targetBlueReduction = command.blueReduction
         state.activeMode = .overlay
         state.lastAppliedCommandSource = command.source
         let controller = BrightnessController(state: state, softwareStrategy: software)
@@ -114,7 +114,7 @@ private extension BrightnessCommand {
                 frameDescription: "2560x1440"
             ),
             brightness: 45,
-            warmth: 32,
+            blueReduction: 32,
             source: source,
             issuedAt: Date(timeIntervalSince1970: 0)
         )

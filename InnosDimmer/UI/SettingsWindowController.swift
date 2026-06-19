@@ -31,7 +31,7 @@ final class SettingsWindowController: NSWindowController {
     private struct ScheduleControls {
         var time: NSTextField
         var brightness: NSTextField
-        var warmth: NSTextField
+        var blueReduction: NSTextField
     }
 
     private struct ShortcutControls {
@@ -211,11 +211,11 @@ final class SettingsWindowController: NSWindowController {
             let controls = ScheduleControls(
                 time: editableField(),
                 brightness: editableField(),
-                warmth: editableField()
+                blueReduction: editableField()
             )
             scheduleControls.append(controls)
 
-            let row = NSStackView(views: [controls.time, controls.brightness, controls.warmth])
+            let row = NSStackView(views: [controls.time, controls.brightness, controls.blueReduction])
             row.orientation = .horizontal
             row.spacing = 8
             stack.addArrangedSubview(row)
@@ -305,7 +305,7 @@ final class SettingsWindowController: NSWindowController {
             let controls = scheduleControls[index]
             controls.time.stringValue = Self.timeLabel(for: entry.minuteOfDay)
             controls.brightness.stringValue = "\(entry.brightness)"
-            controls.warmth.stringValue = "\(entry.warmth)"
+            controls.blueReduction.stringValue = "\(entry.blueReduction)"
         }
     }
 
@@ -505,11 +505,11 @@ final class SettingsWindowController: NSWindowController {
             guard let brightness = Int(controls.brightness.stringValue), (0...100).contains(brightness) else {
                 throw SettingsFormError.invalidPercent(row: index + 1, field: "brightness")
             }
-            guard let warmth = Int(controls.warmth.stringValue), (0...100).contains(warmth) else {
+            guard let blueReduction = Int(controls.blueReduction.stringValue), (0...100).contains(blueReduction) else {
                 throw SettingsFormError.invalidPercent(row: index + 1, field: "blue reduction")
             }
 
-            return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, warmth: warmth)
+            return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, blueReduction: blueReduction)
         }
     }
 
@@ -594,7 +594,7 @@ final class SettingsWindowController: NSWindowController {
 
     private static func sortedScheduleLabels(_ schedule: [ScheduleEntry]) -> [String] {
         SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / blue \(entry.warmth)%"
+            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / blue \(entry.blueReduction)%"
         }
     }
 
@@ -624,9 +624,9 @@ final class SettingsWindowController: NSWindowController {
             return "Brightness up"
         case .brightnessDown:
             return "Brightness down"
-        case .warmthUp:
+        case .blueReductionUp:
             return "Blue reduction up"
-        case .warmthDown:
+        case .blueReductionDown:
             return "Blue reduction down"
         case .quickDisableOverlay:
             return "Quick disable overlay"

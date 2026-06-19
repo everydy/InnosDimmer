@@ -22,7 +22,7 @@ final class HotkeyBindingTests: XCTestCase {
     func testDuplicateDetectionRejectsEnabledConflicts() {
         let bindings = [
             ShortcutBinding(action: .brightnessUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
-            ShortcutBinding(action: .warmthUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true)
+            ShortcutBinding(action: .blueReductionUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true)
         ]
 
         XCTAssertEqual(
@@ -35,7 +35,7 @@ final class HotkeyBindingTests: XCTestCase {
         let bindings = [
             ShortcutBinding(action: .brightnessUp, keyCode: 126, modifiers: [], isEnabled: true),
             ShortcutBinding(action: .brightnessDown, keyCode: 125, modifiers: [.shift], isEnabled: true),
-            ShortcutBinding(action: .warmthUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true)
+            ShortcutBinding(action: .blueReductionUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true)
         ]
 
         XCTAssertEqual(
@@ -50,7 +50,7 @@ final class HotkeyBindingTests: XCTestCase {
     func testValidationReportsConflictsAndUnsafeBindings() {
         let bindings = [
             ShortcutBinding(action: .brightnessUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
-            ShortcutBinding(action: .warmthUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
+            ShortcutBinding(action: .blueReductionUp, keyCode: 126, modifiers: [.option, .shift], isEnabled: true),
             ShortcutBinding(action: .quickDisableOverlay, keyCode: 29, modifiers: [], isEnabled: true)
         ]
 
@@ -91,8 +91,8 @@ final class HotkeyBindingTests: XCTestCase {
     func testShortcutActionsMapToMenuBarCommands() {
         XCTAssertEqual(ShortcutAction.brightnessUp.menuBarCommand, .brightnessUp)
         XCTAssertEqual(ShortcutAction.brightnessDown.menuBarCommand, .brightnessDown)
-        XCTAssertEqual(ShortcutAction.warmthUp.menuBarCommand, .warmthUp)
-        XCTAssertEqual(ShortcutAction.warmthDown.menuBarCommand, .warmthDown)
+        XCTAssertEqual(ShortcutAction.blueReductionUp.menuBarCommand, .blueReductionUp)
+        XCTAssertEqual(ShortcutAction.blueReductionDown.menuBarCommand, .blueReductionDown)
         XCTAssertEqual(ShortcutAction.quickDisableOverlay.menuBarCommand, .quickDisable)
         XCTAssertEqual(ShortcutAction.restorePreviousDimming.menuBarCommand, .restorePrevious)
     }
@@ -145,17 +145,17 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [12])
         XCTAssertEqual(brightnessController.state.targetBrightness, 85)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
-        backend.trigger(.warmthDown)
+        backend.trigger(.blueReductionDown)
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 7)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [12, 7])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 7)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
     }
 
@@ -181,8 +181,8 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 0)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [0])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 0)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
@@ -190,8 +190,8 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0, 12])
-        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [0, 12])
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
     }
 

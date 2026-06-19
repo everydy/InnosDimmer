@@ -4,21 +4,21 @@ import XCTest
 
 final class SoftwareDimmingControllerTests: XCTestCase {
     func testOverlayAppearanceMapsBrightnessToBlackOpacityOnly() {
-        let appearance = OverlayAppearance.make(brightness: 45, warmth: 32)
+        let appearance = OverlayAppearance.make(brightness: 45, blueReduction: 32)
 
         XCTAssertEqual(appearance.blackOpacity, CGFloat(55) / 130.0)
         XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
     func testOverlayAppearanceClampsInputs() {
-        let appearance = OverlayAppearance.make(brightness: 140, warmth: -10)
+        let appearance = OverlayAppearance.make(brightness: 140, blueReduction: -10)
 
         XCTAssertEqual(appearance.blackOpacity, 0)
         XCTAssertEqual(appearance.warmOpacity, 0)
     }
 
     func testOverlayAppearanceUsesMinimumVisibleBrightnessFloor() {
-        let appearance = OverlayAppearance.make(brightness: 0, warmth: 0)
+        let appearance = OverlayAppearance.make(brightness: 0, blueReduction: 0)
 
         XCTAssertEqual(appearance.blackOpacity, CGFloat(90) / 130.0)
         XCTAssertEqual(appearance.warmOpacity, 0)
@@ -102,7 +102,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         controller.apply(BrightnessCommand(
             display: DisplayIdentity.fixture(),
             brightness: 50,
-            warmth: 20,
+            blueReduction: 20,
             source: .startupRestore
         ))
 
@@ -118,7 +118,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         controller.apply(BrightnessCommand(
             display: DisplayIdentity.fixture(),
             brightness: 45,
-            warmth: 32,
+            blueReduction: 32,
             source: .menuSlider
         ))
 
@@ -134,7 +134,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         controller.apply(BrightnessCommand(
             display: DisplayIdentity.fixture(),
             brightness: 45,
-            warmth: 32,
+            blueReduction: 32,
             source: .menuSlider
         ))
 
@@ -148,13 +148,13 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         var state = BrightnessState.defaultState()
         state.display = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Previous")
         state.targetBrightness = 67
-        state.targetWarmth = 22
+        state.targetBlueReduction = 22
         state.lastAppliedCommandSource = .hotkey
         let controller = BrightnessController(state: state, softwareStrategy: software)
         let failedCommand = BrightnessCommand(
             display: DisplayIdentity.fixture(cgDisplayID: 404, localizedName: "Missing"),
             brightness: 20,
-            warmth: 80,
+            blueReduction: 80,
             source: .menuSlider
         )
 
@@ -163,7 +163,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .platformBlocked)
         XCTAssertEqual(controller.state.display?.localizedName, "Previous")
         XCTAssertEqual(controller.state.targetBrightness, 67)
-        XCTAssertEqual(controller.state.targetWarmth, 22)
+        XCTAssertEqual(controller.state.targetBlueReduction, 22)
         XCTAssertEqual(controller.state.lastAppliedCommandSource, .hotkey)
         XCTAssertEqual(controller.lastSoftwareDimmingFailure?.command, failedCommand)
         XCTAssertEqual(
@@ -197,7 +197,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
             candidate.cgDisplayID == display.cgDisplayID ? frame : nil
         }
 
-        try manager.apply(display: display, brightness: 45, warmth: 32)
+        try manager.apply(display: display, brightness: 45, blueReduction: 32)
         defer {
             manager.clear(display: display)
         }
@@ -232,8 +232,8 @@ final class SoftwareDimmingControllerTests: XCTestCase {
             return nil
         }
 
-        XCTAssertNoThrow(try manager.apply(display: first, brightness: 45, warmth: 32))
-        XCTAssertNoThrow(try manager.apply(display: second, brightness: 45, warmth: 32))
+        XCTAssertNoThrow(try manager.apply(display: first, brightness: 45, blueReduction: 32))
+        XCTAssertNoThrow(try manager.apply(display: second, brightness: 45, blueReduction: 32))
         manager.clearPanels(excluding: [first.cgDisplayID])
         defer {
             manager.clear(display: first)
@@ -248,7 +248,7 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         let display = DisplayIdentity.fixture(cgDisplayID: 404, localizedName: "Missing")
         let manager = OverlayWindowManager { _ in nil }
 
-        XCTAssertThrowsError(try manager.apply(display: display, brightness: 45, warmth: 32)) { error in
+        XCTAssertThrowsError(try manager.apply(display: display, brightness: 45, blueReduction: 32)) { error in
             XCTAssertEqual(error as? SoftwareDimmingError, .displayUnavailable(404))
         }
         XCTAssertEqual(manager.managedDisplayIDsForTesting(), [])
