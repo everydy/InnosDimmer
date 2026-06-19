@@ -3,7 +3,7 @@ import XCTest
 @testable import InnosDimmer
 
 final class SoftwareDimmingControllerTests: XCTestCase {
-    func testOverlayAppearanceMapsBrightnessAndWarmthToOpacity() {
+    func testOverlayAppearanceMapsBrightnessToBlackOpacityOnly() {
         let appearance = OverlayAppearance.make(brightness: 45, warmth: 32)
 
         XCTAssertEqual(appearance.blackOpacity, CGFloat(55) / 130.0)
@@ -107,30 +107,11 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         ))
 
         XCTAssertEqual(software.appliedCommands.count, 1)
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testForcedSoftwareTestAppliesSoftwareWithVisibleReason() {
-        let software = RecordingSoftwareDimmingStrategy()
-        var state = BrightnessState.defaultState()
-        state.isForcedSoftwareModeForTesting = true
-        let controller = BrightnessController(state: state, softwareStrategy: software)
-
-        controller.apply(BrightnessCommand(
-            display: DisplayIdentity.fixture(),
-            brightness: 50,
-            warmth: 20,
-            source: .forcedSoftwareTest
-        ))
-
-        XCTAssertEqual(software.appliedCommands.count, 1)
-        XCTAssertEqual(software.activationReasons, [.forcedForDiagnostics])
-    }
-
-    @MainActor
-    func testRegularCommandsApplySoftwareOnlyEvenWhenHardwareIsUnsupported() {
+    func testRegularCommandsApplySoftwareDimmingImmediately() {
         let software = RecordingSoftwareDimmingStrategy()
         let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
@@ -142,7 +123,6 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         ))
 
         XCTAssertEqual(software.appliedCommands.count, 1)
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
@@ -278,19 +258,17 @@ final class SoftwareDimmingControllerTests: XCTestCase {
 @MainActor
 private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
-    private(set) var activationReasons: [SoftwareActivationReason] = []
     var error: Error?
 
     init(error: Error? = nil) {
         self.error = error
     }
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+    func apply(_ command: BrightnessCommand) throws {
         if let error {
             throw error
         }
         appliedCommands.append(command)
-        activationReasons.append(reason)
     }
 
     func clear(display: DisplayIdentity) throws {}

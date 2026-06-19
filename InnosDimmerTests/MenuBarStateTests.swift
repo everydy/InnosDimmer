@@ -19,8 +19,7 @@ final class MenuBarStateTests: XCTestCase {
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: 1_000,
             automationResumeMinuteOfDay: 1_140,
-            lastAppliedCommandSource: .menuSlider,
-            isForcedSoftwareModeForTesting: false
+            lastAppliedCommandSource: .menuSlider
         )
 
         let shortcuts = ShortcutBinding.defaultBindings.map { binding in
@@ -692,7 +691,7 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
         self.error = error
     }
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+    func apply(_ command: BrightnessCommand) throws {
         if let error {
             throw error
         }

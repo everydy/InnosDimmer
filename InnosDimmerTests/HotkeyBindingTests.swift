@@ -369,7 +369,7 @@ private final class RecordingHotkeyRegistrationBackend: HotkeyRegistrationBacken
 private final class RecordingHotkeySoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+    func apply(_ command: BrightnessCommand) throws {
         appliedCommands.append(command)
     }
 

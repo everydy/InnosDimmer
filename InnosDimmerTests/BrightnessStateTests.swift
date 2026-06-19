@@ -11,18 +11,16 @@ final class BrightnessStateTests: XCTestCase {
             automationPausedUntilNextBoundary: false,
             automationPausedAtMinuteOfDay: nil,
             automationResumeMinuteOfDay: nil,
-            lastAppliedCommandSource: nil,
-            isForcedSoftwareModeForTesting: false
+            lastAppliedCommandSource: nil
         )
 
         XCTAssertEqual(state.targetBrightness, 100)
         XCTAssertEqual(state.targetWarmth, 0)
     }
 
-    func testForcedSoftwareModeDefaultsToFalse() {
+    func testDefaultStateStartsUnknown() {
         let state = BrightnessState.defaultState()
 
-        XCTAssertFalse(state.isForcedSoftwareModeForTesting)
         XCTAssertEqual(state.activeMode, .unknown)
     }
 
@@ -35,8 +33,7 @@ final class BrightnessStateTests: XCTestCase {
             automationPausedUntilNextBoundary: true,
             automationPausedAtMinuteOfDay: -50,
             automationResumeMinuteOfDay: 2_000,
-            lastAppliedCommandSource: nil,
-            isForcedSoftwareModeForTesting: false
+            lastAppliedCommandSource: nil
         )
 
         XCTAssertEqual(state.automationPausedAtMinuteOfDay, 0)

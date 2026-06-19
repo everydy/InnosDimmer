@@ -416,7 +416,7 @@ private final class RecordingScheduleSoftwareDimmingStrategy: SoftwareDimmingStr
         self.error = error
     }
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+    func apply(_ command: BrightnessCommand) throws {
         if let error {
             throw error
         }

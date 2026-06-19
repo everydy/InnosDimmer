@@ -5,7 +5,16 @@ enum BrightnessCommandSource: String, Codable, Equatable {
     case hotkey
     case schedule
     case startupRestore
-    case forcedSoftwareTest
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = BrightnessCommandSource(rawValue: raw) ?? .startupRestore
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct BrightnessCommand: Codable, Equatable {

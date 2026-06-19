@@ -31,9 +31,9 @@ Latest automation-side evidence on 2026-06-18:
 ## Software Routing Checks
 
 - Software dimming activates immediately and does not wait for hardware probing.
-- Diagnostics can force software mode through `forcedSoftwareTest`.
+- Diagnostics report software dimming failures through `platformBlocked`; there is no forced software diagnostic command source.
 - Overlay panels are configured as non-opaque, click-through, all-Spaces, stationary windows.
-- Overlay appearance computes separate black dimming opacity and warm tint opacity.
+- Overlay appearance keeps black dimming in overlay while warmth is handled by gamma blue reduction.
 - Hardware DDC/probe source files are removed from the app target; old settings with hardware-era extra keys are covered by a legacy decode test in source.
 - Manual controls verified on 2026-06-18: `Brightness down`, `Blue reduction up`, `Quick disable`, and `Restore previous`.
 - Diagnostics export is available from `Settings` -> `Export diagnostics`; manual file-save verification is still pending.

@@ -9,7 +9,6 @@ struct BrightnessState: Codable, Equatable {
     var automationPausedAtMinuteOfDay: Int?
     var automationResumeMinuteOfDay: Int?
     var lastAppliedCommandSource: BrightnessCommandSource?
-    var isForcedSoftwareModeForTesting: Bool
 
     init(
         display: DisplayIdentity?,
@@ -19,8 +18,7 @@ struct BrightnessState: Codable, Equatable {
         automationPausedUntilNextBoundary: Bool,
         automationPausedAtMinuteOfDay: Int? = nil,
         automationResumeMinuteOfDay: Int? = nil,
-        lastAppliedCommandSource: BrightnessCommandSource?,
-        isForcedSoftwareModeForTesting: Bool
+        lastAppliedCommandSource: BrightnessCommandSource?
     ) {
         self.display = display
         self.targetBrightness = Clamped.percent(targetBrightness)
@@ -30,7 +28,6 @@ struct BrightnessState: Codable, Equatable {
         self.automationPausedAtMinuteOfDay = automationPausedAtMinuteOfDay.map { max(0, min(1_439, $0)) }
         self.automationResumeMinuteOfDay = automationResumeMinuteOfDay.map { max(0, min(1_439, $0)) }
         self.lastAppliedCommandSource = lastAppliedCommandSource
-        self.isForcedSoftwareModeForTesting = isForcedSoftwareModeForTesting
     }
 
     static func defaultState() -> BrightnessState {
@@ -42,8 +39,7 @@ struct BrightnessState: Codable, Equatable {
             automationPausedUntilNextBoundary: false,
             automationPausedAtMinuteOfDay: nil,
             automationResumeMinuteOfDay: nil,
-            lastAppliedCommandSource: nil,
-            isForcedSoftwareModeForTesting: false
+            lastAppliedCommandSource: nil
         )
     }
 }

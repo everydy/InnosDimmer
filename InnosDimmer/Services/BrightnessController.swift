@@ -24,12 +24,7 @@ final class BrightnessController {
     }
 
     func apply(_ command: BrightnessCommand) {
-        if let reason = forcedSoftwareActivationReason(for: command) {
-            applySoftware(command, reason: reason)
-            return
-        }
-
-        applySoftware(command, reason: .softwareOnly)
+        applySoftware(command)
     }
 
     func reapplyCurrentSoftwareState() {
@@ -43,8 +38,7 @@ final class BrightnessController {
                 brightness: state.targetBrightness,
                 warmth: state.targetWarmth,
                 source: state.lastAppliedCommandSource ?? .startupRestore
-            ),
-            reason: .softwareOnly
+            )
         )
     }
 
@@ -76,9 +70,9 @@ final class BrightnessController {
         }
     }
 
-    private func applySoftware(_ command: BrightnessCommand, reason: SoftwareActivationReason) {
+    private func applySoftware(_ command: BrightnessCommand) {
         do {
-            try softwareStrategy.apply(command, reason: reason)
+            try softwareStrategy.apply(command)
             lastSoftwareDimmingFailure = nil
             recordApplied(command)
             state.activeMode = .overlay
@@ -102,14 +96,6 @@ final class BrightnessController {
         state.targetBrightness = command.brightness
         state.targetWarmth = command.warmth
         state.lastAppliedCommandSource = command.source
-    }
-
-    private func forcedSoftwareActivationReason(for command: BrightnessCommand) -> SoftwareActivationReason? {
-        if state.isForcedSoftwareModeForTesting || command.source == .forcedSoftwareTest {
-            return .forcedForDiagnostics
-        }
-
-        return nil
     }
 
     private func errorMessage(from error: Error) -> String {

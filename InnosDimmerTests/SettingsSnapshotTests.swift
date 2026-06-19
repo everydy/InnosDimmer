@@ -80,61 +80,12 @@ final class SettingsSnapshotTests: XCTestCase {
         let snapshot = store.load()
 
         XCTAssertEqual(snapshot.schemaVersion, SettingsSnapshot.currentSchemaVersion)
-        XCTAssertFalse(snapshot.state.isForcedSoftwareModeForTesting)
         XCTAssertEqual(snapshot.schedule, ScheduleEntry.defaultSchedule)
         XCTAssertEqual(snapshot.shortcuts, ShortcutBinding.defaultBindings)
     }
 
     func testDecodesLegacyHardwareSettingsSnapshot() throws {
-        let legacyJSON = """
-        {
-          "schemaVersion": 1,
-          "selectedDisplay": {
-            "cgDisplayID": 42,
-            "localizedName": "INNOS 27QA100M",
-            "vendorNumber": 1,
-            "modelNumber": 2,
-            "serialNumber": 3,
-            "frameDescription": "2560x1440@2x"
-          },
-          "state": {
-            "display": {
-              "cgDisplayID": 42,
-              "localizedName": "INNOS 27QA100M",
-              "vendorNumber": 1,
-              "modelNumber": 2,
-              "serialNumber": 3,
-              "frameDescription": "2560x1440@2x"
-            },
-            "targetBrightness": 45,
-            "targetWarmth": 32,
-            "activeMode": "overlay",
-            "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
-            "lastHardwareProbeResult": null,
-            "automationPausedUntilNextBoundary": true,
-            "automationPausedAtMinuteOfDay": 600,
-            "automationResumeMinuteOfDay": 1140,
-            "lastAppliedCommandSource": "menuSlider",
-            "isForcedSoftwareModeForTesting": false
-          },
-          "schedule": [
-            {
-              "id": "00000000-0000-0000-0000-000000000001",
-              "minuteOfDay": 600,
-              "brightness": 45,
-              "warmth": 32
-            }
-          ],
-          "shortcuts": [
-            {
-              "action": "brightnessDown",
-              "keyCode": 125,
-              "modifiers": 3,
-              "isEnabled": true
-            }
-          ]
-        }
-        """
+        let legacyJSON = legacyHardwareSettingsJSON()
 
         let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: Data(legacyJSON.utf8))
 
@@ -152,58 +103,34 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
     }
 
+    func testDecodesLegacyForcedSoftwareCommandSourceAsStartupRestore() throws {
+        let legacyJSON = legacyHardwareSettingsJSON(
+            lastAppliedCommandSource: "forcedSoftwareTest",
+            isForcedSoftwareModeForTesting: true
+        )
+
+        let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: Data(legacyJSON.utf8))
+
+        XCTAssertEqual(decoded.state.lastAppliedCommandSource, .startupRestore)
+        XCTAssertEqual(decoded.state.targetBrightness, 45)
+        XCTAssertEqual(decoded.schedule.first?.minuteOfDay, 600)
+        XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
+    }
+
+    func testDecodesUnknownCommandSourceAsStartupRestore() throws {
+        let legacyJSON = legacyHardwareSettingsJSON(lastAppliedCommandSource: "diagnosticProbe")
+
+        let decoded = try JSONDecoder().decode(SettingsSnapshot.self, from: Data(legacyJSON.utf8))
+
+        XCTAssertEqual(decoded.state.lastAppliedCommandSource, .startupRestore)
+        XCTAssertEqual(decoded.state.targetWarmth, 32)
+        XCTAssertEqual(decoded.shortcuts.first?.action, .brightnessDown)
+    }
+
     func testStoreLoadMigratesLegacyHardwareSettingsSnapshot() throws {
         let defaults = UserDefaults(suiteName: "InnosDimmerTests.\(UUID().uuidString)")!
         let key = "snapshot"
-        let legacyJSON = """
-        {
-          "schemaVersion": 1,
-          "selectedDisplay": {
-            "cgDisplayID": 42,
-            "localizedName": "INNOS 27QA100M",
-            "vendorNumber": 1,
-            "modelNumber": 2,
-            "serialNumber": 3,
-            "frameDescription": "2560x1440@2x"
-          },
-          "state": {
-            "display": {
-              "cgDisplayID": 42,
-              "localizedName": "INNOS 27QA100M",
-              "vendorNumber": 1,
-              "modelNumber": 2,
-              "serialNumber": 3,
-              "frameDescription": "2560x1440@2x"
-            },
-            "targetBrightness": 45,
-            "targetWarmth": 32,
-            "activeMode": "overlay",
-            "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
-            "lastHardwareProbeResult": null,
-            "automationPausedUntilNextBoundary": true,
-            "automationPausedAtMinuteOfDay": 600,
-            "automationResumeMinuteOfDay": 1140,
-            "lastAppliedCommandSource": "menuSlider",
-            "isForcedSoftwareModeForTesting": false
-          },
-          "schedule": [
-            {
-              "id": "00000000-0000-0000-0000-000000000001",
-              "minuteOfDay": 600,
-              "brightness": 45,
-              "warmth": 32
-            }
-          ],
-          "shortcuts": [
-            {
-              "action": "brightnessDown",
-              "keyCode": 125,
-              "modifiers": 3,
-              "isEnabled": true
-            }
-          ]
-        }
-        """
+        let legacyJSON = legacyHardwareSettingsJSON()
         defaults.set(Data(legacyJSON.utf8), forKey: key)
         let store = DisplayTargetStore(defaults: defaults, key: key)
 
@@ -217,4 +144,59 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(loaded.shortcuts.first?.action, .brightnessDown)
         XCTAssertEqual(loaded.shortcuts.first?.modifiers, [.option, .shift])
     }
+}
+
+private func legacyHardwareSettingsJSON(
+    lastAppliedCommandSource: String = "menuSlider",
+    isForcedSoftwareModeForTesting: Bool = false
+) -> String {
+    """
+    {
+      "schemaVersion": 1,
+      "selectedDisplay": {
+        "cgDisplayID": 42,
+        "localizedName": "INNOS 27QA100M",
+        "vendorNumber": 1,
+        "modelNumber": 2,
+        "serialNumber": 3,
+        "frameDescription": "2560x1440@2x"
+      },
+      "state": {
+        "display": {
+          "cgDisplayID": 42,
+          "localizedName": "INNOS 27QA100M",
+          "vendorNumber": 1,
+          "modelNumber": 2,
+          "serialNumber": 3,
+          "frameDescription": "2560x1440@2x"
+        },
+        "targetBrightness": 45,
+        "targetWarmth": 32,
+        "activeMode": "overlay",
+        "hardwareCapability": { "unsupported": { "reason": "DDC unavailable" } },
+        "lastHardwareProbeResult": null,
+        "automationPausedUntilNextBoundary": true,
+        "automationPausedAtMinuteOfDay": 600,
+        "automationResumeMinuteOfDay": 1140,
+        "lastAppliedCommandSource": "\(lastAppliedCommandSource)",
+        "isForcedSoftwareModeForTesting": \(isForcedSoftwareModeForTesting)
+      },
+      "schedule": [
+        {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "minuteOfDay": 600,
+          "brightness": 45,
+          "warmth": 32
+        }
+      ],
+      "shortcuts": [
+        {
+          "action": "brightnessDown",
+          "keyCode": 125,
+          "modifiers": 3,
+          "isEnabled": true
+        }
+      ]
+    }
+    """
 }

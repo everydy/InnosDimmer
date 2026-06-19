@@ -1,11 +1,5 @@
 import Foundation
 
-enum SoftwareActivationReason: Codable, Equatable {
-    case softwareOnly
-    case forcedForDiagnostics
-    case platformBlocked(String)
-}
-
 enum SoftwareDimmingError: Error, Equatable, LocalizedError {
     case displayUnavailable(UInt32)
     case platformBlocked(String)
@@ -23,7 +17,7 @@ enum SoftwareDimmingError: Error, Equatable, LocalizedError {
 
 @MainActor
 protocol SoftwareDimmingStrategy {
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws
+    func apply(_ command: BrightnessCommand) throws
     func clear(display: DisplayIdentity) throws
     func clearStalePanels(activeDisplayIDs: Set<UInt32>)
 }
@@ -47,8 +41,7 @@ final class SoftwareDimmingController: SoftwareDimmingStrategy {
         self.gammaDimmingController = gammaDimmingController
     }
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
-        _ = reason
+    func apply(_ command: BrightnessCommand) throws {
         try gammaDimmingController.apply(display: command.display, blueReduction: command.warmth)
         do {
             try overlayWindowManager.apply(display: command.display, brightness: command.brightness, warmth: 0)

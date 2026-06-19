@@ -10,31 +10,28 @@ final class BrightnessControllerTests: XCTestCase {
         controller.apply(.fixture(source: .menuSlider))
 
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .menuSlider)])
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testSoftwareOnlyModeDoesNotQueueWhenHardwareIsNotProbed() {
+    func testStartupRestoreAppliesSoftwareDimmingImmediately() {
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(.fixture(source: .startupRestore))
 
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .startupRestore)])
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
     @MainActor
-    func testSoftwareOnlyModeRoutesScheduleWithoutCapabilityChecks() {
+    func testScheduleAppliesSoftwareDimmingImmediately() {
         let software = RecordingPolicySoftwareDimmingStrategy()
         let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
 
         controller.apply(.fixture(source: .schedule))
 
         XCTAssertEqual(software.appliedCommands, [.fixture(source: .schedule)])
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
@@ -53,7 +50,6 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [35])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [40])
         XCTAssertEqual(software.appliedCommands.map(\.source), [.hotkey])
-        XCTAssertEqual(software.activationReasons, [.softwareOnly])
         XCTAssertEqual(controller.state.activeMode, .overlay)
     }
 
@@ -90,13 +86,11 @@ final class BrightnessControllerTests: XCTestCase {
 @MainActor
 private final class RecordingPolicySoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
-    private(set) var activationReasons: [SoftwareActivationReason] = []
     private(set) var activeDisplayIDCalls: [Set<UInt32>] = []
     private(set) var clearedDisplays: [DisplayIdentity] = []
 
-    func apply(_ command: BrightnessCommand, reason: SoftwareActivationReason) throws {
+    func apply(_ command: BrightnessCommand) throws {
         appliedCommands.append(command)
-        activationReasons.append(reason)
     }
 
     func clear(display: DisplayIdentity) throws {

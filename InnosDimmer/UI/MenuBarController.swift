@@ -715,7 +715,7 @@ final class MenuBarController: NSObject {
         switch source {
         case .menuSlider, .hotkey:
             return true
-        case .schedule, .startupRestore, .forcedSoftwareTest:
+        case .schedule, .startupRestore:
             return false
         }
     }
@@ -730,8 +730,6 @@ final class MenuBarController: NSObject {
             return "schedule"
         case .startupRestore:
             return "startup"
-        case .forcedSoftwareTest:
-            return "forced software"
         }
     }
 
