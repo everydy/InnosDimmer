@@ -21,10 +21,13 @@
   - Numeric dimming values should pair a large value label with a slider and small step controls.
   - Status should use concise badges with clear severity: ready, active, paused, warning, blocked.
   - Long schedule, shortcut, and diagnostics text should be collapsed or summarized inside the popover, with the full dashboard one click away.
+  - Popover and app-window controls must share the same core component language: section shell, status chip, dimming control group, action row, summary row, diagnostics row, and footer status.
+  - The app window may widen or group these components, but it should not rename, reorder, or visually restyle the same command family without a design decision.
 - Pattern rules:
   - The popover is the quick-control surface; the app window remains the detailed diagnostics surface.
   - The popover should fit without vertical scrolling at its preferred size.
   - Settings and full diagnostics should be secondary navigation actions at the bottom.
+  - The app window should reuse popover patterns before inventing new layout primitives. New window-only primitives need a documented reason.
 - Accessibility target:
   - All controls need accessible labels, keyboard focus, and stable dimensions.
   - Text must wrap without overlap at the preferred popover width.

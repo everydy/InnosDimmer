@@ -47,3 +47,15 @@ Reason: InnosDimmer is used to reduce brightness and blue light, especially duri
 Supersedes: the first light-mode HTML mockup palette.
 
 Source: user request on 2026-06-19, `docs/design/popover-redesign/mockup.html`.
+
+## INNOS-DES-2026-06-20-001
+
+Status: Active
+
+Decision: The menu bar popover and standalone app window should share one control-system language.
+
+Reason: The operator moves between the popover and the app window during the same dimming workflow. Reusing the same section shell, status chip, dimming control group, action row, summary row, diagnostics row, and footer status reduces the learning curve and prevents the app window from feeling like a separate product.
+
+Supersedes: ad hoc app-window cards that restyle popover commands as unrelated dashboard widgets.
+
+Source: user request on 2026-06-20, `docs/design/shared-control-system/contract.md`, `docs/design/shared-control-system/specimen.html`.
