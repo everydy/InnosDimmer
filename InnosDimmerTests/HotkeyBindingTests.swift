@@ -181,7 +181,8 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0])
+        XCTAssertEqual(brightnessController.state.targetWarmth, 0)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
@@ -189,7 +190,8 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
         await Task.yield()
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 12])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0, 12])
+        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .hotkey)
     }
 

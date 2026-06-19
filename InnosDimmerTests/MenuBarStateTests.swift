@@ -220,14 +220,16 @@ final class MenuBarStateTests: XCTestCase {
         menuBarController.perform(.quickDisable)
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0])
+        XCTAssertEqual(brightnessController.state.targetWarmth, 0)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertEqual(brightnessController.state.activeMode, .overlay)
 
         menuBarController.perform(.restorePrevious)
 
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
-        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 12])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [0, 12])
+        XCTAssertEqual(brightnessController.state.targetWarmth, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 

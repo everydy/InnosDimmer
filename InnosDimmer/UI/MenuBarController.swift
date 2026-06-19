@@ -195,7 +195,7 @@ final class MenuBarController: NSObject {
             warmth: state.targetWarmth,
             source: source
         )
-        apply(brightness: 100, warmth: state.targetWarmth, source: source)
+        apply(brightness: 100, warmth: 0, source: source)
     }
 
     private func restorePrevious() {
