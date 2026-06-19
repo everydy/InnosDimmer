@@ -234,6 +234,32 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testScheduleEditorWindowSaveUsesInjectedScheduleAction() {
+        var savedSchedule: [ScheduleEntry]?
+        let controller = ScheduleEditorWindowController(
+            actions: ScheduleEditorActions(
+                updateSchedule: { schedule in
+                    savedSchedule = schedule
+                    return .success(SettingsSnapshot.defaultSnapshot().replacingSchedule(schedule))
+                }
+            )
+        )
+        controller.configure(schedule: ScheduleEntry.defaultSchedule)
+        controller.setScheduleRowForTesting(index: 0, time: "08:30", brightness: "72", blueReduction: "18")
+
+        let result = controller.saveScheduleForTesting()
+
+        guard case .success(let snapshot) = result else {
+            XCTFail("Expected schedule save to succeed")
+            return
+        }
+        XCTAssertEqual(savedSchedule?.first?.minuteOfDay, 510)
+        XCTAssertEqual(savedSchedule?.first?.brightness, 72)
+        XCTAssertEqual(savedSchedule?.first?.blueReduction, 18)
+        XCTAssertEqual(snapshot.schedule.first?.minuteOfDay, 510)
+    }
+
+    @MainActor
     func testMenuBarControllerRoutesOpenScheduleEditorWithoutApplyingDimmingCommand() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay

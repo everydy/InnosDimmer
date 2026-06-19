@@ -237,7 +237,9 @@ final class MenuBarController: NSObject {
     }
 
     private func showScheduleEditor() {
-        let controller = scheduleEditorWindowController ?? ScheduleEditorWindowController()
+        let controller = scheduleEditorWindowController ?? ScheduleEditorWindowController(
+            actions: makeScheduleEditorActions()
+        )
         scheduleEditorWindowController = controller
         controller.configure(schedule: scheduleEntries)
         controller.showWindow(nil)
@@ -274,6 +276,14 @@ final class MenuBarController: NSObject {
             },
             exportDiagnostics: { [weak self] in
                 self?.exportDiagnosticsData() ?? .failure(SettingsRuntimeError.unavailable)
+            }
+        )
+    }
+
+    private func makeScheduleEditorActions() -> ScheduleEditorActions {
+        ScheduleEditorActions(
+            updateSchedule: { [weak self] schedule in
+                self?.saveSchedule(schedule) ?? .failure(SettingsRuntimeError.unavailable)
             }
         )
     }
