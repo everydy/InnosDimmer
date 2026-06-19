@@ -412,6 +412,45 @@
       font-weight: 620;
     }
 
+    .ops-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .ops-item {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 5px;
+      min-height: 82px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+    }
+
+    .ops-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .ops-value {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .ops-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
     .nav-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -743,6 +782,10 @@
         grid-template-columns: 1fr;
       }
 
+      .ops-strip {
+        grid-template-columns: 1fr;
+      }
+
       .status-cluster {
         justify-content: start;
       }
@@ -812,22 +855,34 @@
             </div>
           </section>
 
-          <section class="section" aria-labelledby="home-status">
+          <section class="section" aria-labelledby="home-ops">
             <div class="section-head">
               <div>
-                <div class="section-title" id="home-status">Status</div>
-                <p class="caption">Settings saved. 0 errors, 1 warning. Next schedule boundary at 19:00.</p>
+                <div class="section-title" id="home-ops">Next actions</div>
+                <p class="caption">Compact operational state only. Detailed failures live in Diagnostics.</p>
               </div>
-              <button class="button" type="button" data-go="diagnostics">Review log</button>
+              <div class="action-row">
+                <button class="button" type="button" data-go="automation">Schedule</button>
+                <button class="button" type="button" data-go="diagnostics">Diagnostics</button>
+              </div>
             </div>
-            <dl class="summary-grid">
-              <dt>Display</dt>
-              <dd>Automatic external display resolved to 27QA100M</dd>
-              <dt>Schedule</dt>
-              <dd>09:00 80% / blue 12%, 19:00 45% / blue 32%, 23:00 25% / blue 58%</dd>
-              <dt>Shortcuts</dt>
-              <dd>7 enabled, Option + Shift defaults</dd>
-            </dl>
+            <div class="ops-strip">
+              <div class="ops-item">
+                <div class="ops-kicker">Automation</div>
+                <div class="ops-value">Resume at 19:00</div>
+                <div class="ops-note">Next row: 45% / blue 32%</div>
+              </div>
+              <div class="ops-item">
+                <div class="ops-kicker">Diagnostics</div>
+                <div class="ops-value">0 errors, 1 warning</div>
+                <div class="ops-note">Gamma and overlay available</div>
+              </div>
+              <div class="ops-item">
+                <div class="ops-kicker">Settings</div>
+                <div class="ops-value">7 shortcuts enabled</div>
+                <div class="ops-note">Display automatic, login item on</div>
+              </div>
+            </div>
           </section>
         </div>
 
