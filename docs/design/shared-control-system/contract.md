@@ -28,9 +28,11 @@
   - Use compact spacing: 16px surface padding, 12px section gaps, 8px row gaps.
   - Avoid decorative gradients, glow, fake metrics, and marketing-style cards.
 - Token strategy:
-  - Keep raw values close to `PopoverPalette` until code tokens are extracted.
+  - Use `InnosDesignTokens` as the AppKit source of truth for shared dark/light palette values.
+  - Keep `PopoverPalette` only as a local compatibility facade while existing popover classes still call it.
   - Promote by meaning: surface, section, subtle surface, control, border, text, muted text, accent, ready, warning, danger.
   - Component tokens are allowed only for real variants such as primary button, warning button, and subtle diagnostics background.
+  - Dark surfaces must stay neutral and very dark; accent blue is limited to progress, focus, and primary action states.
 - Component priority:
   - `SectionShell`
   - `StatusChip`
@@ -58,7 +60,7 @@
 - Dev integration:
   - Extract shared AppKit helpers only after the specimen and current mockup agree.
   - Prefer adapting `MenuBarPopoverView` helpers before creating a separate window-only style layer.
-  - `PopoverPalette`, `PopoverContainerView`, `ProgressTrackView`, `PopoverCommandButton`, and `StatusBadgeView` are current implementation anchors.
+  - `InnosDesignTokens`, `PopoverPalette`, `PopoverContainerView`, `ProgressTrackView`, `PopoverCommandButton`, and `StatusBadgeView` are current implementation anchors.
 - Accessibility target:
   - Stable dimensions for controls.
   - Accessible labels for every button, slider/track, and page navigation control.
@@ -82,24 +84,30 @@
 - Source evidence:
   - `DESIGN.md`
   - `docs/design-decisions.md`
+  - `docs/design/dark-palette/research.md`
+  - `docs/design/dark-palette/2026-06-20-dark-palette-plan-first.md`
   - `InnosDimmer/UI/MenuBarPopoverView.swift`
+  - `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
   - `docs/design/popover-redesign/mockup.html`
   - `docs/design/window-redesign/app-window-componentized-mockup.html`
 - Existing tokens:
-  - `PopoverPalette.background`
-  - `PopoverPalette.sectionBackground`
-  - `PopoverPalette.subtleBackground`
-  - `PopoverPalette.border`
-  - `PopoverPalette.trackBackground`
-  - `PopoverPalette.trackFill`
-  - `PopoverPalette.statusColor`
-  - `PopoverPalette.warningColor`
-  - `PopoverPalette.buttonBackground`
-  - `PopoverPalette.buttonBorder`
-  - `PopoverPalette.primaryButtonBackground`
-  - `PopoverPalette.warningButtonBackground`
+  - `InnosDesignTokens.surfaceRoot`
+  - `InnosDesignTokens.surfaceSection`
+  - `InnosDesignTokens.surfaceSubtle`
+  - `InnosDesignTokens.surfaceControl`
+  - `InnosDesignTokens.border`
+  - `InnosDesignTokens.controlBorder`
+  - `InnosDesignTokens.trackBackground`
+  - `InnosDesignTokens.accent`
+  - `InnosDesignTokens.primaryBackground`
+  - `InnosDesignTokens.foreground`
+  - `PopoverPalette.*` delegates to `InnosDesignTokens` for menu bar compatibility.
 - New/changed primitives:
-  - none yet; keep raw AppKit colors in `PopoverPalette` until helper extraction.
+  - `surface.root.dark = #161616`
+  - `surface.section.dark = #1f1f22`
+  - `surface.subtle.dark = #262626`
+  - `surface.control.dark = #303036`
+  - `border.default.dark = #3b3b40`
 - New/changed semantics:
   - `surface.root`
   - `surface.section`
@@ -121,15 +129,16 @@
   - `section.radius`
   - `control.radius`
 - CSS/code owner:
-  - AppKit: `InnosDimmer/UI/MenuBarPopoverView.swift` until shared helpers are extracted.
-  - HTML proof: `docs/design/shared-control-system/specimen.html`.
+  - AppKit: `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`.
+  - Popover compatibility: `InnosDimmer/UI/MenuBarPopoverView.swift`.
+  - HTML proof: `docs/design/shared-control-system/specimen.html` and `docs/design/dark-palette/artifacts/dark-palette-specimen.html`.
 - Documentation owner:
   - `DESIGN.md`
   - `docs/design-decisions.md`
   - this contract
 - Migration notes:
-  - First align popover and app-window mockups on names and order.
-  - Then extract shared AppKit construction helpers.
+  - Keep mockup token headers aligned with the dark palette artifact.
+  - Route AppKit custom colors through `InnosDesignTokens`; do not add new raw dark surface values to `PopoverPalette`.
   - Then replace ad hoc window controls with shared helpers.
 - Verification:
   - Run HTML structure checks on `specimen.html`.

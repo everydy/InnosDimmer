@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Dark Palette Specimen</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #0f0f11;
+      --surface: #161616;
+      --panel: #1f1f22;
+      --panel-2: #262626;
+      --control: #303036;
+      --text: #f3f3f1;
+      --muted: #aaa9a3;
+      --line: #3b3b40;
+      --blue: #5aa7ff;
+      --blue-strong: #1f7bd9;
+      --green: #75d99b;
+      --amber: #f1c45f;
+      --danger: #ff6b6b;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px;
+      background: var(--page);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 16px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; line-height: 1.2; letter-spacing: 0; }
+    h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0; }
+    .note { color: var(--muted); font-size: 13px; line-height: 1.45; max-width: 680px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel,
+    .popover {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      box-shadow: none;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .swatch {
+      min-height: 86px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      align-content: end;
+      gap: 3px;
+    }
+
+    .swatch strong { font-size: 13px; }
+    .swatch code { color: var(--muted); font-size: 12px; }
+
+    .contrast {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--panel);
+      font-size: 13px;
+    }
+
+    .contrast-row {
+      display: grid;
+      grid-template-columns: 130px repeat(4, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .contrast-row span:not(:first-child) {
+      padding: 7px 8px;
+      border-radius: 6px;
+      background: var(--panel-2);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+
+    .popover {
+      width: 420px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      box-shadow: none;
+    }
+
+    .popover-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .title { font-size: 17px; font-weight: 760; }
+    .display { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+
+    .badge {
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid color-mix(in srgb, var(--green) 36%, transparent);
+      border-radius: 8px;
+      color: var(--green);
+      background: color-mix(in srgb, var(--green) 12%, transparent);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .section {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      display: grid;
+      gap: 10px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 118px 54px 1fr 36px 36px;
+      gap: 8px;
+      align-items: center;
+      min-height: 38px;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+    }
+
+    .control-row:last-child { border-bottom: 0; }
+    .control-row .value { font-size: 18px; font-weight: 800; text-align: right; }
+
+    .track {
+      height: 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 72%, transparent);
+      overflow: hidden;
+    }
+
+    .fill {
+      width: var(--value);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    button {
+      min-height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    button.primary {
+      border-color: var(--blue-strong);
+      background: var(--blue-strong);
+      color: #fff;
+    }
+
+    button.warning {
+      border-color: color-mix(in srgb, var(--amber) 46%, var(--line));
+      background: color-mix(in srgb, var(--amber) 12%, transparent);
+      color: var(--amber);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .schedule-row,
+    .shortcut-row {
+      min-height: 36px;
+      display: grid;
+      grid-template-columns: 68px 1fr 1fr;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+      border-radius: 7px;
+      background: var(--panel-2);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .metric { display: inline-flex; gap: 5px; align-items: center; }
+    .sun { color: var(--amber); }
+    .warm { color: var(--text); }
+    .shortcut-row { grid-template-columns: 112px 1fr 1fr; color: var(--muted); }
+    .shortcut-row strong { color: var(--text); }
+
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+      .popover { width: 100%; }
+      .swatches { grid-template-columns: 1fr; }
+      .contrast-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>InnosDimmer very dark neutral palette</h1>
+        <p class="note">The surfaces are neutral and near black. Blue is limited to progress, focus, and primary action states.</p>
+      </div>
+      <span class="badge">Locked draft</span>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Token ladder</h2>
+        <div class="swatches">
+          <div class="swatch" style="background:#0f0f11"><strong>Page</strong><code>#0f0f11</code></div>
+          <div class="swatch" style="background:#161616"><strong>Surface root</strong><code>#161616</code></div>
+          <div class="swatch" style="background:#1f1f22"><strong>Surface section</strong><code>#1f1f22</code></div>
+          <div class="swatch" style="background:#262626"><strong>Surface subtle</strong><code>#262626</code></div>
+          <div class="swatch" style="background:#303036"><strong>Surface control</strong><code>#303036</code></div>
+          <div class="swatch" style="background:#3b3b40"><strong>Border</strong><code>#3b3b40</code></div>
+          <div class="swatch" style="background:#5aa7ff;color:#07111e"><strong>Accent</strong><code style="color:#07111e">#5aa7ff</code></div>
+          <div class="swatch" style="background:#1f7bd9"><strong>Primary action</strong><code>#1f7bd9</code></div>
+        </div>
+
+        <div class="contrast">
+          <h2>Contrast checks</h2>
+          <div class="contrast-row"><strong>Background</strong><span>Text</span><span>Muted</span><span>Accent</span><span>Warning</span></div>
+          <div class="contrast-row"><strong>#161616</strong><span>16.29</span><span>7.68</span><span>7.24</span><span>11.03</span></div>
+          <div class="contrast-row"><strong>#1f1f22</strong><span>14.80</span><span>6.98</span><span>6.58</span><span>10.02</span></div>
+          <div class="contrast-row"><strong>#262626</strong><span>13.62</span><span>6.42</span><span>6.06</span><span>9.23</span></div>
+          <div class="contrast-row"><strong>#303036</strong><span>11.80</span><span>5.56</span><span>5.25</span><span>7.99</span></div>
+        </div>
+      </section>
+
+      <section class="popover" aria-label="Palette popover specimen">
+        <div class="popover-header">
+          <div class="title">InnosDimmer</div>
+          <div class="badge">Overlay active</div>
+          <div class="display">27QA100M · software dimming · automation paused until 19:00</div>
+        </div>
+
+        <section class="section">
+          <div class="section-head"><span>Quick controls</span><span>Manual</span></div>
+          <div class="control-row">
+            <div><span class="sun">☀</span> Brightness</div>
+            <div class="value">45%</div>
+            <div class="track"><div class="fill" style="--value:45%"></div></div>
+            <button>−</button><button>+</button>
+          </div>
+          <div class="control-row">
+            <div><span class="warm">♨</span> Warmth</div>
+            <div class="value">32%</div>
+            <div class="track"><div class="fill" style="--value:32%"></div></div>
+            <button>−</button><button>+</button>
+          </div>
+          <div class="button-row">
+            <button class="warning">Quick disable</button>
+            <button>Restore previous</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><span>Schedule</span></div>
+          <div class="schedule-row"><strong>09:00</strong><span class="metric"><span class="sun">☀</span>80%</span><span class="metric"><span class="warm">♨</span>12%</span></div>
+          <div class="schedule-row"><strong>19:00</strong><span class="metric"><span class="sun">☀</span>45%</span><span class="metric"><span class="warm">♨</span>32%</span></div>
+          <div class="schedule-row"><strong>23:00</strong><span class="metric"><span class="sun">☀</span>25%</span><span class="metric"><span class="warm">♨</span>58%</span></div>
+          <div class="button-row">
+            <button class="primary">Edit schedule</button>
+            <button>Pause automation</button>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><span>Shortcuts</span><span>Enabled</span></div>
+          <div class="shortcut-row"><strong>Brightness</strong><span>Up ⌥⇧↑</span><span>Down ⌥⇧↓</span></div>
+          <div class="shortcut-row"><strong>Warmth</strong><span>Up ⌥⇧→</span><span>Down ⌥⇧←</span></div>
+          <div class="button-row">
+            <button>Edit Shortcuts</button>
+            <button class="primary">Open Control Window</button>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

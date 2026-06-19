@@ -8,17 +8,18 @@
     :root,
     body[data-theme="dark"] {
       color-scheme: dark;
-      --page: #111826;
-      --bg: #182436;
-      --panel: #2d3f5c;
-      --panel-2: #21262d;
-      --text: #ecebe8;
-      --muted: #96948f;
-      --line: #465b78;
-      --blue: #61a8ff;
-      --blue-strong: #2b78d6;
-      --green: #5f9d73;
-      --amber: #c09a49;
+      --page: #0f0f11;
+      --bg: #161616;
+      --panel: #1f1f22;
+      --panel-2: #262626;
+      --control: #303036;
+      --text: #f3f3f1;
+      --muted: #aaa9a3;
+      --line: #3b3b40;
+      --blue: #5aa7ff;
+      --blue-strong: #1f7bd9;
+      --green: #75d99b;
+      --amber: #f1c45f;
       --shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
     }
 
@@ -28,6 +29,7 @@
       --bg: #f7f7f8;
       --panel: #ffffff;
       --panel-2: #f1f3f5;
+      --control: #f7f7f8;
       --text: #1f2328;
       --muted: #66707a;
       --line: #d6d9de;
@@ -47,10 +49,7 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at top left, rgba(74, 123, 176, 0.05), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(192, 154, 73, 0.035), transparent 24%),
-        var(--page);
+      background: var(--page);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       color: var(--text);
     }
@@ -60,7 +59,7 @@
       min-height: 858px;
       padding: 16px;
       background: var(--bg);
-      border: 1px solid rgba(91, 122, 164, 0.54);
+      border: 1px solid var(--line);
       border-radius: 8px;
       box-shadow: var(--shadow);
     }
@@ -202,7 +201,7 @@
       position: relative;
       height: 8px;
       border-radius: 999px;
-      background: #44536a;
+      background: color-mix(in srgb, var(--line) 70%, transparent);
       overflow: hidden;
     }
 
@@ -256,9 +255,9 @@
     button {
       height: 30px;
       min-width: 34px;
-      border: 1px solid #465b78;
+      border: 1px solid var(--line);
       border-radius: 7px;
-      background: #232931;
+      background: var(--control, var(--panel-2));
       color: var(--text);
       font: inherit;
       font-size: 13px;
@@ -429,7 +428,7 @@
       padding: 2px 8px 3px;
       border: 1px solid var(--line);
       border-radius: 6px;
-      background: #232931;
+      background: var(--control, var(--panel-2));
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
       font-family: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
       font-size: 13px;

@@ -46,45 +46,41 @@ enum InnosDesignTokens {
     }
 
     static func surfaceRoot(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.10, alpha: 1) : NSColor(calibratedWhite: 0.96, alpha: 1)
+        token(dark: 0x161616, light: 0xf7f7f8, appearance: appearance)
     }
 
     static func surfaceSection(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.15, alpha: 1) : .white
+        token(dark: 0x1f1f22, light: 0xffffff, appearance: appearance)
     }
 
     static func surfaceSubtle(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.12, alpha: 1) : NSColor(calibratedWhite: 0.98, alpha: 1)
+        token(dark: 0x262626, light: 0xf1f2f4, appearance: appearance)
     }
 
     static func surfaceControl(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.19, alpha: 1) : NSColor(calibratedWhite: 0.93, alpha: 1)
+        token(dark: 0x303036, light: 0xf7f7f8, appearance: appearance)
     }
 
     static func border(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.27, alpha: 1) : NSColor(calibratedWhite: 0.84, alpha: 1)
+        token(dark: 0x3b3b40, light: 0xd6d9de, appearance: appearance)
     }
 
     static func controlBorder(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.36, alpha: 1) : NSColor(calibratedWhite: 0.76, alpha: 1)
+        token(dark: 0x4b4b52, light: 0xc2c7ce, appearance: appearance)
     }
 
     static func trackBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.24, alpha: 1) : NSColor(calibratedWhite: 0.88, alpha: 1)
+        isDark(appearance)
+            ? color(0x3b3b40, alpha: 0.70)
+            : color(0xd6d9de, alpha: 0.70)
     }
 
     static func accent(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.35, green: 0.65, blue: 1.0, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.09, green: 0.41, blue: 0.76, alpha: 1)
+        token(dark: 0x5aa7ff, light: 0x0f75d3, appearance: appearance)
     }
 
     static func primaryBackground(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.12, green: 0.48, blue: 0.85, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.03, green: 0.42, blue: 0.74, alpha: 1)
+        token(dark: 0x1f7bd9, light: 0x0b70c9, appearance: appearance)
     }
 
     static func foreground(for tone: Tone, appearance: NSAppearance) -> NSColor {
@@ -92,17 +88,11 @@ enum InnosDesignTokens {
         case .neutral:
             return .labelColor
         case .ready:
-            return isDark(appearance)
-                ? NSColor(calibratedRed: 0.46, green: 0.85, blue: 0.61, alpha: 1)
-                : NSColor(calibratedRed: 0.12, green: 0.48, blue: 0.27, alpha: 1)
+            return token(dark: 0x75d99b, light: 0x196b39, appearance: appearance)
         case .warning:
-            return isDark(appearance)
-                ? NSColor(calibratedRed: 0.95, green: 0.77, blue: 0.37, alpha: 1)
-                : NSColor(calibratedRed: 0.54, green: 0.35, blue: 0, alpha: 1)
+            return token(dark: 0xf1c45f, light: 0x8a5b00, appearance: appearance)
         case .danger:
-            return isDark(appearance)
-                ? NSColor(calibratedRed: 1.0, green: 0.42, blue: 0.42, alpha: 1)
-                : NSColor(calibratedRed: 0.70, green: 0.14, blue: 0.09, alpha: 1)
+            return token(dark: 0xff6b6b, light: 0xb42318, appearance: appearance)
         case .primary:
             return .white
         }
@@ -132,5 +122,18 @@ enum InnosDesignTokens {
 
     static func isDark(_ appearance: NSAppearance) -> Bool {
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private static func token(dark: Int, light: Int, appearance: NSAppearance) -> NSColor {
+        color(isDark(appearance) ? dark : light)
+    }
+
+    private static func color(_ hex: Int, alpha: CGFloat = 1) -> NSColor {
+        NSColor(
+            calibratedRed: CGFloat((hex >> 16) & 0xff) / 255.0,
+            green: CGFloat((hex >> 8) & 0xff) / 255.0,
+            blue: CGFloat(hex & 0xff) / 255.0,
+            alpha: alpha
+        )
     }
 }

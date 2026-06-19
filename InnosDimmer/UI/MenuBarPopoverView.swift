@@ -46,74 +46,55 @@ private enum PopoverButtonStyle {
 
 private enum PopoverPalette {
     static func background(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x182436, light: 0xf7f7f8, appearance: appearance)
+        InnosDesignTokens.surfaceRoot(for: appearance)
     }
 
     static func sectionBackground(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x2d3f5c, light: 0xffffff, appearance: appearance)
+        InnosDesignTokens.surfaceSection(for: appearance)
     }
 
     static func subtleBackground(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x21262d, light: 0xf1f3f5, appearance: appearance)
+        InnosDesignTokens.surfaceSubtle(for: appearance)
     }
 
     static func border(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x465b78, light: 0xd6d9de, appearance: appearance)
+        InnosDesignTokens.border(for: appearance)
     }
 
     static func trackBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance)
-            ? color(0x44536a, alpha: 0.70)
-            : color(0xd6d9de, alpha: 0.70)
+        InnosDesignTokens.trackBackground(for: appearance)
     }
 
     static func trackFill(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x61a8ff, light: 0x0f75d3, appearance: appearance)
+        InnosDesignTokens.accent(for: appearance)
     }
 
     static func statusColor(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x75d99b, light: 0x196b39, appearance: appearance)
+        InnosDesignTokens.foreground(for: .ready, appearance: appearance)
     }
 
     static func warningColor(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0xf1c45f, light: 0x8a5b00, appearance: appearance)
+        InnosDesignTokens.foreground(for: .warning, appearance: appearance)
     }
 
     static func buttonBackground(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x232931, light: 0xf7f7f8, appearance: appearance)
+        InnosDesignTokens.surfaceControl(for: appearance)
     }
 
     static func buttonBorder(for appearance: NSAppearance) -> NSColor {
-        border(for: appearance)
+        InnosDesignTokens.controlBorder(for: appearance)
     }
 
     static func badgeBackground(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x2d3f5c, light: 0xffffff, appearance: appearance)
+        InnosDesignTokens.surfaceSection(for: appearance)
     }
 
     static func primaryButtonBackground(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x2b78d6, light: 0x0b70c9, appearance: appearance)
+        InnosDesignTokens.primaryBackground(for: appearance)
     }
 
     static func warningButtonBackground(for appearance: NSAppearance) -> NSColor {
         warningColor(for: appearance).withAlphaComponent(0.12)
-    }
-
-    private static func isDark(_ appearance: NSAppearance) -> Bool {
-        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    }
-
-    private static func token(dark: Int, light: Int, appearance: NSAppearance) -> NSColor {
-        color(isDark(appearance) ? dark : light)
-    }
-
-    private static func color(_ hex: Int, alpha: CGFloat = 1) -> NSColor {
-        NSColor(
-            calibratedRed: CGFloat((hex >> 16) & 0xff) / 255.0,
-            green: CGFloat((hex >> 8) & 0xff) / 255.0,
-            blue: CGFloat(hex & 0xff) / 255.0,
-            alpha: alpha
-        )
     }
 }
 
