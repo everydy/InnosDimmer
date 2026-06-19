@@ -9,6 +9,7 @@ enum MenuBarCommand: Equatable, Hashable {
     case setBlueReduction(Int)
     case openScheduleEditor
     case pauseAutomation
+    case resumeAutomation
     case quickDisable
     case restorePrevious
     case openAppWindow
@@ -351,6 +352,8 @@ struct MenuBarViewModel: Equatable {
     var blueReductionLabel: String
     var blueReductionWarning: String?
     var automationTitle: String
+    var automationActionTitle: String
+    var automationActionCommand: MenuBarCommand
     var scheduleNextLabel: String
     var scheduleSummary: String
     var shortcutSummary: String
@@ -374,6 +377,8 @@ struct MenuBarViewModel: Equatable {
         } else {
             automationTitle = "Automation active"
         }
+        automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
+        automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation
         scheduleNextLabel = Self.scheduleNextLabel(for: schedule)
         scheduleSummary = Self.scheduleSummary(for: schedule)
         shortcutSummary = Self.shortcutSummary(for: shortcuts)
@@ -395,7 +400,7 @@ struct MenuBarViewModel: Equatable {
         guard !labels.isEmpty else {
             return "Not configured"
         }
-        return labels.joined(separator: ", ")
+        return labels.joined(separator: "\n")
     }
 
     private static func scheduleNextLabel(for schedule: [ScheduleEntry]) -> String {
@@ -423,7 +428,7 @@ struct MenuBarViewModel: Equatable {
 }
 
 final class MenuBarPopoverView: NSView {
-    static let preferredContentSize = NSSize(width: 480, height: 620)
+    static let preferredContentSize = NSSize(width: 480, height: 700)
 
     private let modeBadge: StatusBadgeView
     private let actions: MenuBarActions
@@ -439,6 +444,8 @@ final class MenuBarPopoverView: NSView {
     private let brightnessTrackView = ProgressTrackView()
     private let blueReductionTrackView = ProgressTrackView()
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
+    private var automationActionCommand: MenuBarCommand = .pauseAutomation
+    private weak var automationActionButton: NSButton?
 
     init(
         state: BrightnessState,
@@ -482,6 +489,13 @@ final class MenuBarPopoverView: NSView {
         blueReductionWarningLabel.stringValue = viewModel.blueReductionWarning ?? ""
         blueReductionWarningLabel.isHidden = viewModel.blueReductionWarning == nil
         automationLabel.stringValue = viewModel.automationTitle
+        automationActionCommand = viewModel.automationActionCommand
+        automationActionButton?.title = viewModel.automationActionTitle
+        commandButtons[.pauseAutomation] = nil
+        commandButtons[.resumeAutomation] = nil
+        if let automationActionButton {
+            commandButtons[automationActionCommand] = automationActionButton
+        }
         scheduleNextLabel.stringValue = viewModel.scheduleNextLabel
         scheduleNextLabel.invalidateIntrinsicContentSize()
         scheduleSummaryLabel.stringValue = viewModel.scheduleSummary
@@ -571,7 +585,11 @@ final class MenuBarPopoverView: NSView {
                     decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
                     increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
                 ),
-                blueReductionWarningLabel
+                blueReductionWarningLabel,
+                makeActionRow([
+                    button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
+                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
+                ])
             ]
         )
         brightnessTrackView.onUserFractionChange = { [weak self] fraction in
@@ -585,21 +603,30 @@ final class MenuBarPopoverView: NSView {
 
         let scheduleNextChip = chipView(scheduleNextLabel)
         scheduleNextChip.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
+        let automationActionButton = button(
+            "Pause automation",
+            command: .pauseAutomation,
+            action: #selector(automationActionPressed)
+        )
+        self.automationActionButton = automationActionButton
         let schedule = makeSection(
             title: "Schedule",
             trailing: scheduleNextChip,
             views: [
-                automationLabel,
+                makeSummaryRow(title: "Status", value: automationLabel),
                 makeSummaryRow(title: "Current", value: scheduleSummaryLabel),
-                makeSummaryRow(title: "Shortcuts", value: shortcutSummaryLabel),
                 makeActionRow([
                     button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
-                    button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
-                ]),
-                makeActionRow([
-                    button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
-                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
+                    automationActionButton
                 ])
+            ]
+        )
+        let shortcuts = makeSection(
+            title: "Shortcuts",
+            trailing: chip("Enabled"),
+            views: [
+                PopoverContainerView(style: .subtle, content: shortcutSummaryLabel),
+                button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
             ]
         )
         let diagnostics = makeSection(
@@ -607,10 +634,7 @@ final class MenuBarPopoverView: NSView {
             trailing: chip("Latest"),
             views: [
                 PopoverContainerView(style: .subtle, content: diagnosticsSummaryLabel),
-                makeActionRow([
-                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
-                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
-                ])
+                button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
             ]
         )
 
@@ -618,6 +642,7 @@ final class MenuBarPopoverView: NSView {
             header,
             controls,
             schedule,
+            shortcuts,
             diagnostics
         ]
         let stack = NSStackView(views: arrangedSubviews)
@@ -843,8 +868,8 @@ final class MenuBarPopoverView: NSView {
         actions.perform(.blueReductionUp)
     }
 
-    @objc private func pauseAutomationPressed() {
-        actions.perform(.pauseAutomation)
+    @objc private func automationActionPressed() {
+        actions.perform(automationActionCommand)
     }
 
     @objc private func quickDisablePressed() {
@@ -876,6 +901,8 @@ struct AppDashboardViewModel: Equatable {
     var blueReductionValue: String
     var blueReductionWarning: String?
     var automationValue: String
+    var automationActionTitle: String
+    var automationActionCommand: MenuBarCommand
     var scheduleValue: String
     var shortcutValue: String
     var failureValue: String
@@ -907,6 +934,8 @@ struct AppDashboardViewModel: Equatable {
         } else {
             automationValue = "active"
         }
+        automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
+        automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation
         let popoverScheduleSummary = MenuBarViewModel(
             state: state,
             schedule: schedule,
@@ -967,6 +996,8 @@ final class AppDashboardWindowController: NSWindowController {
     private let diagnosticsTextView = NSTextView()
     private let diagnosticsScrollView = NSScrollView()
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
+    private var automationActionCommand: MenuBarCommand = .pauseAutomation
+    private weak var automationActionButton: NSButton?
 
     init(
         actions: MenuBarActions = .noop,
@@ -1012,6 +1043,13 @@ final class AppDashboardWindowController: NSWindowController {
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
         blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
         automationLabel.stringValue = viewModel.automationValue
+        automationActionCommand = viewModel.automationActionCommand
+        automationActionButton?.title = viewModel.automationActionTitle
+        commandButtons[.pauseAutomation] = nil
+        commandButtons[.resumeAutomation] = nil
+        if let automationActionButton {
+            commandButtons[automationActionCommand] = automationActionButton
+        }
         scheduleLabel.stringValue = viewModel.scheduleValue
         scheduleEditorView.update(schedule: schedule)
         shortcutLabel.stringValue = viewModel.shortcutValue
@@ -1162,6 +1200,12 @@ final class AppDashboardWindowController: NSWindowController {
                 scheduleStatusLabel
             ]
         )
+        let automationActionButton = button(
+            "Pause automation",
+            command: .pauseAutomation,
+            action: #selector(automationActionPressed)
+        )
+        self.automationActionButton = automationActionButton
         let configuration = makeSection(
             title: "Configuration",
             views: [
@@ -1169,7 +1213,7 @@ final class AppDashboardWindowController: NSWindowController {
                 button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
                 makeActionRow([
                     button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed)),
-                    button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+                    automationActionButton
                 ]),
                 button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
             ]
@@ -1378,8 +1422,8 @@ final class AppDashboardWindowController: NSWindowController {
         actions.perform(.restorePrevious)
     }
 
-    @objc private func pauseAutomationPressed() {
-        actions.perform(.pauseAutomation)
+    @objc private func automationActionPressed() {
+        actions.perform(automationActionCommand)
     }
 
     @objc private func saveSchedulePressed() {

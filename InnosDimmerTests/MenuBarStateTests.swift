@@ -382,7 +382,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(snapshot.schedule[1].minuteOfDay, 645)
         XCTAssertEqual(
             controller.scheduleSummaryForTesting(),
-            "09:00 · 80% brightness / 12% blue, 10:45 · 62% brightness / 20% blue, 23:00 · 25% brightness / 58% blue"
+            "09:00 · 80% brightness / 12% blue\n10:45 · 62% brightness / 20% blue\n23:00 · 25% brightness / 58% blue"
         )
     }
 
