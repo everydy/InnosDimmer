@@ -920,6 +920,7 @@ struct AppDashboardViewModel: Equatable {
 @MainActor
 final class AppDashboardWindowController: NSWindowController {
     private let modeBadge = StatusBadgeView(mode: .unknown)
+    private let actions: MenuBarActions
     private let displayLabel = NSTextField(labelWithString: "")
     private let modeLabel = NSTextField(labelWithString: "")
     private let brightnessLabel = NSTextField(labelWithString: "")
@@ -928,18 +929,22 @@ final class AppDashboardWindowController: NSWindowController {
     private let scheduleLabel = NSTextField(labelWithString: "")
     private let shortcutLabel = NSTextField(labelWithString: "")
     private let failureLabel = NSTextField(labelWithString: "")
+    private let brightnessTrackView = ProgressTrackView()
+    private let blueReductionTrackView = ProgressTrackView()
     private let diagnosticsTextView = NSTextView()
     private let diagnosticsScrollView = NSScrollView()
+    private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
-    init() {
+    init(actions: MenuBarActions = .noop) {
+        self.actions = actions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
-        window.minSize = NSSize(width: 520, height: 620)
+        window.minSize = NSSize(width: 520, height: 700)
         super.init(window: window)
         installContent()
     }
@@ -965,12 +970,26 @@ final class AppDashboardWindowController: NSWindowController {
         modeLabel.stringValue = viewModel.modeValue
         brightnessLabel.stringValue = viewModel.brightnessValue
         blueReductionLabel.stringValue = viewModel.blueReductionValue
+        brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
+        blueReductionTrackView.fraction = CGFloat(state.targetWarmth) / 100
         automationLabel.stringValue = viewModel.automationValue
         scheduleLabel.stringValue = viewModel.scheduleValue
         shortcutLabel.stringValue = viewModel.shortcutValue
         failureLabel.stringValue = viewModel.failureValue
         diagnosticsTextView.string = viewModel.diagnosticsLog
         refreshDiagnosticColors()
+    }
+
+    func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
+        commandButtons[command]
+    }
+
+    func simulateBrightnessTrackChangeForTesting(percent: Int) {
+        brightnessTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    }
+
+    func simulateBlueReductionTrackChangeForTesting(percent: Int) {
+        blueReductionTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
     }
 
     private func installContent() {
@@ -1009,7 +1028,16 @@ final class AppDashboardWindowController: NSWindowController {
         diagnosticsScrollView.hasVerticalScroller = true
         diagnosticsScrollView.documentView = diagnosticsTextView
         diagnosticsScrollView.translatesAutoresizingMaskIntoConstraints = false
-        diagnosticsScrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        diagnosticsScrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
+
+        brightnessTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
+        }
+        blueReductionTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setWarmth(Self.percent(from: fraction)))
+        }
+        brightnessTrackView.setAccessibilityLabel("Dashboard brightness percentage")
+        blueReductionTrackView.setAccessibilityLabel("Dashboard blue reduction percentage")
 
         let header = makeHeader(title: title)
         let currentState = makeSection(
@@ -1017,8 +1045,40 @@ final class AppDashboardWindowController: NSWindowController {
             views: [
                 makeSummaryRow(title: "Display", value: displayLabel),
                 makeSummaryRow(title: "Mode", value: modeLabel),
-                makeSummaryRow(title: "Brightness", value: brightnessLabel),
-                makeSummaryRow(title: "Blue reduction", value: blueReductionLabel),
+                makeControlGroup(
+                    title: "Brightness",
+                    valueLabel: brightnessLabel,
+                    trackView: brightnessTrackView,
+                    decrement: compactButton(
+                        "-",
+                        accessibilityLabel: "Dashboard brightness down",
+                        command: .brightnessDown,
+                        action: #selector(brightnessDownPressed)
+                    ),
+                    increment: compactButton(
+                        "+",
+                        accessibilityLabel: "Dashboard brightness up",
+                        command: .brightnessUp,
+                        action: #selector(brightnessUpPressed)
+                    )
+                ),
+                makeControlGroup(
+                    title: "Blue reduction",
+                    valueLabel: blueReductionLabel,
+                    trackView: blueReductionTrackView,
+                    decrement: compactButton(
+                        "-",
+                        accessibilityLabel: "Dashboard blue reduction down",
+                        command: .warmthDown,
+                        action: #selector(blueReductionDownPressed)
+                    ),
+                    increment: compactButton(
+                        "+",
+                        accessibilityLabel: "Dashboard blue reduction up",
+                        command: .warmthUp,
+                        action: #selector(blueReductionUpPressed)
+                    )
+                ),
                 makeSummaryRow(title: "Automation", value: automationLabel)
             ]
         )
@@ -1026,7 +1086,13 @@ final class AppDashboardWindowController: NSWindowController {
             title: "Configuration",
             views: [
                 makeSummaryRow(title: "Schedule", value: scheduleLabel),
-                makeSummaryRow(title: "Shortcuts", value: shortcutLabel)
+                makeSummaryRow(title: "Shortcuts", value: shortcutLabel),
+                button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
+                makeActionRow([
+                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed)),
+                    button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+                ]),
+                button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
             ]
         )
         let diagnostics = makeSection(
@@ -1095,6 +1161,70 @@ final class AppDashboardWindowController: NSWindowController {
         return stack
     }
 
+    private func makeControlGroup(
+        title: String,
+        valueLabel: NSTextField,
+        trackView: ProgressTrackView,
+        decrement: NSButton,
+        increment: NSButton
+    ) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.widthAnchor.constraint(equalToConstant: 116).isActive = true
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 16, weight: .semibold)
+        valueLabel.alignment = .right
+        valueLabel.widthAnchor.constraint(equalToConstant: 52).isActive = true
+        valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 10
+        trackView.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        trackView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trackView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return stack
+    }
+
+    private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
+        let stack = NSStackView(views: buttons)
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.distribution = .fillEqually
+        stack.spacing = 8
+        stack.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        stack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return stack
+    }
+
+    private func button(
+        _ title: String,
+        command: MenuBarCommand,
+        action: Selector,
+        style: PopoverButtonStyle = .normal
+    ) -> NSButton {
+        let button = PopoverCommandButton(title: title, style: style, target: self, action: action)
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        commandButtons[command] = button
+        return button
+    }
+
+    private func compactButton(
+        _ title: String,
+        accessibilityLabel: String,
+        command: MenuBarCommand,
+        action: Selector
+    ) -> NSButton {
+        let button = button(title, command: command, action: action)
+        button.setAccessibilityLabel(accessibilityLabel)
+        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        return button
+    }
+
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
         label.font = .systemFont(ofSize: 12, weight: .semibold)
@@ -1116,6 +1246,10 @@ final class AppDashboardWindowController: NSWindowController {
         badge.alignment = .right
     }
 
+    private static func percent(from fraction: CGFloat) -> Int {
+        Clamped.percent(Int((fraction * 100).rounded()))
+    }
+
     private func refreshDiagnosticColors() {
         let appearance = diagnosticsScrollView.effectiveAppearance
         diagnosticsTextView.textColor = .labelColor
@@ -1123,5 +1257,37 @@ final class AppDashboardWindowController: NSWindowController {
         diagnosticsScrollView.layer?.backgroundColor = PopoverPalette.subtleBackground(for: appearance).cgColor
         diagnosticsScrollView.layer?.borderColor = PopoverPalette.border(for: appearance).cgColor
         modeBadge.textColor = PopoverPalette.statusColor(for: window?.effectiveAppearance ?? appearance)
+    }
+
+    @objc private func brightnessDownPressed() {
+        actions.perform(.brightnessDown)
+    }
+
+    @objc private func brightnessUpPressed() {
+        actions.perform(.brightnessUp)
+    }
+
+    @objc private func blueReductionDownPressed() {
+        actions.perform(.warmthDown)
+    }
+
+    @objc private func blueReductionUpPressed() {
+        actions.perform(.warmthUp)
+    }
+
+    @objc private func quickDisablePressed() {
+        actions.perform(.quickDisable)
+    }
+
+    @objc private func restorePreviousPressed() {
+        actions.perform(.restorePrevious)
+    }
+
+    @objc private func pauseAutomationPressed() {
+        actions.perform(.pauseAutomation)
+    }
+
+    @objc private func openSettingsPressed() {
+        actions.perform(.openSettings)
     }
 }

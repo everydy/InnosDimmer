@@ -170,6 +170,79 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testAppDashboardButtonsRouteEditableCommands() {
+        let dashboardCommands: [MenuBarCommand] = [
+            .brightnessDown,
+            .brightnessUp,
+            .warmthDown,
+            .warmthUp,
+            .quickDisable,
+            .restorePrevious,
+            .pauseAutomation,
+            .openSettings
+        ]
+        var routedCommands: [MenuBarCommand] = []
+        let controller = AppDashboardWindowController(
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+
+        for command in dashboardCommands {
+            guard let button = controller.commandButtonForTesting(command) else {
+                XCTFail("Missing dashboard button for \(command)")
+                continue
+            }
+
+            XCTAssertTrue(button.target === controller)
+            XCTAssertNotNil(button.action)
+            button.performClick(nil)
+        }
+
+        XCTAssertEqual(routedCommands, dashboardCommands)
+    }
+
+    @MainActor
+    func testAppDashboardCommandButtonsKeepMinimumActionHeight() {
+        let dashboardCommands: [MenuBarCommand] = [
+            .brightnessDown,
+            .brightnessUp,
+            .warmthDown,
+            .warmthUp,
+            .quickDisable,
+            .restorePrevious,
+            .pauseAutomation,
+            .openSettings
+        ]
+        let controller = AppDashboardWindowController()
+        controller.window?.contentView?.layoutSubtreeIfNeeded()
+
+        for command in dashboardCommands {
+            guard let button = controller.commandButtonForTesting(command) else {
+                XCTFail("Missing dashboard button for \(command)")
+                continue
+            }
+
+            XCTAssertGreaterThanOrEqual(button.fittingSize.height, 30, "Dashboard button for \(command) is too thin")
+        }
+    }
+
+    @MainActor
+    func testAppDashboardTracksRouteAbsolutePercentageCommands() {
+        var routedCommands: [MenuBarCommand] = []
+        let controller = AppDashboardWindowController(
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+
+        controller.simulateBrightnessTrackChangeForTesting(percent: 66)
+        controller.simulateBlueReductionTrackChangeForTesting(percent: 21)
+
+        XCTAssertEqual(routedCommands, [.setBrightness(66), .setWarmth(21)])
+    }
+
+    @MainActor
     func testMenuBarPopoverUsesExpandedContentSize() {
         let view = MenuBarPopoverView(state: .defaultState())
 

@@ -222,7 +222,11 @@ final class MenuBarController: NSObject {
     }
 
     private func showAppWindow() {
-        let controller = dashboardWindowController ?? AppDashboardWindowController()
+        let controller = dashboardWindowController ?? AppDashboardWindowController(
+            actions: MenuBarActions { [weak self] command in
+                self?.perform(command)
+            }
+        )
         dashboardWindowController = controller
         refreshAppWindow()
         controller.showWindow(nil)
