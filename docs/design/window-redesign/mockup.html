@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer App Window Redesign Mockup</title>
+  <style>
+    :root,
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #111113;
+      --window: #1b1b1f;
+      --panel: #26262b;
+      --panel-2: #202024;
+      --control: #303036;
+      --text: #f3f3f1;
+      --muted: #aaa9a3;
+      --line: #3b3b40;
+      --blue: #5aa7ff;
+      --blue-strong: #1f7bd9;
+      --green: #75d99b;
+      --amber: #f1c45f;
+      --red: #ff6b6b;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
+    }
+
+    body[data-theme="light"] {
+      color-scheme: light;
+      --page: #eef0f3;
+      --window: #f7f7f8;
+      --panel: #ffffff;
+      --panel-2: #f1f2f4;
+      --control: #f7f7f8;
+      --text: #1f2328;
+      --muted: #66707a;
+      --line: #d6d9de;
+      --blue: #0f75d3;
+      --blue-strong: #0b70c9;
+      --green: #196b39;
+      --amber: #8a5b00;
+      --red: #b42318;
+      --shadow: 0 22px 48px rgba(21, 30, 45, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      background: var(--page);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .window {
+      width: min(760px, 100%);
+      height: 560px;
+      display: grid;
+      grid-template-rows: 50px 1fr 46px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: var(--window);
+      box-shadow: var(--shadow);
+    }
+
+    body[data-theme="light"] .window {
+      border-color: rgba(30, 42, 60, 0.12);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      height: 50px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28c840; }
+
+    .window-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .theme-toggle {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--window);
+    }
+
+    .theme-toggle button {
+      height: 26px;
+      min-width: 58px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    body[data-theme="dark"] .theme-toggle button[data-theme-button="dark"],
+    body[data-theme="light"] .theme-toggle button[data-theme-button="light"] {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .page {
+      display: none;
+      min-width: 0;
+      min-height: 0;
+      padding: 20px;
+    }
+
+    .page.active {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+    }
+
+    .home-layout {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: start;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.15;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    .subtitle,
+    .caption {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status-cluster {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 8px;
+      align-items: start;
+      justify-content: end;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      border: 1px solid rgba(117, 217, 155, 0.35);
+      border-radius: 8px;
+      background: rgba(117, 217, 155, 0.12);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge.warn {
+      border-color: rgba(241, 196, 95, 0.42);
+      background: rgba(241, 196, 95, 0.12);
+      color: var(--amber);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .tile {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 9px;
+      min-height: 144px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tile:focus-visible,
+    .back:focus-visible,
+    .action:focus-visible,
+    .theme-toggle button:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .tile:hover {
+      border-color: color-mix(in srgb, var(--blue) 56%, var(--line));
+      background: color-mix(in srgb, var(--panel) 86%, var(--blue) 14%);
+    }
+
+    .glyph {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--control);
+    }
+
+    .glyph::before,
+    .glyph::after {
+      content: "";
+      position: absolute;
+      background: var(--blue);
+    }
+
+    .glyph.display::before {
+      left: 7px;
+      top: 8px;
+      width: 20px;
+      height: 13px;
+      border: 2px solid var(--blue);
+      border-radius: 3px;
+      background: transparent;
+    }
+
+    .glyph.display::after {
+      left: 12px;
+      bottom: 7px;
+      width: 10px;
+      height: 2px;
+      border-radius: 2px;
+    }
+
+    .glyph.automation::before {
+      left: 8px;
+      top: 8px;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .glyph.automation::after {
+      left: 16px;
+      top: 11px;
+      width: 2px;
+      height: 11px;
+      transform: rotate(38deg);
+      transform-origin: bottom;
+    }
+
+    .glyph.shortcuts::before {
+      left: 7px;
+      top: 9px;
+      width: 20px;
+      height: 16px;
+      border: 2px solid var(--blue);
+      border-radius: 4px;
+      background: transparent;
+    }
+
+    .glyph.shortcuts::after {
+      left: 11px;
+      top: 14px;
+      width: 12px;
+      height: 2px;
+      box-shadow: 0 5px 0 var(--blue);
+    }
+
+    .glyph.startup::before {
+      left: 10px;
+      top: 8px;
+      width: 14px;
+      height: 18px;
+      border: 2px solid var(--blue);
+      border-top-left-radius: 9px;
+      border-top-right-radius: 9px;
+      background: transparent;
+    }
+
+    .glyph.startup::after {
+      left: 15px;
+      top: 13px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      box-shadow: 0 7px 0 var(--blue);
+    }
+
+    .glyph.diagnostics::before {
+      left: 9px;
+      top: 7px;
+      width: 16px;
+      height: 20px;
+      border: 2px solid var(--blue);
+      border-radius: 3px;
+      background: transparent;
+    }
+
+    .glyph.diagnostics::after {
+      left: 13px;
+      top: 13px;
+      width: 8px;
+      height: 2px;
+      box-shadow: 0 5px 0 var(--blue);
+    }
+
+    .tile .meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .tile .value {
+      align-self: end;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .tile .value.warn {
+      color: var(--amber);
+    }
+
+    .detail {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    .detail-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .back,
+    .action {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .action.primary {
+      border-color: var(--blue-strong);
+      background: var(--blue-strong);
+      color: #fff;
+    }
+
+    .action.warn {
+      border-color: rgba(241, 196, 95, 0.42);
+      background: rgba(241, 196, 95, 0.12);
+      color: var(--amber);
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .panel-grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .panel {
+      min-height: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .field-list,
+    .log-list,
+    .schedule-list,
+    .shortcut-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .box {
+      min-height: 34px;
+      display: grid;
+      align-items: center;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 68px 1fr 1fr;
+      gap: 8px;
+      align-items: center;
+      min-height: 36px;
+    }
+
+    .track {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 8px;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 12px;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar {
+      height: 7px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 74%, transparent);
+    }
+
+    .fill {
+      width: var(--value);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 1fr 62px 84px;
+      gap: 8px;
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .shortcut-row.header {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--blue-strong);
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .key {
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .log {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 10px;
+      min-height: 34px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .log strong {
+      color: var(--amber);
+    }
+
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 46px;
+      padding: 0 16px;
+      border-top: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 0;
+        place-items: stretch;
+      }
+
+      .window {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .card-grid,
+      .panel-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .window {
+        overflow: auto;
+      }
+
+      .field,
+      .row,
+      .shortcut-row,
+      .detail-head,
+      .hero,
+      .footer {
+        grid-template-columns: 1fr;
+      }
+
+      .status-cluster {
+        justify-content: start;
+      }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <main class="window" aria-label="InnosDimmer app window mockup">
+    <header class="titlebar">
+      <div class="traffic" aria-hidden="true">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      <div class="window-title">InnosDimmer</div>
+      <div class="theme-toggle" aria-label="Theme preview">
+        <button type="button" data-theme-button="dark">Dark</button>
+        <button type="button" data-theme-button="light">Light</button>
+      </div>
+    </header>
+
+    <section class="page active" data-page="home" aria-label="Home">
+      <div class="home-layout">
+        <div class="hero">
+          <div>
+            <h1>Control Center</h1>
+            <p class="subtitle">27QA100M over HDMI. Overlay active. Gamma blue reduction available.</p>
+          </div>
+          <div class="status-cluster">
+            <span class="badge">Ready</span>
+            <span class="badge warn">Paused until 19:00</span>
+            <span class="badge">Login item on</span>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <button class="tile" type="button" data-go="display">
+            <span class="glyph display" aria-hidden="true"></span>
+            <h3>Display</h3>
+            <span class="meta">Choose the target external monitor and refresh detection.</span>
+            <span class="value">27QA100M selected</span>
+          </button>
+
+          <button class="tile" type="button" data-go="automation">
+            <span class="glyph automation" aria-hidden="true"></span>
+            <h3>Automation</h3>
+            <span class="meta">Time-based dimming schedule, pause, and resume state.</span>
+            <span class="value warn">Paused</span>
+          </button>
+
+          <button class="tile" type="button" data-go="shortcuts">
+            <span class="glyph shortcuts" aria-hidden="true"></span>
+            <h3>Shortcuts</h3>
+            <span class="meta">Global hotkeys for brightness, blue reduction, and restore.</span>
+            <span class="value">6 enabled</span>
+          </button>
+
+          <button class="tile" type="button" data-go="startup">
+            <span class="glyph startup" aria-hidden="true"></span>
+            <h3>Startup</h3>
+            <span class="meta">Keep the app available from the macOS menu bar after login.</span>
+            <span class="value">Launch at login enabled</span>
+          </button>
+
+          <button class="tile" type="button" data-go="diagnostics">
+            <span class="glyph diagnostics" aria-hidden="true"></span>
+            <h3>Diagnostics</h3>
+            <span class="meta">Recent failures, verification matrix, and local JSON export.</span>
+            <span class="value">0 errors</span>
+          </button>
+
+          <div class="tile" aria-label="Current snapshot">
+            <span class="glyph display" aria-hidden="true"></span>
+            <h3>Current snapshot</h3>
+            <span class="meta">Brightness 45 percent. Blue reduction 32 percent. Software overlay active.</span>
+            <span class="value">Last saved 17:54</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="display" aria-label="Display page">
+      <div class="detail">
+        <header class="detail-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <div>
+            <h2>Display</h2>
+            <p class="subtitle">Target the external monitor without mixing in automation or shortcuts.</p>
+          </div>
+          <button class="action primary" type="button">Refresh displays</button>
+        </header>
+        <div class="panel-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Target display</h3>
+              <span class="badge">Resolved</span>
+            </div>
+            <div class="field-list">
+              <div class="field"><div class="label">Selection</div><div class="box">Automatic external display</div></div>
+              <div class="field"><div class="label">Resolved to</div><div class="box">27QA100M - HDMI - Display 2</div></div>
+              <div class="field"><div class="label">Main display</div><div class="box">No</div></div>
+              <div class="field"><div class="label">Gamma table</div><div class="box">Supported, 1024 samples</div></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Current dimming</h3>
+              <span class="badge">Active</span>
+            </div>
+            <div class="field-list">
+              <div class="field"><div class="label">Overlay</div><div class="box">45 percent perceived brightness</div></div>
+              <div class="field"><div class="label">Blue reduction</div><div class="box">32 percent gamma reduction</div></div>
+              <div class="field"><div class="label">Fallback</div><div class="box">Software overlay remains available</div></div>
+              <div class="field"><div class="label">Last apply</div><div class="box">17:54 - Settings saved</div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="automation" aria-label="Automation page">
+      <div class="detail">
+        <header class="detail-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <div>
+            <h2>Automation</h2>
+            <p class="subtitle">Keep the schedule visible without turning the whole window into a scroll form.</p>
+          </div>
+          <button class="action warn" type="button">Resume automation</button>
+        </header>
+        <div class="panel-grid one">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>Schedule</h3>
+                <p class="caption">Next change at 19:00. Automation is paused by the user.</p>
+              </div>
+              <button class="action primary" type="button">Open editor</button>
+            </div>
+            <div class="schedule-list">
+              <div class="row"><div class="box">09:00</div><div class="track"><span>80%</span><div class="bar"><div class="fill" style="--value: 80%"></div></div></div><div class="track"><span>12%</span><div class="bar"><div class="fill" style="--value: 12%"></div></div></div></div>
+              <div class="row"><div class="box">19:00</div><div class="track"><span>45%</span><div class="bar"><div class="fill" style="--value: 45%"></div></div></div><div class="track"><span>32%</span><div class="bar"><div class="fill" style="--value: 32%"></div></div></div></div>
+              <div class="row"><div class="box">23:00</div><div class="track"><span>25%</span><div class="bar"><div class="fill" style="--value: 25%"></div></div></div><div class="track"><span>58%</span><div class="bar"><div class="fill" style="--value: 58%"></div></div></div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="shortcuts" aria-label="Shortcuts page">
+      <div class="detail">
+        <header class="detail-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <div>
+            <h2>Shortcuts</h2>
+            <p class="subtitle">Edit keyboard controls in one dedicated page, then save once.</p>
+          </div>
+          <div class="footer-actions">
+            <button class="action primary" type="button">Save</button>
+            <button class="action" type="button">Reset</button>
+          </div>
+        </header>
+        <div class="panel-grid one">
+          <section class="panel">
+            <div class="shortcut-list">
+              <div class="shortcut-row header"><div>Action</div><div>On</div><div>Key</div></div>
+              <div class="shortcut-row"><div>Brightness up</div><div class="toggle"></div><div class="key">Opt Shift +</div></div>
+              <div class="shortcut-row"><div>Brightness down</div><div class="toggle"></div><div class="key">Opt Shift -</div></div>
+              <div class="shortcut-row"><div>Blue reduction up</div><div class="toggle"></div><div class="key">Opt Shift ]</div></div>
+              <div class="shortcut-row"><div>Blue reduction down</div><div class="toggle"></div><div class="key">Opt Shift [</div></div>
+              <div class="shortcut-row"><div>Quick disable overlay</div><div class="toggle"></div><div class="key">Opt Shift Q</div></div>
+              <div class="shortcut-row"><div>Restore previous dimming</div><div class="toggle"></div><div class="key">Opt Shift R</div></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="startup" aria-label="Startup page">
+      <div class="detail">
+        <header class="detail-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <div>
+            <h2>Startup</h2>
+            <p class="subtitle">Keep the menu bar app available after macOS login.</p>
+          </div>
+          <button class="action primary" type="button">Update</button>
+        </header>
+        <div class="panel-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Launch at login</h3>
+              <span class="badge">Enabled</span>
+            </div>
+            <div class="field-list">
+              <div class="field"><div class="label">State</div><div class="box">Launch at login: enabled</div></div>
+              <div class="field"><div class="label">Approval</div><div class="box">No System Settings approval needed</div></div>
+              <div class="field"><div class="label">Behavior</div><div class="box">InnosDimmer opens in the menu bar after login</div></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h3>What this does</h3>
+              <span class="badge warn">Note</span>
+            </div>
+            <p class="caption">This does not make the app impossible to quit. It only starts the app again after the next macOS login.</p>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="diagnostics" aria-label="Diagnostics page">
+      <div class="detail">
+        <header class="detail-head">
+          <button class="back" type="button" data-go="home">&larr; Back</button>
+          <div>
+            <h2>Diagnostics</h2>
+            <p class="subtitle">A readable failure log inside the app window, with export still available.</p>
+          </div>
+          <button class="action primary" type="button">Export JSON</button>
+        </header>
+        <div class="panel-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Verification</h3>
+              <span class="badge">0 errors</span>
+            </div>
+            <div class="field-list">
+              <div class="field"><div class="label">Overlay</div><div class="box">Applied</div></div>
+              <div class="field"><div class="label">Gamma</div><div class="box">Applied</div></div>
+              <div class="field"><div class="label">Hotkeys</div><div class="box">Registered</div></div>
+              <div class="field"><div class="label">Login item</div><div class="box">Enabled</div></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h3>Recent log</h3>
+              <button class="action" type="button">Copy latest</button>
+            </div>
+            <div class="log-list">
+              <div class="log"><span>17:54</span><span>Settings saved.</span></div>
+              <div class="log"><span>17:53</span><span>Gamma table restored before applying new blue reduction.</span></div>
+              <div class="log"><span>17:48</span><span><strong>Warning</strong> automation paused until 19:00.</span></div>
+              <div class="log"><span>17:45</span><span>Shortcut monitor registered 6 bindings.</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span id="footer-status">Home: choose a settings area. No scrolling needed at the preferred window size.</span>
+      <div class="footer-actions">
+        <button class="action" type="button" data-go="home">Home</button>
+        <button class="action primary" type="button">Apply changes</button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    const labels = {
+      home: "Home: choose a settings area. No scrolling needed at the preferred window size.",
+      display: "Display page: target monitor and current dimming state.",
+      automation: "Automation page: schedule summary, pause state, and editor entry.",
+      shortcuts: "Shortcuts page: all global key bindings in one place.",
+      startup: "Startup page: Launch at login state and macOS approval guidance.",
+      diagnostics: "Diagnostics page: readable recent failures plus export."
+    };
+
+    function showPage(pageName) {
+      for (const page of document.querySelectorAll("[data-page]")) {
+        page.classList.toggle("active", page.dataset.page === pageName);
+      }
+      document.getElementById("footer-status").textContent = labels[pageName];
+    }
+
+    for (const trigger of document.querySelectorAll("[data-go]")) {
+      trigger.addEventListener("click", () => showPage(trigger.dataset.go));
+    }
+
+    for (const button of document.querySelectorAll("[data-theme-button]")) {
+      button.addEventListener("click", () => {
+        document.body.dataset.theme = button.dataset.themeButton;
+      });
+    }
+  </script>
+</body>
+</html>
