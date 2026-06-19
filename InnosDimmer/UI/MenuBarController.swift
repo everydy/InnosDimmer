@@ -130,10 +130,22 @@ final class MenuBarController: NSObject {
             adjust(brightnessDelta: -DimmingStep.brightness, source: source)
         case .brightnessUp:
             adjust(brightnessDelta: DimmingStep.brightness, source: source)
+        case .setBrightness(let brightness):
+            apply(
+                brightness: brightness,
+                warmth: brightnessController.state.targetWarmth,
+                source: source
+            )
         case .warmthDown:
             adjust(warmthDelta: -DimmingStep.warmth, source: source)
         case .warmthUp:
             adjust(warmthDelta: DimmingStep.warmth, source: source)
+        case .setWarmth(let warmth):
+            apply(
+                brightness: brightnessController.state.targetBrightness,
+                warmth: warmth,
+                source: source
+            )
         case .quickDisable:
             quickDisable(source: source)
         case .restorePrevious:

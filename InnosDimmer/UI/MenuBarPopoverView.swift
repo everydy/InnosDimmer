@@ -1,15 +1,29 @@
 import AppKit
 
-enum MenuBarCommand: CaseIterable, Equatable, Hashable {
+enum MenuBarCommand: Equatable, Hashable {
     case brightnessDown
     case brightnessUp
+    case setBrightness(Int)
     case warmthDown
     case warmthUp
+    case setWarmth(Int)
     case pauseAutomation
     case quickDisable
     case restorePrevious
     case openAppWindow
     case openSettings
+
+    static let buttonCommands: [MenuBarCommand] = [
+        .brightnessDown,
+        .brightnessUp,
+        .warmthDown,
+        .warmthUp,
+        .pauseAutomation,
+        .quickDisable,
+        .restorePrevious,
+        .openAppWindow,
+        .openSettings
+    ]
 }
 
 struct MenuBarActions {
@@ -143,6 +157,8 @@ private final class PopoverContainerView: NSView {
 }
 
 private final class ProgressTrackView: NSView {
+    var onUserFractionChange: ((CGFloat) -> Void)?
+
     var fraction: CGFloat = 0 {
         didSet {
             fraction = min(1, max(0, fraction))
@@ -151,7 +167,7 @@ private final class ProgressTrackView: NSView {
     }
 
     override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: 8)
+        NSSize(width: NSView.noIntrinsicMetric, height: 18)
     }
 
     override init(frame frameRect: NSRect) {
@@ -168,22 +184,64 @@ private final class ProgressTrackView: NSView {
         needsDisplay = true
     }
 
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        updateFromEvent(event)
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        updateFromEvent(event)
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let rect = bounds.insetBy(dx: 0, dy: max(0, (bounds.height - 8) / 2))
         let radius = rect.height / 2
+        let fillColor = PopoverPalette.trackFill(for: effectiveAppearance)
 
         PopoverPalette.trackBackground(for: effectiveAppearance).setFill()
         NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
 
-        guard fraction > 0 else {
-            return
+        if fraction > 0 {
+            var fillRect = rect
+            fillRect.size.width = max(rect.height, rect.width * fraction)
+            fillColor.setFill()
+            NSBezierPath(roundedRect: fillRect, xRadius: radius, yRadius: radius).fill()
         }
 
-        var fillRect = rect
-        fillRect.size.width = max(rect.height, rect.width * fraction)
-        PopoverPalette.trackFill(for: effectiveAppearance).setFill()
-        NSBezierPath(roundedRect: fillRect, xRadius: radius, yRadius: radius).fill()
+        let thumbDiameter: CGFloat = 14
+        let thumbX = rect.minX + (rect.width * fraction) - (thumbDiameter / 2)
+        let clampedThumbX = min(max(thumbX, rect.minX), rect.maxX - thumbDiameter)
+        let thumbRect = NSRect(
+            x: clampedThumbX,
+            y: bounds.midY - (thumbDiameter / 2),
+            width: thumbDiameter,
+            height: thumbDiameter
+        )
+        fillColor.setFill()
+        NSBezierPath(ovalIn: thumbRect).fill()
+        PopoverPalette.sectionBackground(for: effectiveAppearance).setStroke()
+        let thumbBorder = NSBezierPath(ovalIn: thumbRect.insetBy(dx: 0.5, dy: 0.5))
+        thumbBorder.lineWidth = 1
+        thumbBorder.stroke()
+    }
+
+    func simulateUserFractionChangeForTesting(_ fraction: CGFloat) {
+        updateFromUserFraction(fraction)
+    }
+
+    private func updateFromEvent(_ event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        updateFromUserFraction(location.x / max(bounds.width, 1))
+    }
+
+    private func updateFromUserFraction(_ newFraction: CGFloat) {
+        fraction = newFraction
+        onUserFractionChange?(fraction)
     }
 }
 
@@ -425,6 +483,14 @@ final class MenuBarPopoverView: NSView {
         shortcutSummaryLabel.stringValue
     }
 
+    func simulateBrightnessTrackChangeForTesting(percent: Int) {
+        brightnessTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    }
+
+    func simulateWarmthTrackChangeForTesting(percent: Int) {
+        warmthTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    }
+
     private func buildLayout() {
         wantsLayer = true
         updateBackground()
@@ -460,6 +526,15 @@ final class MenuBarPopoverView: NSView {
                 )
             ]
         )
+        brightnessTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
+        }
+        warmthTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setWarmth(Self.percent(from: fraction)))
+        }
+        brightnessTrackView.setAccessibilityLabel("Brightness percentage")
+        warmthTrackView.setAccessibilityLabel("Blue reduction percentage")
+
         let scheduleNextChip = chipView(scheduleNextLabel)
         scheduleNextChip.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
         let schedule = makeSection(
@@ -469,11 +544,11 @@ final class MenuBarPopoverView: NSView {
                 automationLabel,
                 makeSummaryRow(title: "Current", value: scheduleSummaryLabel),
                 makeSummaryRow(title: "Shortcuts", value: shortcutSummaryLabel),
+                button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
                 makeActionRow([
-                    button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
-                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
-                ]),
-                button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed)),
+                    button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+                ])
             ]
         )
         let diagnostics = makeSection(
@@ -592,7 +667,7 @@ final class MenuBarPopoverView: NSView {
         stack.spacing = 8
         titleLabel.widthAnchor.constraint(equalToConstant: 112).isActive = true
         valueLabel.widthAnchor.constraint(equalToConstant: 54).isActive = true
-        trackView.heightAnchor.constraint(equalToConstant: 8).isActive = true
+        trackView.heightAnchor.constraint(equalToConstant: 18).isActive = true
         trackView.setContentHuggingPriority(.defaultLow, for: .horizontal)
         trackView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return stack
@@ -664,6 +739,10 @@ final class MenuBarPopoverView: NSView {
         view.setContentHuggingPriority(.defaultLow, for: .horizontal)
         view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return view
+    }
+
+    private static func percent(from fraction: CGFloat) -> Int {
+        Clamped.percent(Int((fraction * 100).rounded()))
     }
 
     private func configureBadge(_ badge: StatusBadgeView) {

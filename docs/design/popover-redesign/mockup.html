@@ -156,16 +156,33 @@
     }
 
     .track {
+      position: relative;
       height: 8px;
-      overflow: hidden;
       border-radius: 999px;
       background: #3a3a3e;
+    }
+
+    body[data-theme="light"] .track {
+      background: #dfe1e4;
     }
 
     .fill {
       height: 100%;
       border-radius: inherit;
       background: var(--blue);
+    }
+
+    .track::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: calc(var(--value) * 1% - 7px);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: 1px solid var(--panel);
+      transform: translateY(-50%);
     }
 
     button {
@@ -223,6 +240,11 @@
       grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-top: 12px;
+    }
+
+    .wide-action {
+      width: 100%;
+      margin-top: 10px;
     }
 
     .diagnostic {
@@ -305,7 +327,7 @@
       <div class="control">
         <div class="label">Brightness</div>
         <div class="value">45%</div>
-        <div class="track" aria-hidden="true"><div class="fill" style="width:45%"></div></div>
+        <div class="track" style="--value:45" aria-label="Brightness 45 percent"><div class="fill" style="width:45%"></div></div>
         <button aria-label="Brightness down">-</button>
         <button aria-label="Brightness up">+</button>
       </div>
@@ -313,7 +335,7 @@
       <div class="control">
         <div class="label">Blue reduction</div>
         <div class="value">32%</div>
-        <div class="track" aria-hidden="true"><div class="fill" style="width:32%"></div></div>
+        <div class="track" style="--value:32" aria-label="Blue reduction 32 percent"><div class="fill" style="width:32%"></div></div>
         <button aria-label="Blue reduction down">-</button>
         <button aria-label="Blue reduction up">+</button>
       </div>
@@ -330,13 +352,10 @@
         <dt>Shortcuts</dt>
         <dd>6 enabled · Option + Shift controls</dd>
       </dl>
+      <button class="warning wide-action">Quick disable</button>
       <div class="action-row">
-        <button class="warning">Quick disable</button>
         <button>Restore previous</button>
-      </div>
-      <div class="action-row">
         <button>Pause automation</button>
-        <button>Resume at next boundary</button>
       </div>
     </section>
 

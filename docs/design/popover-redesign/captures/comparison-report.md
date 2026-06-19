@@ -15,6 +15,7 @@
 | Pass 1 | 75 | Keep | Root sections were constrained to stack width. |
 | Pass 2 | 86 | Keep | Nested rows, action buttons, copy, and diagnostics hierarchy matched the mockup structure. |
 | Pass 3 | 90 | Keep | Header/status labels, schedule trailing label, light/dark palette, and snapshot generation stabilized. |
+| Pass 4 | 93 | Keep | Tracks gained draggable thumbs and absolute percentage commands; schedule actions were regrouped into one full-width warning action plus two balanced secondary actions. |
 
 ## Current Evidence
 

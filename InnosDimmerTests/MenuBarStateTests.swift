@@ -116,7 +116,7 @@ final class MenuBarStateTests: XCTestCase {
             }
         )
 
-        for command in MenuBarCommand.allCases {
+        for command in MenuBarCommand.buttonCommands {
             guard let button = view.commandButtonForTesting(command) else {
                 XCTFail("Missing button for \(command)")
                 continue
@@ -127,7 +127,23 @@ final class MenuBarStateTests: XCTestCase {
             button.performClick(nil)
         }
 
-        XCTAssertEqual(routedCommands, MenuBarCommand.allCases)
+        XCTAssertEqual(routedCommands, MenuBarCommand.buttonCommands)
+    }
+
+    @MainActor
+    func testMenuBarPopoverTracksRouteAbsolutePercentageCommands() {
+        var routedCommands: [MenuBarCommand] = []
+        let view = MenuBarPopoverView(
+            state: .defaultState(),
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+
+        view.simulateBrightnessTrackChangeForTesting(percent: 73)
+        view.simulateWarmthTrackChangeForTesting(percent: 18)
+
+        XCTAssertEqual(routedCommands, [.setBrightness(73), .setWarmth(18)])
     }
 
     @MainActor
@@ -275,6 +291,28 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [85, 85])
         XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 7])
         XCTAssertEqual(brightnessController.state.targetWarmth, 7)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesAbsoluteTrackCommandsThroughBrightnessController() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
+
+        menuBarController.perform(.setBrightness(42))
+        menuBarController.perform(.setWarmth(27))
+
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [42, 42])
+        XCTAssertEqual(software.appliedCommands.map(\.warmth), [12, 27])
+        XCTAssertEqual(brightnessController.state.targetBrightness, 42)
+        XCTAssertEqual(brightnessController.state.targetWarmth, 27)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
     }
 
