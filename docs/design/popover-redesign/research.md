@@ -13,11 +13,12 @@ Prepare a design improvement plan and review mockup for the InnosDimmer menu bar
   - visible labels and action grouping
   - control patterns for brightness and blue reduction
   - design baseline needed before implementation
+  - native AppKit mapping from the HTML mockup to the real menu bar popover
   - static HTML mockup for review
   - rendered PNG preview for quick visual review
   - dark-mode redesign direction
 - Out of scope:
-  - AppKit implementation changes
+  - AppKit implementation changes in this research pass
   - gamma algorithm changes
   - settings window redesign
   - app dashboard redesign
@@ -142,11 +143,66 @@ The redesign must preserve `MenuBarCommand.allCases`, existing routing tests, an
   - https://developer.apple.com/design/human-interface-guidelines/designing-for-macos
   - https://developer.apple.com/design/human-interface-guidelines/menus-and-actions
 
+## Native AppKit Transfer Research
+
+The HTML mockup is a review artifact, not the implementation surface. The real product surface is `NSPopover` content backed by `MenuBarPopoverView.swift`, so the implementation should translate the mockup into AppKit primitives instead of embedding web content.
+
+### HTML Mockup Element To AppKit Mapping
+
+| Mockup element | Native implementation target | Notes |
+| --- | --- | --- |
+| `.popover` fixed 480 x 620 shell | `MenuBarPopoverView.preferredContentSize` and root `NSStackView` constraints | Keep the existing preferred size unless native verification shows clipping. |
+| Header grid | Horizontal/vertical nested `NSStackView` | Use title, selected display summary, and mode badge. Do not keep hard-coded `27QA100M` as the title. |
+| `.badge` / `.chip` | Styled `NSTextField` or small `NSView` wrapper with `CALayer` background | Reuse `StatusBadgeView` vocabulary; style it in the popover layer. |
+| `.section` groups | Private `section(...) -> NSView` helper | Functional grouping is acceptable; keep radius <= 8 px and avoid nested decorative cards. |
+| Brightness/blue `.control` rows | `controlGroup(...)` helper with label, value, progress track, decrement, increment | Current command model is relative step buttons, so first pass should not use absolute sliders. |
+| `.track` / `.fill` | Custom `ProgressTrackView` or noninteractive `NSProgressIndicator` | Custom view gives closer sizing and color control. It should expose testable `fraction`. |
+| `-` / `+` buttons | Existing `MenuBarCommand.brightnessDown/up` and `warmthDown/up` buttons | Preserve `commandButtons` so routing tests continue to prove every command is wired. |
+| Schedule/shortcut summary grid | Two-column `NSStackView` rows or compact `NSTextField` pairs | Keep wrapping labels because schedule strings can be long. |
+| Diagnostics block | Existing `diagnosticsSummaryLabel` in a styled summary row | Do not duplicate app-window diagnostics log rendering. |
+| Footer action buttons | Existing `openAppWindow` and `openSettings` command buttons | Keep `Open app window` primary because detailed diagnostics live there. |
+
+### Light And Dark Behavior
+
+The previous light mockup and current dark mockup should become appearance variants of the same native view, not two separate Swift layouts. The implementation should use dynamic AppKit colors where possible:
+
+- root/background: `NSColor.windowBackgroundColor` or a popover-specific dynamic color
+- section fill: `NSColor.controlBackgroundColor`
+- primary text: `NSColor.labelColor`
+- secondary text: `NSColor.secondaryLabelColor`
+- separators: `NSColor.separatorColor`
+- accent/fill: `NSColor.controlAccentColor`
+
+If these system colors do not provide enough contrast in the actual popover, add a small private dynamic palette in `MenuBarPopoverView` and resolve colors from `effectiveAppearance`. That palette should still keep one layout and one command path.
+
+### Interaction Boundary
+
+The HTML track looks like a slider, but the existing app has only relative commands:
+
+- `brightnessDown`
+- `brightnessUp`
+- `warmthDown`
+- `warmthUp`
+
+Therefore the implementation-ready first pass should render track-style progress indicators plus `-` and `+` buttons. A true `NSSlider` should be a later commit because it needs absolute-value commands, controller routing, persistence expectations, accessibility labels, and tests for value snapping.
+
+### Native Verification Needed
+
+HTML preview is insufficient for final approval. After AppKit implementation, the verification pass must inspect the actual popover or an AppKit-rendered test harness for:
+
+- no clipping inside the `480 x 620` popover
+- light and dark appearance readability
+- all command buttons visible and clickable
+- track fractions update after `update(...)`
+- accessibility labels for compact `-` and `+` controls
+- diagnostics and schedule labels wrap without pushing actions out of view
+
 ## Open Questions
 
 - Should the first implementation include real `NSSlider` controls, or should it keep buttons but restyle them into compact stepper rows first?
 - Should popover diagnostics show only the latest warning/error, or always show the latest event regardless of severity?
 - Should the popover include the next scheduled boundary time as a prominent chip?
+- Should the app force a dark popover for dimming context, or follow the user's macOS light/dark appearance? Research recommendation: follow system appearance with both light and dark palettes.
 
 ## Plan Implications
 
@@ -161,11 +217,13 @@ Recommended plan:
 3. Introduce a reusable control row pattern in AppKit:
    - label
    - current value
-   - slider or stable track mock
+   - noninteractive progress track
    - decrement/increment buttons
 4. Keep `commandButtonForTesting(_:)` or add equivalent test hooks for every command.
-5. Update tests for preferred size, visible strings, command routing, and no-clipping expectations.
-6. Run full `xcodebuild test -scheme InnosDimmer` after implementation.
+5. Add a lightweight `ProgressTrackView` or equivalent AppKit-only view so the HTML slider visual does not require a new command model.
+6. Use dynamic light/dark colors in one native layout rather than separate Swift implementations.
+7. Update tests for preferred size, visible strings, command routing, track fractions, and no-clipping expectations.
+8. Run targeted tests first, then Release build after implementation.
 
 ## Evidence
 
@@ -183,7 +241,8 @@ Recommended plan:
   - Apple HIG Layout: https://developer.apple.com/design/human-interface-guidelines/layout
   - Apple HIG Designing for macOS: https://developer.apple.com/design/human-interface-guidelines/designing-for-macos
   - Apple HIG Menus and actions: https://developer.apple.com/design/human-interface-guidelines/menus-and-actions
+  - Apple HIG Materials search result checked on 2026-06-19: https://developer.apple.com/design/Human-Interface-Guidelines/materials
 - Insufficient evidence:
   - Browser Playwright rendering could not use the bundled browser or local Chrome in this environment, so the preview screenshot was generated with macOS Quick Look.
-  - The HTML mockup has not been converted into AppKit constraints yet.
+  - The HTML mockup has not been converted into AppKit constraints yet; this research now defines the intended mapping, but native screenshots still need implementation.
   - Actual accessibility tree and keyboard focus order still need verification after implementation.
