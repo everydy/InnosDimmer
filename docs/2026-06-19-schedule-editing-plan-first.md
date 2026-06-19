@@ -8,6 +8,7 @@ Make schedule editing easier by splitting it into the right UI surfaces:
 - Schedule window: edit only schedule rows.
 - App dashboard: edit schedule inline without opening another window.
 - Settings window: remain general settings and stop being the primary schedule editor.
+- Schedule add/remove rows: defer to the next plan; this plan implements editing existing schedule values and the correct save/routing surfaces first.
 
 후행 실행: `구현커밋`
 
@@ -40,6 +41,7 @@ Make schedule editing easier by splitting it into the right UI surfaces:
   - Add a schedule-specific command/action and shared schedule editor component.
   - Route popover `Edit schedule` to a focused schedule window.
   - Embed the same editor behavior inline in the dashboard.
+  - Keep current-state controls in the dashboard; the dashboard is an expanded popover, not an automation-only screen.
   - Demote schedule editing in Settings to a summary + open schedule editor, or reuse the same component if schedule remains visible there.
 
 ## Operator 결정 필요 사항
@@ -48,12 +50,12 @@ Make schedule editing easier by splitting it into the right UI surfaces:
 
 - 맥락: 현재 `SettingsWindowController.Layout.scheduleEntryCount = 3`이고 기본 스케줄도 3개다.
 - 선택지:
-  - A. v1은 3행 고정, add/remove는 목업에만 미래 힌트로 둔다.
-  - B. v1부터 add/remove를 실제 구현한다.
-  - C. 행 개수는 Settings와 동일하게 유지하되 코드만 확장 가능하게 만든다.
-- 추천안: C.
-- 기본값: C.
-- 보류 시 영향: C로 가면 저장 모델은 그대로 쓰고, UI 구현은 3행을 렌더링하되 공유 컴포넌트가 나중에 add/remove를 받을 수 있게 설계한다.
+  - A. 이번 plan은 3행 값 편집과 저장 흐름만 구현하고, add/remove 실제 구현은 다음 plan으로 넘긴다.
+  - B. 이번 plan에서 add/remove까지 실제 구현한다.
+  - C. add/remove UI도 목업에서 제거하고 3행 고정만 보여준다.
+- 추천안: A.
+- 기본값: A.
+- 보류 시 영향: A로 가면 이번 구현 범위가 작아지고 안전해진다. 다음 plan에서 `ScheduleEntry` 동적 행 추가/삭제 UX, validation, 테스트를 별도 단위로 다룬다.
 
 ### 결정 2: Settings 창의 schedule 섹션 처리
 
@@ -72,18 +74,18 @@ Make schedule editing easier by splitting it into the right UI surfaces:
 
 | Surface | New role | What changes |
 | --- | --- | --- |
-| Popover | quick controls + schedule entry point | Add `Edit schedule`; keep summary; do not inline schedule table. |
-| Schedule window | focused schedule editor | New window/controller for schedule rows only. |
-| App dashboard | full control surface | Add inline editable schedule rows next to current state/diagnostics. |
+| Popover | quick controls + schedule entry point | Add `Edit schedule` beside `Pause automation`; put `Quick disable` beside `Restore previous`; keep summary; do not inline schedule table. |
+| Schedule window | focused schedule editor | New window/controller for existing schedule rows only; add/remove is visible as next-plan scope, not implemented in this plan. |
+| App dashboard | expanded popover/full control surface | Keep current-state brightness/blue controls and add inline editable schedule rows next to diagnostics. |
 | Settings | general preferences | Display, shortcuts, login item, diagnostics; schedule becomes secondary navigation. |
 
 ### Review Artifact Notes
 
 The HTML mockup shows three states together:
 
-1. Popover with `Edit schedule`.
-2. Dedicated `InnosDimmer Schedule` window.
-3. Dashboard with inline `Inline automation schedule`.
+1. Popover with `Edit schedule` + `Pause automation`, then `Quick disable` + `Restore previous`.
+2. Dedicated `InnosDimmer Schedule` window for existing schedule rows.
+3. Dashboard with current-state controls and inline `Inline automation schedule`.
 
 It uses the existing dark-first visual language from the popover/dashboard redesign and includes a light-theme preview.
 
@@ -136,9 +138,9 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 | Phase | Required skills | Optional skills | Evidence |
 | --- | --- | --- | --- |
 | Commit 1: Add schedule command and focused editor shell | `구현커밋` | `design-redesign` | Needs new command routing and AppKit shell based on `docs/design/schedule-editing/mockup.html`. |
-| Commit 2: Extract shared schedule editor component | `구현커밋` | `review-all-in-one` | Prevents duplicate parsing across Settings, Schedule window, and Dashboard. |
+| Commit 2: Extract fixed-row shared schedule editor component | `구현커밋` | `review-all-in-one` | Prevents duplicate parsing across Settings, Schedule window, and Dashboard while deferring add/remove rows. |
 | Commit 3: Wire popover and schedule window save flow | `구현커밋` | `테스트` | Must preserve `MenuBarController.saveSchedule(_:)` side effects from research. |
-| Commit 4: Add dashboard inline schedule editing | `구현커밋` | `design-a11y-qa` | Dashboard becomes direct editing surface and needs layout/overflow checks. |
+| Commit 4: Add dashboard current-state plus inline schedule editing | `구현커밋` | `design-a11y-qa` | Dashboard must remain an expanded popover with current controls plus schedule editing, and needs layout/overflow checks. |
 | Commit 5: Demote schedule from Settings and update tests | `구현커밋` | `review-all-in-one` | Settings role changes and existing settings tests must be updated. |
 | Final Gate | `테스트`, `review-all-in-one` | `qa-gate` | Run focused UI tests, full `xcodebuild test`, Release build, and visual snapshot review. |
 
@@ -154,6 +156,9 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - 변경:
   - Add `MenuBarCommand.openScheduleEditor`.
   - Add a popover `Edit schedule` button in the Schedule section.
+  - Re-layout Schedule actions as:
+    - Row 1: `Edit schedule` + `Pause automation`
+    - Row 2: `Quick disable` + `Restore previous`
   - Add `MenuBarController.showScheduleEditor()` that configures a schedule-only window.
   - The shell can initially render current schedule summary and disabled controls if shared editor extraction happens in Commit 2.
 - 검증:
@@ -165,7 +170,7 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - 중단 조건:
   - If current dirty working tree changes already modify `MenuBarCommand`, re-read and integrate rather than overwrite.
 
-### Commit 2: Extract shared schedule editor component
+### Commit 2: Extract fixed-row shared schedule editor component
 
 - 대상 파일:
   - new `InnosDimmer/UI/ScheduleEditorView.swift` or local nested view if project style prefers it
@@ -174,6 +179,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - schedule-related UI tests
 - 변경:
   - Move schedule row rendering/parsing out of `SettingsWindowController`.
+  - Keep this implementation scoped to the existing schedule rows.
+  - Do not implement add/remove rows in this plan; leave extension points or disabled affordance only if useful.
   - Keep `HH:mm` validation and percent validation equivalent to existing behavior.
   - Render time, brightness, and blue reduction controls with stable dimensions.
 - 검증:
@@ -182,6 +189,7 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - 성공 기준:
   - One schedule editor helper feeds Settings/Schedule window/Dashboard.
   - Validation messages remain specific enough for row-level correction.
+  - No add/remove persistence behavior is introduced in this plan.
 - 중단 조건:
   - If extracting the component requires a broad Settings rewrite, split the extraction into a smaller compatibility wrapper first.
 
@@ -205,14 +213,16 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - 중단 조건:
   - If save flow bypasses `applyScheduleDecision()` or timer rescheduling, stop and revise.
 
-### Commit 4: Add dashboard inline schedule editing
+### Commit 4: Add dashboard current-state plus inline schedule editing
 
 - 대상 파일:
   - `InnosDimmer/UI/MenuBarPopoverView.swift` or new dashboard file if split first
   - `InnosDimmerTests/MenuBarStateTests.swift`
   - dashboard snapshot capture files
 - 변경:
-  - Replace dashboard schedule summary-only row with inline schedule editor section.
+  - Preserve dashboard current-state editing controls for brightness and blue reduction.
+  - Preserve current-state action access, including `Quick disable`, `Restore previous`, `Pause automation`, and `Settings`.
+  - Replace dashboard schedule summary-only row with inline schedule editor section below/alongside current-state controls.
   - Add dashboard `Save schedule` action.
   - Keep current state, action buttons, diagnostics visible and unclipped.
 - 검증:
@@ -221,6 +231,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - `xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateTests`
 - 성공 기준:
   - Dashboard can edit schedule without opening the schedule window.
+  - Dashboard can still edit current brightness and blue reduction without losing the current-state component.
+  - Dashboard still exposes the same manual action family as the popover, not just automation controls.
   - The schedule editor uses same validation and save path.
 - 중단 조건:
   - If dashboard height grows beyond usable desktop size, switch to a scrollable content view before adding more controls.
@@ -249,6 +261,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 
 - Alternative considered: Inline schedule editing directly inside the popover.
   - Rejected because it conflicts with the active design decision that popover is compact quick control.
+- Alternative considered: Implement add/remove schedule rows in this plan.
+  - Deferred because it deserves a separate plan covering dynamic row UX, validation, persistence edge cases, and tests.
 - Alternative considered: Leave schedule editing only in Settings.
   - Rejected because it does not satisfy the user’s requested flow.
 - Why this plan:
@@ -257,6 +271,7 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - More UI surfaces need synchronization, but a shared schedule editor view reduces duplication.
 - What this plan may still miss:
   - Exact native AppKit choice for time input: text field, stepper, date picker, or combo.
+  - Dynamic add/remove row behavior, intentionally moved to the next plan.
 - When to stop and revise:
   - Stop if the shared editor component cannot be extracted without breaking existing settings tests.
   - Stop if schedule save flow does not trigger current runtime apply/timer behavior.
@@ -277,5 +292,28 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Check that no view writes `UserDefaults` directly.
   - Check dashboard/window layout under dark and light appearances.
 - Operator 재확인:
-  - Confirm whether v1 should ship fixed three rows or actual add/remove rows.
+  - Confirm that add/remove schedule rows is handled by the next plan, not this one.
   - Confirm whether Settings should remove schedule editing immediately or after Schedule window feels right.
+
+## Next Plan Backlog
+
+### Dynamic schedule rows: add/remove actual implementation
+
+- Goal:
+  - Let the user add and remove schedule rows for real, not just adjust existing rows.
+- Needs research:
+  - Minimum/maximum row count.
+  - Empty schedule handling versus current `SettingsPersistenceError.emptySchedule`.
+  - Duplicate time behavior.
+  - Sort order and focus behavior after add/remove.
+- Likely files:
+  - `ScheduleEditorView`
+  - `SettingsSnapshot`
+  - `DisplayTargetStore`
+  - `ScheduleEngineTests`
+  - `DisplayTargetStoreTests`
+  - UI snapshot tests
+- Verification:
+  - Add row creates a valid default row.
+  - Remove row cannot create invalid empty schedule.
+  - Save sorts rows and preserves runtime schedule side effects.

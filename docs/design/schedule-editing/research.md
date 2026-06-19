@@ -7,8 +7,10 @@ Define a plan-ready UX and implementation direction for making schedule editing 
 The user intent is:
 
 - The popover should expose a clear schedule entry point, not inline full schedule editing.
+- The popover should still include the existing emergency/manual actions: `Quick disable`, `Restore previous`, and `Pause automation`.
 - A dedicated schedule window should open from that entry point and focus only on schedule editing.
 - The app dashboard window should allow schedule editing inline without requiring a separate click into settings.
+- The app dashboard must remain an expanded popover: it keeps editable current-state brightness/blue-reduction controls while adding inline schedule editing.
 - The existing Settings window should stop being the main place for schedule editing, or should demote schedule editing to a secondary entry point.
 
 ## Scope And Entry Points
@@ -140,6 +142,8 @@ Any new schedule UI must route through `MenuBarController.saveSchedule(_:)` or a
 - Duplicating schedule parsing in multiple views can create inconsistent validation messages and different accepted input.
 - Bypassing `MenuBarController.saveSchedule(_:)` can persist rows without updating the active runtime schedule or timer.
 - Adding inline schedule controls to the popover would conflict with the active design decision that the popover is a compact quick-control surface.
+- Dropping `Quick disable` from the popover would remove an existing manual safety/action path that belongs with schedule pause/restore actions.
+- Replacing dashboard current-state controls with schedule-only editing would make the app window less capable than the current expanded dashboard direction.
 - Growing the dashboard window without scroll or stable constraints can reintroduce clipping problems already fixed in earlier dashboard work.
 - A schedule-only window that also edits shortcuts/display/login would duplicate the Settings window and weaken the user's requested separation.
 
@@ -149,13 +153,15 @@ Any new schedule UI must route through `MenuBarController.saveSchedule(_:)` or a
 - Do not write schedule to `UserDefaults` directly.
 - Do not create a second schedule persistence key.
 - Do not make the popover a full schedule table.
+- Do not remove `Quick disable` or `Restore previous` from the popover action set.
+- Do not turn the app dashboard into an automation-only editor; keep current-state controls editable.
 - Do not keep schedule editing only inside `SettingsWindowController`.
 - Do not add schedule controls that fail to call `applyScheduleDecision()` and timer rescheduling indirectly through the controller save path.
 
 ## Open Questions
 
 - Should schedule editing stay limited to exactly three rows for the next implementation, matching current `SettingsWindowController`, or should the new schedule editor allow add/remove rows?
-  - Recommendation: implement add/remove in the UI only if the persistence and tests are updated in the same commit; otherwise keep three rows for the first cut.
+  - Decision after operator feedback: keep this plan focused on existing row value editing and move actual add/remove implementation into a follow-up plan.
 - Should the dedicated schedule window be modal, panel-style, or a normal titled utility window?
   - Recommendation: normal titled utility window, because the user may want to compare it with the app dashboard.
 - Should saving a schedule immediately apply the active entry?
@@ -168,12 +174,17 @@ Recommended UX split:
 1. Popover:
    - Keep summary and next schedule chip.
    - Add a clear `Edit schedule` button in the Schedule section.
+   - Use two action rows:
+     - `Edit schedule` + `Pause automation`
+     - `Quick disable` + `Restore previous`
    - Keep `Settings` as general settings, not schedule-first.
 2. Dedicated Schedule window:
    - New schedule-only editor.
-   - Three current rows in v1, with clear future-compatible row controls.
+   - Existing schedule rows in this plan.
+   - Actual add/remove row implementation belongs to the next plan.
    - Save uses the same runtime save path as Settings.
 3. App dashboard:
+   - Keep current-state brightness and blue-reduction controls editable.
    - Convert schedule summary into inline editable rows.
    - Keep diagnostics, current state, and action controls visible.
    - Use the shared schedule editor component or helper to avoid divergent behavior.

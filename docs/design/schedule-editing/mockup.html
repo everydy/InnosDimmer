@@ -315,6 +315,11 @@
       font-weight: 720;
     }
 
+    button:disabled {
+      opacity: 0.58;
+      cursor: default;
+    }
+
     .primary {
       border-color: var(--blue-strong);
       background: var(--blue-strong);
@@ -508,6 +513,10 @@
       grid-column: 1 / -1;
     }
 
+    .dashboard-current {
+      min-height: 100%;
+    }
+
     .mini-log {
       min-height: 110px;
       padding: 10px;
@@ -560,7 +569,7 @@
         <div class="decision">
           <div class="decision-row"><span class="num">1</span><span>Popover keeps schedule compact and adds a single <strong>Edit schedule</strong> action.</span></div>
           <div class="decision-row"><span class="num">2</span><span>The new Schedule window owns focused schedule editing and uses the existing save path.</span></div>
-          <div class="decision-row"><span class="num">3</span><span>The app window exposes the same schedule rows inline, so dashboard users do not need another navigation step.</span></div>
+          <div class="decision-row"><span class="num">3</span><span>The app window becomes an expanded popover: current-state controls stay editable and schedule rows are editable inline.</span></div>
           <div class="decision-row"><span class="num">4</span><span>Settings keeps general app preferences: display target, shortcuts, login item, diagnostics.</span></div>
         </div>
       </aside>
@@ -591,10 +600,13 @@
               <dt>Status</dt>
               <dd>Automation paused until 19:00</dd>
             </dl>
-            <button class="wide primary" type="button">Edit schedule</button>
             <div class="button-row">
-              <button type="button">Restore previous</button>
+              <button class="primary" type="button">Edit schedule</button>
               <button type="button">Pause automation</button>
+            </div>
+            <div class="button-row">
+              <button class="warning" type="button">Quick disable</button>
+              <button type="button">Restore previous</button>
             </div>
           </section>
 
@@ -629,26 +641,26 @@
                 <div class="time-input">09:00</div>
                 <div class="percent-control"><span>80%</span><div class="track"><div class="fill" style="--value: 80%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>12%</span><div class="track"><div class="fill" style="--value: 12%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" aria-label="Remove schedule row">−</button>
+                <button class="small-button" aria-label="Remove schedule row" disabled>−</button>
               </div>
               <div class="schedule-row">
                 <div class="time-input">19:00</div>
                 <div class="percent-control"><span>45%</span><div class="track"><div class="fill" style="--value: 45%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>32%</span><div class="track"><div class="fill" style="--value: 32%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" aria-label="Remove schedule row">−</button>
+                <button class="small-button" aria-label="Remove schedule row" disabled>−</button>
               </div>
               <div class="schedule-row">
                 <div class="time-input">23:00</div>
                 <div class="percent-control"><span>25%</span><div class="track"><div class="fill" style="--value: 25%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>58%</span><div class="track"><div class="fill" style="--value: 58%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" aria-label="Remove schedule row">−</button>
+                <button class="small-button" aria-label="Remove schedule row" disabled>−</button>
               </div>
             </div>
 
             <div class="footer">
-              <span>Next boundary: 19:00 · active after save: 45% brightness / 32% blue reduction</span>
+              <span>Next boundary: 19:00 · add/remove rows moves to the next implementation plan</span>
               <div class="footer-actions">
-                <button type="button">Add row</button>
+                <button type="button" disabled>Add row next</button>
                 <button class="warning" type="button">Reset default</button>
               </div>
             </div>
@@ -667,19 +679,28 @@
         <div class="window-head">
           <div>
             <h2>App window with inline schedule editing</h2>
-            <div class="head-copy">The dashboard keeps current-state controls and lets schedule changes happen in place, without opening the schedule window.</div>
+            <div class="head-copy">The dashboard is an expanded popover: current-state controls remain editable, and schedule changes happen in place without opening the schedule window.</div>
           </div>
           <button class="primary" type="button">Save all schedule changes</button>
         </div>
 
         <div class="dashboard-grid">
-          <section class="section">
-            <div class="section-title"><span>Current state</span><span class="chip">27QA100M</span></div>
-            <div class="summary-grid">
-              <dt>Mode</dt><dd>Overlay active</dd>
-              <dt>Brightness</dt><dd>45%</dd>
-              <dt>Blue</dt><dd>32%</dd>
-              <dt>Automation</dt><dd>paused until 19:00</dd>
+          <section class="section dashboard-current">
+            <div class="section-title"><span>Current state controls</span><span class="chip">27QA100M</span></div>
+            <div class="control">
+              <div>Brightness</div><div class="value">45%</div><div class="track"><div class="fill" style="--value: 45%"></div></div><button>−</button><button>+</button>
+            </div>
+            <div class="control">
+              <div>Blue reduction</div><div class="value">32%</div><div class="track"><div class="fill" style="--value: 32%"></div></div><button>−</button><button>+</button>
+            </div>
+            <div class="status-field">Automation paused until 19:00</div>
+            <div class="button-row">
+              <button class="warning" type="button">Quick disable</button>
+              <button type="button">Restore previous</button>
+            </div>
+            <div class="button-row">
+              <button type="button">Pause automation</button>
+              <button type="button">Settings</button>
             </div>
           </section>
 
@@ -696,19 +717,26 @@
                 <div class="time-input">09:00</div>
                 <div class="percent-control"><span>80%</span><div class="track"><div class="fill" style="--value: 80%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>12%</span><div class="track"><div class="fill" style="--value: 12%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button">−</button>
+                <button class="small-button" disabled>−</button>
               </div>
               <div class="schedule-row">
                 <div class="time-input">19:00</div>
                 <div class="percent-control"><span>45%</span><div class="track"><div class="fill" style="--value: 45%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>32%</span><div class="track"><div class="fill" style="--value: 32%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button">−</button>
+                <button class="small-button" disabled>−</button>
               </div>
               <div class="schedule-row">
                 <div class="time-input">23:00</div>
                 <div class="percent-control"><span>25%</span><div class="track"><div class="fill" style="--value: 25%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
                 <div class="percent-control"><span>58%</span><div class="track"><div class="fill" style="--value: 58%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button">−</button>
+                <button class="small-button" disabled>−</button>
+              </div>
+            </div>
+            <div class="footer">
+              <span>Add/remove schedule rows: next plan. This plan keeps editable values and save flow focused.</span>
+              <div class="footer-actions">
+                <button type="button" disabled>Add row next</button>
+                <button class="warning" type="button">Reset default</button>
               </div>
             </div>
           </section>
