@@ -15,6 +15,7 @@ Prepare a design improvement plan and review mockup for the InnosDimmer menu bar
   - design baseline needed before implementation
   - static HTML mockup for review
   - rendered PNG preview for quick visual review
+  - dark-mode redesign direction
 - Out of scope:
   - AppKit implementation changes
   - gamma algorithm changes
@@ -126,6 +127,7 @@ The redesign must preserve `MenuBarCommand.allCases`, existing routing tests, an
   - Create a minimal project design contract.
   - Treat the popover as a quick-control pattern.
   - Treat the app window as the diagnostics detail pattern.
+  - Prefer a dark utility palette for this dimming app so the popover does not visually fight the user's brightness-reduction goal.
 - Component/pattern candidates:
   - `ControlGroup`: title, value, slider, decrement, increment.
   - `StatusSummary`: display/mode/automation in a compact top band.

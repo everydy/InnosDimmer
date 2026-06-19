@@ -14,6 +14,7 @@
 - Foundations:
   - Use San Francisco via AppKit system fonts.
   - Use neutral system backgrounds and separators; avoid decorative gradients, glows, and marketing-style cards.
+  - Prefer a dark popover treatment for this personal dimming utility so the control surface does not brighten the external display at night.
   - Keep corner radius at 8px or less for framed groups and repeated rows.
   - Keep spacing compact: 16px outer padding, 10-12px group gaps, 6-8px row gaps.
 - Component rules:

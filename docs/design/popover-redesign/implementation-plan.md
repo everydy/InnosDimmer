@@ -47,7 +47,7 @@
 ## Visual Rules
 
 - Keep the popover within the current `480 x 620` preferred size unless implementation proves clipping remains.
-- Use neutral system-like colors and restrained separators.
+- Use a dark utility appearance with neutral panels, restrained separators, and blue only for the primary action/value accent.
 - Do not use gradients, decorative glows, or large cards.
 - Use framed groups only for functional clustering, with radius <= 8px.
 - Keep text compact and wrap only in schedule/diagnostic summaries.

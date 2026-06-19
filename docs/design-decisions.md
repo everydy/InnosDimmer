@@ -35,3 +35,15 @@ Reason: Gamma is display-level state. Normal failures are recorded in diagnostic
 Supersedes: none
 
 Source: `GammaDimmingController`, `SoftwareDimmingController`, `docs/2026-06-19-gamma-blue-reduction-plan-first.md`.
+
+## INNOS-DES-2026-06-19-004
+
+Status: Active
+
+Decision: The popover redesign should use a dark utility appearance by default.
+
+Reason: InnosDimmer is used to reduce brightness and blue light, especially during low-light use. A bright control surface works against that goal, while a restrained dark popover is easier to scan without adding glare.
+
+Supersedes: the first light-mode HTML mockup palette.
+
+Source: user request on 2026-06-19, `docs/design/popover-redesign/mockup.html`.
