@@ -63,16 +63,20 @@ enum ScheduleEngine {
         return updated
     }
 
-    static func stateAfterApplying(_ decision: ScheduleDecision, to state: BrightnessState) -> BrightnessState {
-        guard case .apply(_, _, true) = decision else {
-            return state
-        }
-
+    static func stateAfterResumingAutomation(from state: BrightnessState) -> BrightnessState {
         var updated = state
         updated.automationPausedUntilNextBoundary = false
         updated.automationPausedAtMinuteOfDay = nil
         updated.automationResumeMinuteOfDay = nil
         return updated
+    }
+
+    static func stateAfterApplying(_ decision: ScheduleDecision, to state: BrightnessState) -> BrightnessState {
+        guard case .apply(_, _, true) = decision else {
+            return state
+        }
+
+        return stateAfterResumingAutomation(from: state)
     }
 
     private static func hasReachedResumeBoundary(at minuteOfDay: Int, state: BrightnessState) -> Bool {

@@ -160,6 +160,23 @@ final class ScheduleEngineTests: XCTestCase {
         XCTAssertNil(updated.automationPausedAtMinuteOfDay)
         XCTAssertNil(updated.automationResumeMinuteOfDay)
     }
+
+    func testManualResumeClearsManualOverrideStateWithoutChangingTargets() {
+        var state = BrightnessState.defaultState()
+        state.targetBrightness = 85
+        state.targetBlueReduction = 22
+        state.automationPausedUntilNextBoundary = true
+        state.automationPausedAtMinuteOfDay = 1_000
+        state.automationResumeMinuteOfDay = 1_140
+
+        let updated = ScheduleEngine.stateAfterResumingAutomation(from: state)
+
+        XCTAssertFalse(updated.automationPausedUntilNextBoundary)
+        XCTAssertNil(updated.automationPausedAtMinuteOfDay)
+        XCTAssertNil(updated.automationResumeMinuteOfDay)
+        XCTAssertEqual(updated.targetBrightness, 85)
+        XCTAssertEqual(updated.targetBlueReduction, 22)
+    }
 }
 
 final class ScheduleRuntimeTests: XCTestCase {
@@ -292,6 +309,40 @@ final class ScheduleRuntimeTests: XCTestCase {
         XCTAssertEqual(brightnessController.state.targetBrightness, 45)
         XCTAssertEqual(brightnessController.state.targetBlueReduction, 32)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
+    }
+
+    @MainActor
+    func testResumeAutomationImmediatelyAppliesCurrentScheduleEntry() throws {
+        let currentMinute = 1_000
+        let factory = RecordingScheduleTimerFactory()
+        let scheduleTimer = ScheduleTimerController(makeTimer: factory.makeTimer)
+        var state = BrightnessState.defaultState()
+        state.display = .scheduleRuntimeTestDisplay
+        let software = RecordingScheduleSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingScheduleDisplayInventory(displays: [.scheduleRuntimeTestDisplay]),
+            displayTargetStore: try makeScheduleRuntimeStore(state: state),
+            diagnosticsStore: diagnosticsStore,
+            scheduleTimerController: scheduleTimer,
+            currentMinuteOfDay: { currentMinute }
+        )
+        menuBarController.start()
+
+        menuBarController.perform(.brightnessUp)
+        menuBarController.perform(.resumeAutomation)
+
+        XCTAssertEqual(software.appliedCommands.map(\.source).suffix(1), [.schedule])
+        XCTAssertFalse(brightnessController.state.automationPausedUntilNextBoundary)
+        XCTAssertNil(brightnessController.state.automationPausedAtMinuteOfDay)
+        XCTAssertNil(brightnessController.state.automationResumeMinuteOfDay)
+        XCTAssertEqual(brightnessController.state.targetBrightness, 80)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
+        XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .schedule)
+        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Automation resumed")
+        XCTAssertEqual(factory.timers.last?.interval, 8_400)
     }
 
     @MainActor

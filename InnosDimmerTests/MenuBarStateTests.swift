@@ -39,6 +39,8 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.blueReductionLabel, "32%")
         XCTAssertNil(viewModel.blueReductionWarning)
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
+        XCTAssertEqual(viewModel.automationActionTitle, "Resume automation")
+        XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
         XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
         XCTAssertEqual(viewModel.scheduleSummary, "10:00 · 70% brightness / 20% blue")
         XCTAssertEqual(viewModel.shortcutSummary, "5 enabled · Option + Shift controls")
@@ -107,6 +109,8 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.blueReductionValue, "20%")
         XCTAssertNil(viewModel.blueReductionWarning)
         XCTAssertEqual(viewModel.automationValue, "active")
+        XCTAssertEqual(viewModel.automationActionTitle, "Pause automation")
+        XCTAssertEqual(viewModel.automationActionCommand, .pauseAutomation)
         XCTAssertEqual(viewModel.scheduleValue, "09:00 · 80% brightness / 12% blue")
         XCTAssertEqual(viewModel.shortcutValue, "6 enabled")
         XCTAssertEqual(viewModel.failureValue, "1 errors, 1 warnings")
@@ -153,6 +157,29 @@ final class MenuBarStateTests: XCTestCase {
         }
 
         XCTAssertEqual(routedCommands, MenuBarCommand.buttonCommands)
+    }
+
+    @MainActor
+    func testMenuBarPopoverShowsResumeAutomationWhenPaused() {
+        var state = BrightnessState.defaultState()
+        state.automationPausedUntilNextBoundary = true
+        state.automationPausedAtMinuteOfDay = 1_000
+        state.automationResumeMinuteOfDay = 1_140
+        var routedCommands: [MenuBarCommand] = []
+        let view = MenuBarPopoverView(
+            state: state,
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+
+        XCTAssertNil(view.commandButtonForTesting(.pauseAutomation))
+        let button = view.commandButtonForTesting(.resumeAutomation)
+        XCTAssertEqual(button?.title, "Resume automation")
+
+        button?.performClick(nil)
+
+        XCTAssertEqual(routedCommands, [.resumeAutomation])
     }
 
     @MainActor
@@ -309,6 +336,34 @@ final class MenuBarStateTests: XCTestCase {
         }
 
         XCTAssertEqual(routedCommands, dashboardCommands)
+    }
+
+    @MainActor
+    func testAppDashboardShowsResumeAutomationWhenPaused() {
+        var state = BrightnessState.defaultState()
+        state.automationPausedUntilNextBoundary = true
+        state.automationPausedAtMinuteOfDay = 1_000
+        state.automationResumeMinuteOfDay = 1_140
+        var routedCommands: [MenuBarCommand] = []
+        let controller = AppDashboardWindowController(
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+        controller.update(
+            state: state,
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+
+        XCTAssertNil(controller.commandButtonForTesting(.pauseAutomation))
+        let button = controller.commandButtonForTesting(.resumeAutomation)
+        XCTAssertEqual(button?.title, "Resume automation")
+
+        button?.performClick(nil)
+
+        XCTAssertEqual(routedCommands, [.resumeAutomation])
     }
 
     @MainActor

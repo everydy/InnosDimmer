@@ -159,6 +159,8 @@ final class MenuBarController: NSObject {
             openSettings()
         case .pauseAutomation:
             pauseAutomationUntilNextBoundary(messagePrefix: "Automation pause requested")
+        case .resumeAutomation:
+            resumeAutomation()
         }
     }
 
@@ -516,7 +518,8 @@ final class MenuBarController: NSObject {
         }
     }
 
-    private func applyScheduledEntry(_ entry: ScheduleEntry, decision: ScheduleDecision) {
+    @discardableResult
+    private func applyScheduledEntry(_ entry: ScheduleEntry, decision: ScheduleDecision) -> Bool {
         guard let command = makeCommand(
             brightness: entry.brightness,
             blueReduction: entry.blueReduction,
@@ -524,7 +527,7 @@ final class MenuBarController: NSObject {
         ) else {
             record(.schedule, "Skipped schedule because no display is selected", .warning)
             refreshPopover()
-            return
+            return false
         }
 
         let applied = applyCommand(
@@ -535,12 +538,39 @@ final class MenuBarController: NSObject {
         )
         guard applied else {
             refreshPopover()
-            return
+            return false
         }
 
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
         record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.blueReduction)%")
+        refreshPopover()
+        return true
+    }
+
+    private func resumeAutomation() {
+        let minuteOfDay = currentMinuteOfDay()
+        guard let activeEntry = ScheduleEngine.activeEntry(at: minuteOfDay, entries: scheduleEntries) else {
+            let updatedState = ScheduleEngine.stateAfterResumingAutomation(from: brightnessController.state)
+            brightnessController.applyPreviewState(updatedState)
+            record(.schedule, "Automation resumed; no schedule entries configured")
+            scheduleNextBoundaryTimerIfRunning()
+            refreshPopover()
+            return
+        }
+
+        let decision = ScheduleDecision.apply(
+            entry: activeEntry,
+            nextBoundaryMinuteOfDay: ScheduleEngine.nextBoundary(after: minuteOfDay, entries: scheduleEntries) ?? activeEntry.minuteOfDay,
+            clearsManualOverride: true
+        )
+
+        guard applyScheduledEntry(activeEntry, decision: decision) else {
+            return
+        }
+
+        record(.schedule, "Automation resumed")
+        scheduleNextBoundaryTimerIfRunning()
         refreshPopover()
     }
 
