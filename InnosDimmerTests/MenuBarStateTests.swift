@@ -101,6 +101,14 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.displayLine, "Display: INNOS 27QA100M")
         XCTAssertEqual(viewModel.modeLine, "Mode: Overlay active")
         XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Blue reduction: 20%")
+        XCTAssertEqual(viewModel.displayValue, "INNOS 27QA100M")
+        XCTAssertEqual(viewModel.modeValue, "Overlay active")
+        XCTAssertEqual(viewModel.brightnessValue, "35%")
+        XCTAssertEqual(viewModel.blueReductionValue, "20%")
+        XCTAssertEqual(viewModel.automationValue, "active")
+        XCTAssertEqual(viewModel.scheduleValue, "09:00 · 80% brightness / 12% blue")
+        XCTAssertEqual(viewModel.shortcutValue, "6 enabled")
+        XCTAssertEqual(viewModel.failureValue, "1 errors, 1 warnings")
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
         XCTAssertTrue(viewModel.diagnosticsLog.contains("ERROR softwareDimming: Overlay platform blocked"))
         XCTAssertTrue(viewModel.diagnosticsLog.contains("WARNING display: No eligible external display found"))
@@ -219,6 +227,74 @@ final class MenuBarStateTests: XCTestCase {
             view.cacheDisplay(in: view.bounds, to: representation)
             guard let data = representation.representation(using: .png, properties: [:]) else {
                 XCTFail("Could not encode snapshot for \(name)")
+                continue
+            }
+            try data.write(to: directoryURL.appendingPathComponent("\(name).png"))
+        }
+    }
+
+    @MainActor
+    func testAppDashboardWritesDesignSnapshotsWhenRequested() throws {
+        let snapshotDirectory = ProcessInfo.processInfo.environment["INNOSDIMMER_SNAPSHOT_DIR"]
+            ?? "/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures"
+
+        let directoryURL = URL(fileURLWithPath: snapshotDirectory, isDirectory: true)
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.targetBrightness = 45
+        state.targetWarmth = 32
+        state.activeMode = .overlay
+        state.automationPausedUntilNextBoundary = true
+        state.automationResumeMinuteOfDay = 1_140
+        let events = [
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 0),
+                category: .softwareDimming,
+                message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
+                severity: .info
+            ),
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 1),
+                category: .schedule,
+                message: "Manual menu override; automation paused until 19:00",
+                severity: .info
+            )
+        ]
+
+        let variants: [(String, NSAppearance.Name)] = [
+            ("dashboard-light", .aqua),
+            ("dashboard-dark", .darkAqua)
+        ]
+
+        for (name, appearanceName) in variants {
+            guard let appearance = NSAppearance(named: appearanceName) else {
+                continue
+            }
+
+            let controller = AppDashboardWindowController()
+            controller.window?.appearance = appearance
+            controller.update(
+                state: state,
+                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, warmth: 32)],
+                shortcuts: ShortcutBinding.defaultBindings,
+                events: events
+            )
+
+            guard let contentView = controller.window?.contentView else {
+                XCTFail("Missing dashboard content view for \(name)")
+                continue
+            }
+            contentView.layoutSubtreeIfNeeded()
+
+            guard let representation = contentView.bitmapImageRepForCachingDisplay(in: contentView.bounds) else {
+                XCTFail("Could not create dashboard bitmap representation for \(name)")
+                continue
+            }
+            contentView.cacheDisplay(in: contentView.bounds, to: representation)
+            guard let data = representation.representation(using: .png, properties: [:]) else {
+                XCTFail("Could not encode dashboard snapshot for \(name)")
                 continue
             }
             try data.write(to: directoryURL.appendingPathComponent("\(name).png"))

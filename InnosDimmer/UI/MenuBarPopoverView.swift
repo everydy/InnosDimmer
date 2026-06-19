@@ -156,6 +156,27 @@ private final class PopoverContainerView: NSView {
     }
 }
 
+private final class DashboardRootView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.background(for: effectiveAppearance).cgColor
+    }
+}
+
 private final class ProgressTrackView: NSView {
     var onUserFractionChange: ((CGFloat) -> Void)?
 
@@ -813,6 +834,15 @@ final class MenuBarPopoverView: NSView {
 }
 
 struct AppDashboardViewModel: Equatable {
+    var modeTitle: String
+    var displayValue: String
+    var modeValue: String
+    var brightnessValue: String
+    var blueReductionValue: String
+    var automationValue: String
+    var scheduleValue: String
+    var shortcutValue: String
+    var failureValue: String
     var displayLine: String
     var modeLine: String
     var brightnessLine: String
@@ -828,27 +858,36 @@ struct AppDashboardViewModel: Equatable {
         shortcuts: [ShortcutBinding],
         events: [DiagnosticsEvent]
     ) {
-        displayLine = state.display.map { "Display: \($0.localizedName)" } ?? "Display: Not selected"
-        modeLine = "Mode: \(ModeStatusLabel.title(for: state.activeMode))"
-        brightnessLine = "Brightness: \(state.targetBrightness)% / Blue reduction: \(state.targetWarmth)%"
+        modeTitle = ModeStatusLabel.title(for: state.activeMode)
+        displayValue = state.display.map(\.localizedName) ?? "Not selected"
+        modeValue = modeTitle
+        brightnessValue = "\(state.targetBrightness)%"
+        blueReductionValue = "\(state.targetWarmth)%"
         if state.automationPausedUntilNextBoundary {
-            automationLine = state.automationResumeMinuteOfDay.map {
-                "Automation: paused until \(Self.timeLabel(for: $0))"
-            } ?? "Automation: paused until next schedule boundary"
+            automationValue = state.automationResumeMinuteOfDay.map {
+                "paused until \(Self.timeLabel(for: $0))"
+            } ?? "paused until next schedule boundary"
         } else {
-            automationLine = "Automation: active"
+            automationValue = "active"
         }
         let popoverScheduleSummary = MenuBarViewModel(
             state: state,
             schedule: schedule,
             shortcuts: shortcuts
         ).scheduleSummary
-        scheduleLine = "Schedule: \(popoverScheduleSummary)"
-        shortcutLine = HotkeyManager.summary(for: shortcuts)
+        scheduleValue = popoverScheduleSummary
+        shortcutValue = "\(shortcuts.filter(\.isEnabled).count) enabled"
 
         let warnings = events.filter { $0.severity == .warning }.count
         let errors = events.filter { $0.severity == .error }.count
-        failureLine = "Failures: \(errors) errors, \(warnings) warnings"
+        failureValue = "\(errors) errors, \(warnings) warnings"
+        displayLine = "Display: \(displayValue)"
+        modeLine = "Mode: \(modeValue)"
+        brightnessLine = "Brightness: \(brightnessValue) / Blue reduction: \(blueReductionValue)"
+        automationLine = "Automation: \(automationValue)"
+        scheduleLine = "Schedule: \(scheduleValue)"
+        shortcutLine = "Shortcuts: \(shortcutValue)"
+        failureLine = "Failures: \(failureValue)"
         diagnosticsLog = Self.logText(for: events)
     }
 
@@ -872,23 +911,27 @@ struct AppDashboardViewModel: Equatable {
 
 @MainActor
 final class AppDashboardWindowController: NSWindowController {
+    private let modeBadge = StatusBadgeView(mode: .unknown)
     private let displayLabel = NSTextField(labelWithString: "")
     private let modeLabel = NSTextField(labelWithString: "")
     private let brightnessLabel = NSTextField(labelWithString: "")
+    private let blueReductionLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleLabel = NSTextField(labelWithString: "")
     private let shortcutLabel = NSTextField(labelWithString: "")
     private let failureLabel = NSTextField(labelWithString: "")
     private let diagnosticsTextView = NSTextView()
+    private let diagnosticsScrollView = NSScrollView()
 
     init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
+        window.minSize = NSSize(width: 520, height: 620)
         super.init(window: window)
         installContent()
     }
@@ -909,24 +952,31 @@ final class AppDashboardWindowController: NSWindowController {
             shortcuts: shortcuts,
             events: events
         )
-        displayLabel.stringValue = viewModel.displayLine
-        modeLabel.stringValue = viewModel.modeLine
-        brightnessLabel.stringValue = viewModel.brightnessLine
-        automationLabel.stringValue = viewModel.automationLine
-        scheduleLabel.stringValue = viewModel.scheduleLine
-        shortcutLabel.stringValue = viewModel.shortcutLine
-        failureLabel.stringValue = viewModel.failureLine
+        modeBadge.update(mode: state.activeMode)
+        displayLabel.stringValue = viewModel.displayValue
+        modeLabel.stringValue = viewModel.modeValue
+        brightnessLabel.stringValue = viewModel.brightnessValue
+        blueReductionLabel.stringValue = viewModel.blueReductionValue
+        automationLabel.stringValue = viewModel.automationValue
+        scheduleLabel.stringValue = viewModel.scheduleValue
+        shortcutLabel.stringValue = viewModel.shortcutValue
+        failureLabel.stringValue = viewModel.failureValue
         diagnosticsTextView.string = viewModel.diagnosticsLog
+        refreshDiagnosticColors()
     }
 
     private func installContent() {
         let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = .systemFont(ofSize: 22, weight: .semibold)
+        title.font = .systemFont(ofSize: 22, weight: .bold)
+        title.textColor = .labelColor
+        title.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        configureBadge(modeBadge)
 
         [
             displayLabel,
             modeLabel,
             brightnessLabel,
+            blueReductionLabel,
             automationLabel,
             scheduleLabel,
             shortcutLabel,
@@ -938,49 +988,108 @@ final class AppDashboardWindowController: NSWindowController {
         diagnosticsTextView.isSelectable = true
         diagnosticsTextView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         diagnosticsTextView.textColor = .labelColor
-        diagnosticsTextView.backgroundColor = .textBackgroundColor
+        diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsTextView.effectiveAppearance)
+        diagnosticsTextView.drawsBackground = true
+        diagnosticsTextView.textContainerInset = NSSize(width: 8, height: 8)
 
-        let diagnosticsScrollView = NSScrollView()
-        diagnosticsScrollView.borderType = .bezelBorder
+        diagnosticsScrollView.borderType = .noBorder
+        diagnosticsScrollView.wantsLayer = true
+        diagnosticsScrollView.layer?.cornerRadius = 7
+        diagnosticsScrollView.layer?.borderWidth = 1
+        diagnosticsScrollView.layer?.borderColor = PopoverPalette.border(for: diagnosticsScrollView.effectiveAppearance).cgColor
+        diagnosticsScrollView.layer?.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsScrollView.effectiveAppearance).cgColor
         diagnosticsScrollView.hasVerticalScroller = true
         diagnosticsScrollView.documentView = diagnosticsTextView
         diagnosticsScrollView.translatesAutoresizingMaskIntoConstraints = false
-        diagnosticsScrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 260).isActive = true
+        diagnosticsScrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
 
-        let stack = NSStackView(views: [
-            title,
-            sectionLabel("Current state"),
-            displayLabel,
-            modeLabel,
-            brightnessLabel,
-            automationLabel,
-            sectionLabel("Configuration"),
-            scheduleLabel,
-            shortcutLabel,
-            sectionLabel("Diagnostics"),
-            failureLabel,
-            diagnosticsScrollView
-        ])
+        let header = makeHeader(title: title)
+        let currentState = makeSection(
+            title: "Current state",
+            views: [
+                makeSummaryRow(title: "Display", value: displayLabel),
+                makeSummaryRow(title: "Mode", value: modeLabel),
+                makeSummaryRow(title: "Brightness", value: brightnessLabel),
+                makeSummaryRow(title: "Blue reduction", value: blueReductionLabel),
+                makeSummaryRow(title: "Automation", value: automationLabel)
+            ]
+        )
+        let configuration = makeSection(
+            title: "Configuration",
+            views: [
+                makeSummaryRow(title: "Schedule", value: scheduleLabel),
+                makeSummaryRow(title: "Shortcuts", value: shortcutLabel)
+            ]
+        )
+        let diagnostics = makeSection(
+            title: "Diagnostics",
+            views: [
+                makeSummaryRow(title: "Failures", value: failureLabel),
+                diagnosticsScrollView
+            ]
+        )
+
+        let arrangedSubviews = [header, currentState, configuration, diagnostics]
+        let stack = NSStackView(views: arrangedSubviews)
         stack.orientation = .vertical
         stack.alignment = .width
-        stack.spacing = 10
+        stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
 
-        guard let contentView = window?.contentView else {
-            return
-        }
+        let contentView = DashboardRootView()
+        window?.contentView = contentView
         contentView.addSubview(stack)
+        arrangedSubviews.forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 24),
-            stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24)
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -18)
         ])
     }
 
+    private func makeHeader(title: NSTextField) -> NSView {
+        let topRow = NSStackView(views: [title, modeBadge])
+        topRow.orientation = .horizontal
+        topRow.alignment = .centerY
+        topRow.spacing = 12
+        modeBadge.setContentHuggingPriority(.required, for: .horizontal)
+        return topRow
+    }
+
+    private func makeSection(title: String, views: [NSView]) -> NSView {
+        let label = sectionLabel(title)
+        let content = NSStackView(views: [label] + views)
+        content.orientation = .vertical
+        content.alignment = .width
+        content.spacing = 9
+        ([label] + views).forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        }
+        return PopoverContainerView(style: .section, content: content)
+    }
+
+    private func makeSummaryRow(title: String, value: NSTextField) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.widthAnchor.constraint(equalToConstant: 116).isActive = true
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [titleLabel, value])
+        stack.orientation = .horizontal
+        stack.alignment = .top
+        stack.spacing = 12
+        return stack
+    }
+
     private func sectionLabel(_ title: String) -> NSTextField {
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 14, weight: .semibold)
+        let label = NSTextField(labelWithString: title.uppercased())
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
         label.textColor = .secondaryLabelColor
         return label
     }
@@ -988,5 +1097,23 @@ final class AppDashboardWindowController: NSWindowController {
     private static func configureWrappingLabel(_ label: NSTextField) {
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .labelColor
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    }
+
+    private func configureBadge(_ badge: StatusBadgeView) {
+        badge.font = .systemFont(ofSize: 12, weight: .semibold)
+        badge.textColor = PopoverPalette.statusColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
+        badge.alignment = .right
+    }
+
+    private func refreshDiagnosticColors() {
+        let appearance = diagnosticsScrollView.effectiveAppearance
+        diagnosticsTextView.textColor = .labelColor
+        diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: appearance)
+        diagnosticsScrollView.layer?.backgroundColor = PopoverPalette.subtleBackground(for: appearance).cgColor
+        diagnosticsScrollView.layer?.borderColor = PopoverPalette.border(for: appearance).cgColor
+        modeBadge.textColor = PopoverPalette.statusColor(for: window?.effectiveAppearance ?? appearance)
     }
 }
