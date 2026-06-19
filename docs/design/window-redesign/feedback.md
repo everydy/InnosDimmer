@@ -12,6 +12,34 @@ Redesign only the standalone app/settings window. The menu bar popover remains t
 4. The schedule and shortcut sections are dense enough that scrolling becomes the primary navigation model.
 5. Diagnostics are present, but they are not positioned as a first-class troubleshooting page, even though runtime failures are important for this app.
 
+## Coverage Audit
+
+The revised mockup was checked against the current popover and the current settings window.
+
+| Source surface | Existing function or pattern | Revised mockup coverage |
+| --- | --- | --- |
+| Popover quick controls | Brightness value, slider track, `-` and `+` step controls | Home and `Current controls` page reuse the same control group pattern |
+| Popover quick controls | Blue reduction value, slider track, `-` and `+` step controls | Home and `Current controls` page reuse the same control group pattern |
+| Popover actions | `Quick disable`, `Restore previous`, `Pause automation` / `Resume automation` | Home, `Current controls`, and `Automation` pages include these actions |
+| Popover status | Display, mode, brightness/blue line, automation status | Home current snapshot and detail-page side summaries include these lines |
+| Popover schedule | Schedule summary and next boundary chip | Home status and `Automation` page include summary plus schedule rows |
+| Popover diagnostics dashboard | Recent diagnostic log | `Diagnostics` page includes readable recent log |
+| Settings window | Target display picker | `Display` page includes selected display, resolved display, and save/use automatic actions |
+| Settings window | `Open schedule editor` | `Automation` page includes `Open schedule editor` |
+| Settings window | Shortcut table and save/reset | `Shortcuts` page includes full table and save/reset actions |
+| Settings window | `Launch at login` and status summary | Renamed `Startup` to `Settings`; launch-at-login lives there |
+| Settings window | Diagnostics summary, verification matrix, export | `Diagnostics` page includes verification matrix and `Export diagnostics` |
+| Settings window | Transient `statusLabel` | `Settings` page includes a status-label row; footer also carries page status |
+| Current code change | `ShortcutAction.openPopover` | `Shortcuts` page now includes `Open popover` as the seventh shortcut |
+
+The previous mockup missed or underweighted:
+
+- the reusable popover `Quick controls` component language
+- the current snapshot as a real control area
+- `Open popover` shortcut
+- the existing settings `statusLabel`
+- the idea that `Startup` is only one setting, not a full top-level category
+
 ## Recommended Information Architecture
 
 Use a page hub instead of a scroll form.
@@ -19,19 +47,21 @@ Use a page hub instead of a scroll form.
 ```text
 App Window
   Home
+    Current controls
     Display
     Automation
     Shortcuts
-    Startup
+    Settings
     Diagnostics
   Detail Page
     Back
+    Compact current-state summary where useful
     Local summary
     Primary controls
     Footer status
 ```
 
-The home screen should be a stable icon-card grid. Each card is a destination, not a collapsible section. Detail pages should show one task family at a time and return through a predictable Back button.
+The home screen should put the current snapshot first, then show a stable icon-card grid. Each card is a destination, not a collapsible section. Detail pages should show one task family at a time and return through a predictable Back button.
 
 ## Why This Fits InnosDimmer
 
@@ -58,19 +88,33 @@ The home page should answer: "What needs attention, and where do I go?"
 
 Recommended content:
 
-- Current display and active mode at the top
-- 5 destination cards
+- Current snapshot with brightness and blue-reduction controls
+- Quick disable, restore previous, and pause/resume automation
+- 6 destination cards
 - One compact recent status strip
 - No long tables
 
+### Current controls
+
+This page should reuse the popover's most familiar UI:
+
+- `Quick controls` section title
+- Automation status chip
+- brightness control group
+- blue-reduction control group
+- `Quick disable`
+- `Restore previous`
+- pause/resume automation
+
 ### Display
 
-Keep this page narrow in scope:
+Keep this page narrow in scope, but do not make it feel visually unrelated to the popover:
 
 - selected display
 - detection mode
 - last resolved display
 - refresh/rescan action
+- compact current-state summary
 
 Do not place schedule or shortcuts here.
 
@@ -99,7 +143,7 @@ Recommended content:
 
 ### Startup
 
-This deserves a dedicated page because macOS approval can make the state confusing.
+Startup should not be a top-level page name. It is a setting inside `Settings` because macOS login behavior is only one durable app preference.
 
 Recommended content:
 
@@ -107,6 +151,8 @@ Recommended content:
 - current status string
 - System Settings approval hint when needed
 - last update message
+- saved settings summary
+- transient settings status label
 
 ### Diagnostics
 
@@ -127,10 +173,11 @@ Keep the existing actions, but change the view model from one stacked form to a 
 ```swift
 private enum SettingsPage: CaseIterable {
     case home
+    case current
     case display
     case automation
     case shortcuts
-    case startup
+    case settings
     case diagnostics
 }
 ```
@@ -150,14 +197,16 @@ private func renderActivePage() {
     switch activePage {
     case .home:
         nextView = makeHomePage()
+    case .current:
+        nextView = makeCurrentControlsPage()
     case .display:
         nextView = makeDisplayPage()
     case .automation:
         nextView = makeAutomationPage()
     case .shortcuts:
         nextView = makeShortcutsPage()
-    case .startup:
-        nextView = makeStartupPage()
+    case .settings:
+        nextView = makeSettingsPage()
     case .diagnostics:
         nextView = makeDiagnosticsPage()
     }
@@ -184,6 +233,21 @@ private func makePageHeader(title: String, subtitle: String) -> NSView {
 }
 ```
 
+The popover control group should become a shared construction pattern in the AppKit implementation rather than being visually re-created differently for each page.
+
+```swift
+private func makeDimmingControlGroup(
+    title: String,
+    valueLabel: NSTextField,
+    trackView: ProgressTrackView,
+    decrement: NSButton,
+    increment: NSButton
+) -> NSView {
+    // Same visual pattern as MenuBarPopoverView.makeControlGroup.
+    // The app window can use wider columns, but the meaning and control order should match.
+}
+```
+
 ## Mockup
 
 Review artifact:
@@ -197,3 +261,4 @@ This mockup is intentionally static except for page switching and theme preview.
 1. Whether the app window should replace the old settings window entirely or open as a new "Dashboard" while settings stays separate.
 2. Whether schedule editing should remain in `ScheduleEditorWindowController` or move into the Automation page.
 3. Whether diagnostics should show in-memory recent events, exported JSON preview, or both.
+4. Whether the popover and app window should share AppKit view helpers for control groups, status chips, action rows, and summary rows.
