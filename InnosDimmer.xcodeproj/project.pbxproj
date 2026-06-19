@@ -49,6 +49,8 @@
 		AA000000000000000000007B /* VerificationMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007C /* VerificationMatrix.swift */; };
 		AA000000000000000000007D /* VerificationMatrixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007E /* VerificationMatrixTests.swift */; };
 		AA000000000000000000007F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000080 /* Assets.xcassets */; };
+		AA0000000000000000000090 /* InnosDesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000092 /* InnosDesignTokens.swift */; };
+		AA0000000000000000000091 /* InnosDesignComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000093 /* InnosDesignComponents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -107,6 +109,8 @@
 		AA000000000000000000007C /* VerificationMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrix.swift; sourceTree = "<group>"; };
 		AA000000000000000000007E /* VerificationMatrixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrixTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000080 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA0000000000000000000092 /* InnosDesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InnosDesignTokens.swift; sourceTree = "<group>"; };
+		AA0000000000000000000093 /* InnosDesignComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InnosDesignComponents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -172,6 +176,7 @@
 		AA0000000000000000000026 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				AA0000000000000000000094 /* DesignSystem */,
 				AA0000000000000000000025 /* MenuBarController.swift */,
 				AA0000000000000000000051 /* MenuBarPopoverView.swift */,
 				AA0000000000000000000084 /* ScheduleEditorView.swift */,
@@ -180,6 +185,15 @@
 				AA0000000000000000000050 /* StatusBadgeView.swift */,
 			);
 			path = UI;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000094 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000092 /* InnosDesignTokens.swift */,
+				AA0000000000000000000093 /* InnosDesignComponents.swift */,
+			);
+			path = DesignSystem;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000046 /* Domain */ = {
@@ -349,6 +363,8 @@
 				AA0000000000000000000081 /* ScheduleEditorWindowController.swift in Sources */,
 				AA000000000000000000004E /* SettingsWindowController.swift in Sources */,
 				AA000000000000000000004C /* StatusBadgeView.swift in Sources */,
+				AA0000000000000000000090 /* InnosDesignTokens.swift in Sources */,
+				AA0000000000000000000091 /* InnosDesignComponents.swift in Sources */,
 				AA0000000000000000000039 /* Clamped.swift in Sources */,
 				AA0000000000000000000033 /* BrightnessCommand.swift in Sources */,
 				AA0000000000000000000034 /* BrightnessState.swift in Sources */,
