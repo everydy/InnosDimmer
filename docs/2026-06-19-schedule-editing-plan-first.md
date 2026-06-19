@@ -19,6 +19,10 @@ Status: Approved for 후행 `구현커밋`.
 Approved basis:
 
 - Current review artifact: `docs/design/schedule-editing/mockup.html`.
+- Current code default schedule is:
+  - `09:00` · `80%` brightness / `12%` blue reduction
+  - `19:00` · `45%` brightness / `32%` blue reduction
+  - `23:00` · `25%` brightness / `58%` blue reduction
 - Popover action layout is fixed as:
   - Row 1: `Edit schedule` + `Pause automation`
   - Row 2: `Quick disable` + `Restore previous`
@@ -58,9 +62,28 @@ HTML 생략 사유: 해당 없음. HTML 검토물이 `docs/design/schedule-editi
   - Route popover `Edit schedule` to a focused schedule window.
   - Embed the same editor behavior inline in the dashboard.
   - Keep current-state controls in the dashboard; the dashboard is an expanded popover, not an automation-only screen.
-  - Demote schedule editing in Settings to a summary + open schedule editor, or reuse the same component if schedule remains visible there.
+  - Demote schedule editing in Settings to a summary + open schedule editor after the focused schedule window save path is available.
 
-## Operator 결정 사항
+## Review-All-In-One Audit Log
+
+### Pass 1 Findings
+
+- Important: `blue reduction` is user-facing copy, but the persisted/runtime field is still named `warmth` in `ScheduleEntry.warmth` and `BrightnessState.targetWarmth`. The plan must preserve this mapping until a separate data-model rename plan exists.
+- Important: `MenuBarCommand.buttonCommands` is test-covered as the popover command inventory. Adding `openScheduleEditor` requires updating that list and the routing tests together.
+- Important: schedule saving must keep routing through `MenuBarController.saveSchedule(_:)`; view/controller code must not call `DisplayTargetStore.saveSchedule(_:)` directly.
+- Minor: the manifest used optional skill names that should be normalized to locally available skill names.
+
+### Pass 2 Result
+
+- The plan now includes codebase contracts, terminology mapping, implementation snippets, and per-commit test expectations.
+- No remaining plan-blocking inconsistency found in the reviewed surface.
+
+### Pass 3 Result
+
+- Rechecked required plan-first sections, stale skill names, `SettingsActions` bridge, `openScheduleEditor` command routing, `warmth` data guard, and whitespace.
+- No additional plan-blocking issue found.
+
+## Operator 결정 필요 사항
 
 ### 결정 1: v1 스케줄 행 개수
 
@@ -107,6 +130,26 @@ The HTML mockup shows three states together:
 
 It uses the existing dark-first visual language from the popover/dashboard redesign and includes a light-theme preview.
 
+### Terminology And Data Mapping
+
+| UI / copy | Current code field | Keep or change in this plan | Reason |
+| --- | --- | --- | --- |
+| Blue reduction | `ScheduleEntry.warmth` | Keep field name; change UI copy only | Avoid schema churn while the visual language moves away from "warmth". |
+| Blue reduction | `BrightnessState.targetWarmth` | Keep field name; route through `.setWarmth(Int)` | Existing dimming commands and tests already use this runtime field. |
+| Schedule row count | `SettingsWindowController.Layout.scheduleEntryCount = 3` | Keep fixed 3 rows | Add/remove rows are next-plan scope. |
+| Current default rows | `ScheduleEntry.defaultSchedule` | Preserve values | Mockup and tests use `09:00/19:00/23:00` with `12/32/58` blue values. |
+| Schedule save side effects | `MenuBarController.saveSchedule(_:)` | Preserve route | Applies current schedule decision, diagnostics, and boundary timer refresh. |
+
+### Current Code Contracts
+
+- `MenuBarCommand` currently has no `.openScheduleEditor`; it lives in `InnosDimmer/UI/MenuBarPopoverView.swift`.
+- `MenuBarController.perform(_:)` currently handles brightness, blue reduction, quick disable, restore, settings, dashboard, and pause commands.
+- `SettingsActions.updateSchedule` already has the right closure shape for saving schedule rows without exposing `DisplayTargetStore` to view code.
+- `SettingsActions` currently has no `openScheduleEditor` callback; Settings demotion needs one or an equivalent controller-supplied command bridge.
+- `SettingsWindowController.scheduleFromFields()` currently owns `HH:mm` and `0...100` validation; this logic must move into the shared schedule editor boundary or be wrapped by it.
+- `AppDashboardWindowController` currently lives in `MenuBarPopoverView.swift`, not a separate dashboard file.
+- `MenuBarStateTests.testMenuBarPopoverButtonsRouteEveryCommand()` iterates over `MenuBarCommand.buttonCommands`; this must include any new popover command.
+
 ## Architecture Plan
 
 ### Existing flow to preserve
@@ -122,19 +165,42 @@ Schedule UI
   -> refresh popover/dashboard
 ```
 
-### Proposed command/action shape
+### Proposed command shape
 
-Illustrative only:
+Illustrative only. Use this shape unless the implementation finds a narrower existing project pattern:
 
 ```swift
 enum MenuBarCommand: Equatable, Hashable {
+    case brightnessDown
+    case brightnessUp
+    case setBrightness(Int)
+    case warmthDown
+    case warmthUp
+    case setWarmth(Int)
     case openScheduleEditor
-    ...
+    case pauseAutomation
+    case quickDisable
+    case restorePrevious
+    case openAppWindow
+    case openSettings
 }
+```
 
-struct ScheduleEditorActions {
-    var updateSchedule: @MainActor ([ScheduleEntry]) -> Result<SettingsSnapshot, Error>
-}
+`buttonCommands` must be updated with `.openScheduleEditor` in the same commit that adds the popover button:
+
+```swift
+static let buttonCommands: [MenuBarCommand] = [
+    .brightnessDown,
+    .brightnessUp,
+    .warmthDown,
+    .warmthUp,
+    .openScheduleEditor,
+    .pauseAutomation,
+    .quickDisable,
+    .restorePrevious,
+    .openAppWindow,
+    .openSettings
+]
 ```
 
 ### Proposed shared editor boundary
@@ -151,14 +217,94 @@ final class ScheduleEditorView: NSView {
 
 The actual implementation may choose an `NSView` helper or a small controller, but the parsing, rendering, and validation should be shared.
 
+### Proposed schedule action boundary
+
+Illustrative only. The schedule window and dashboard can use this smaller wrapper instead of receiving full `SettingsActions`.
+
+```swift
+struct ScheduleEditorActions {
+    var updateSchedule: @MainActor ([ScheduleEntry]) -> Result<SettingsSnapshot, Error>
+}
+```
+
+Construct it from `MenuBarController` so the save path stays centralized:
+
+```swift
+private func makeScheduleEditorActions() -> ScheduleEditorActions {
+    ScheduleEditorActions(
+        updateSchedule: { [weak self] schedule in
+            self?.saveSchedule(schedule) ?? .failure(SettingsRuntimeError.unavailable)
+        }
+    )
+}
+```
+
+### Proposed editor validation contract
+
+Illustrative only. This contract should preserve the current `SettingsWindowController` validation behavior while making it reusable.
+
+```swift
+enum ScheduleEditorError: LocalizedError, Equatable {
+    case invalidTime(row: Int)
+    case invalidPercent(row: Int, field: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidTime(let row):
+            return "Schedule row \(row) needs a time in HH:mm format."
+        case .invalidPercent(let row, let field):
+            return "Schedule row \(row) needs \(field) from 0 to 100."
+        }
+    }
+}
+```
+
+Parsing should return `ScheduleEntry(minuteOfDay:brightness:warmth:)` and should keep `field: "blue reduction"` for the third column.
+
+### Proposed save-result handling
+
+Illustrative only. The schedule window and dashboard should follow this state update shape:
+
+```swift
+do {
+    switch actions.updateSchedule(try scheduleEditor.editedSchedule()) {
+    case .success(let snapshot):
+        scheduleEditor.update(schedule: snapshot.schedule)
+        report("Schedule saved.")
+    case .failure(let error):
+        report(error.localizedDescription, isError: true)
+    }
+} catch {
+    report(error.localizedDescription, isError: true)
+}
+```
+
+Do not call `DisplayTargetStore.saveSchedule(_:)` from `ScheduleEditorView`, `ScheduleEditorWindowController`, or `AppDashboardWindowController`.
+
+### Proposed settings bridge
+
+Illustrative only. When Settings is demoted to summary/navigation, add a narrow open callback instead of making Settings own schedule saving again.
+
+```swift
+struct SettingsActions {
+    var selectDisplay: @MainActor (DisplayIdentity?) -> Result<SettingsSnapshot, Error>
+    var updateShortcuts: @MainActor ([ShortcutBinding]) -> Result<SettingsSnapshot, Error>
+    var setLaunchAtLogin: @MainActor (Bool) -> Result<LoginItemStatus, Error>
+    var exportDiagnostics: @MainActor () -> Result<Data, Error>
+    var openScheduleEditor: @MainActor () -> Void
+}
+```
+
+If `updateSchedule` remains temporarily for compatibility during Commit 2, remove it from Settings usage in Commit 5.
+
 ## Skill Routing Manifest
 
 | Phase | Required skills | Optional skills | Evidence |
 | --- | --- | --- | --- |
-| Commit 1: Add schedule command and focused editor shell | `구현커밋` | `design-redesign` | Needs new command routing and AppKit shell based on `docs/design/schedule-editing/mockup.html`. |
+| Commit 1: Add schedule command and focused editor shell | `구현커밋` | `디자인올인원` | Needs new command routing and AppKit shell based on `docs/design/schedule-editing/mockup.html`. |
 | Commit 2: Extract fixed-row shared schedule editor component | `구현커밋` | `review-all-in-one` | Prevents duplicate parsing across Settings, Schedule window, and Dashboard while deferring add/remove rows. |
 | Commit 3: Wire popover and schedule window save flow | `구현커밋` | `테스트` | Must preserve `MenuBarController.saveSchedule(_:)` side effects from research. |
-| Commit 4: Add dashboard current-state plus inline schedule editing | `구현커밋` | `design-a11y-qa` | Dashboard must remain an expanded popover with current controls plus schedule editing, and needs layout/overflow checks. |
+| Commit 4: Add dashboard current-state plus inline schedule editing | `구현커밋` | `디자인올인원`, `테스트` | Dashboard must remain an expanded popover with current controls plus schedule editing, and needs layout/overflow checks. |
 | Commit 5: Demote schedule from Settings and update tests | `구현커밋` | `review-all-in-one` | Settings role changes and existing settings tests must be updated. |
 | Final Gate | `테스트`, `review-all-in-one` | `qa-gate` | Run focused UI tests, full `xcodebuild test`, Release build, and visual snapshot review. |
 
@@ -173,6 +319,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - `InnosDimmerTests/MenuBarStateTests.swift`
 - 변경:
   - Add `MenuBarCommand.openScheduleEditor`.
+  - Add `.openScheduleEditor` to `MenuBarCommand.buttonCommands`.
+  - Add a `case .openScheduleEditor` branch in `MenuBarController.perform(_:)`.
   - Add a popover `Edit schedule` button in the Schedule section.
   - Re-layout Schedule actions as:
     - Row 1: `Edit schedule` + `Pause automation`
@@ -181,6 +329,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - The shell can initially render current schedule summary and disabled controls if shared editor extraction happens in Commit 2.
 - 검증:
   - Focused tests for button command routing.
+  - Update `testMenuBarPopoverButtonsRouteEveryCommand()` and `testMenuBarPopoverCommandButtonsKeepMinimumActionHeight()` expectations through `buttonCommands`.
+  - Add a controller routing test that proves `.openScheduleEditor` does not call `openSettings`.
   - `xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateTests`
 - 성공 기준:
   - Popover routes `Edit schedule` to `.openScheduleEditor`.
@@ -201,11 +351,14 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Do not implement add/remove rows in this plan; leave extension points or disabled affordance only if useful.
   - Keep `HH:mm` validation and percent validation equivalent to existing behavior.
   - Render time, brightness, and blue reduction controls with stable dimensions.
+  - Preserve `warmth` as the backing field name while using `Blue reduction` as the visible label.
+  - Preserve default schedule values from `ScheduleEntry.defaultSchedule`.
 - 검증:
   - Tests for valid rows, invalid time, invalid brightness, invalid blue reduction.
   - Existing settings snapshot and display target tests.
+  - Add tests that duplicate minutes are sorted deterministically by `SettingsSnapshot.sortedSchedule(_:)`, not by the editor.
 - 성공 기준:
-  - One schedule editor helper feeds Settings/Schedule window/Dashboard.
+  - One schedule editor helper feeds every active schedule-editing surface; during transition this may include Settings until Commit 5 demotes it.
   - Validation messages remain specific enough for row-level correction.
   - No add/remove persistence behavior is introduced in this plan.
 - 중단 조건:
@@ -223,11 +376,15 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Save calls existing schedule update closure.
   - Success refreshes visible schedule summaries and records status.
   - Failure reports validation/persistence error without discarding current rows.
+  - Window title should be `InnosDimmer Schedule`.
+  - Window should expose only schedule rows, save/cancel or close behavior, and schedule status; it must not include display target, shortcuts, login item, or diagnostics export.
 - 검증:
   - Save path test confirms `DisplayTargetStore.saveSchedule` sorting and `MenuBarController.saveSchedule` runtime side effects.
   - Focused schedule tests.
+  - Add failure-path test for invalid `HH:mm` and out-of-range percent values.
 - 성공 기준:
   - Saving from schedule window has the same runtime behavior as saving from Settings today.
+  - Failed save leaves the user's edited row values visible for correction.
 - 중단 조건:
   - If save flow bypasses `applyScheduleDecision()` or timer rescheduling, stop and revise.
 
@@ -243,8 +400,11 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Replace dashboard schedule summary-only row with inline schedule editor section below/alongside current-state controls.
   - Add dashboard `Save schedule` action.
   - Keep current state, action buttons, diagnostics visible and unclipped.
+  - Prefer a scrollable dashboard content container before increasing the minimum window height beyond current usability.
+  - Reuse the same schedule editor helper and save action boundary as the schedule window.
 - 검증:
   - Dashboard button/action tests.
+  - Dashboard schedule edit/save routing tests.
   - Dashboard light/dark snapshots.
   - `xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateTests`
 - 성공 기준:
@@ -266,8 +426,12 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Remove or collapse the schedule table from Settings.
   - Add schedule summary and `Open schedule editor`.
   - Keep display target, shortcuts, login item, diagnostics export.
+  - Extend `SettingsActions` with `openScheduleEditor` or an equivalent narrow callback.
+  - If the shared editor component is still temporarily embedded in Settings after Commit 2, this commit removes that primary editing role.
 - 검증:
   - Existing settings tests updated for new role.
+  - Tests prove settings still saves display, shortcuts, login item, and diagnostics export.
+  - Tests prove `Open schedule editor` routes to the same schedule window command/action path as popover.
   - Full `xcodebuild test -scheme InnosDimmer`.
 - 성공 기준:
   - Settings is no longer the primary schedule editing surface.
@@ -290,9 +454,11 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - What this plan may still miss:
   - Exact native AppKit choice for time input: text field, stepper, date picker, or combo.
   - Dynamic add/remove row behavior, intentionally moved to the next plan.
+  - Whether `warmth` should eventually be renamed to `blueReduction`; this is intentionally not part of this implementation plan.
 - When to stop and revise:
   - Stop if the shared editor component cannot be extracted without breaking existing settings tests.
   - Stop if schedule save flow does not trigger current runtime apply/timer behavior.
+  - Stop if implementing the dashboard inline editor requires hiding diagnostics or current-state controls.
 
 ## 구현 후 검토 리스트
 
@@ -309,6 +475,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Check for duplicate schedule parsing.
   - Check that no view writes `UserDefaults` directly.
   - Check dashboard/window layout under dark and light appearances.
+  - Check that `blue reduction` copy still maps to `warmth` data without accidental schema migration.
+  - Check that the schedule editor handles unsorted input, duplicate times, invalid times, invalid percents, and save failures.
 - Operator 재확인:
   - Add/remove schedule rows remains next-plan scope.
   - Settings schedule form demotion proceeds in this plan after Schedule window save flow is working.
@@ -322,6 +490,8 @@ The actual implementation may choose an `NSView` helper or a small controller, b
 - Scope guard: do not implement dynamic add/remove schedule rows in this plan.
 - UI guard: the dashboard must retain current-state controls while adding inline schedule editing.
 - Settings guard: demote schedule editing to summary/navigation after the schedule window save path is available.
+- Data guard: do not rename persisted `warmth` fields in this plan.
+- Save-path guard: schedule UI must call a controller-supplied action that reaches `MenuBarController.saveSchedule(_:)`.
 
 ## Next Plan Backlog
 
