@@ -286,7 +286,7 @@ private final class ScheduleSummaryRowsView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         stack.orientation = .vertical
-        stack.alignment = .width
+        stack.alignment = .leading
         stack.spacing = 6
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
@@ -320,7 +320,9 @@ private final class ScheduleSummaryRowsView: NSView {
         plainSummary = entries.map { entry in
             "\(Self.timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · ◐ \(entry.blueReduction)%"
         }.joined(separator: "\n")
-        entries.map(Self.rowView(for:)).forEach(stack.addArrangedSubview)
+        entries.map(Self.rowView(for:)).forEach { row in
+            stack.addArrangedSubview(row)
+        }
     }
 
     private static func rowView(for entry: ScheduleEntry) -> NSView {
@@ -409,7 +411,10 @@ private final class ShortcutSummaryRowsView: NSView {
         }
 
         plainSummary = rows.map { "\($0.title)  \($0.keyLabel)" }.joined(separator: "\n")
-        rows.map(Self.rowView(for:)).forEach(stack.addArrangedSubview)
+        rows.map(Self.rowView(for:)).forEach { row in
+            stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
     }
 
     private static func rowView(for row: ShortcutSummaryRow) -> NSView {
@@ -417,6 +422,7 @@ private final class ShortcutSummaryRowsView: NSView {
         title.font = .systemFont(ofSize: 12, weight: .medium)
         title.textColor = .labelColor
         title.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
         let keyLabel = NSTextField(labelWithString: row.keyLabel)
         keyLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
@@ -426,7 +432,11 @@ private final class ShortcutSummaryRowsView: NSView {
         keyLabel.setContentHuggingPriority(.required, for: .horizontal)
         keyLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
-        let stack = NSStackView(views: [title, keyLabel])
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let stack = NSStackView(views: [title, spacer, keyLabel])
         stack.orientation = .horizontal
         stack.alignment = .firstBaseline
         stack.spacing = 12
@@ -851,7 +861,7 @@ final class MenuBarPopoverView: NSView {
         self.automationActionButton = automationActionButton
         let scheduleStatusStack = NSStackView(views: [automationLabel, scheduleStatusDetailLabel])
         scheduleStatusStack.orientation = .vertical
-        scheduleStatusStack.alignment = .width
+        scheduleStatusStack.alignment = .leading
         scheduleStatusStack.spacing = 3
         let schedule = makeSection(
             title: "Schedule",
