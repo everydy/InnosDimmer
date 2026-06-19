@@ -177,6 +177,15 @@ private final class DashboardRootView: NSView {
     }
 }
 
+private enum BlueReductionWarning {
+    static let threshold = 50
+    static let message = "High blue reduction may shift colors."
+
+    static func message(for blueReduction: Int) -> String? {
+        Clamped.percent(blueReduction) >= threshold ? message : nil
+    }
+}
+
 private final class ProgressTrackView: NSView {
     var onUserFractionChange: ((CGFloat) -> Void)?
 
@@ -338,6 +347,7 @@ struct MenuBarViewModel: Equatable {
     var displaySummary: String
     var brightnessLabel: String
     var blueReductionLabel: String
+    var blueReductionWarning: String?
     var automationTitle: String
     var scheduleNextLabel: String
     var scheduleSummary: String
@@ -354,6 +364,7 @@ struct MenuBarViewModel: Equatable {
         displaySummary = state.display.map { "\($0.localizedName) · software dimming" } ?? "No display selected"
         brightnessLabel = "\(state.targetBrightness)%"
         blueReductionLabel = "\(state.targetBlueReduction)%"
+        blueReductionWarning = BlueReductionWarning.message(for: state.targetBlueReduction)
         if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
             automationTitle = "Automation paused until \(Self.timeLabel(for: resumeMinute))"
         } else if state.automationPausedUntilNextBoundary {
@@ -417,6 +428,7 @@ final class MenuBarPopoverView: NSView {
     private let displaySummaryLabel = NSTextField(labelWithString: "")
     private let brightnessValueLabel = NSTextField(labelWithString: "")
     private let blueReductionValueLabel = NSTextField(labelWithString: "")
+    private let blueReductionWarningLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleNextLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
@@ -465,6 +477,8 @@ final class MenuBarPopoverView: NSView {
         displaySummaryLabel.stringValue = viewModel.displaySummary
         brightnessValueLabel.stringValue = viewModel.brightnessLabel
         blueReductionValueLabel.stringValue = viewModel.blueReductionLabel
+        blueReductionWarningLabel.stringValue = viewModel.blueReductionWarning ?? ""
+        blueReductionWarningLabel.isHidden = viewModel.blueReductionWarning == nil
         automationLabel.stringValue = viewModel.automationTitle
         scheduleNextLabel.stringValue = viewModel.scheduleNextLabel
         scheduleNextLabel.invalidateIntrinsicContentSize()
@@ -525,12 +539,15 @@ final class MenuBarPopoverView: NSView {
 
         [
             displaySummaryLabel,
+            blueReductionWarningLabel,
             automationLabel,
             scheduleNextLabel,
             scheduleSummaryLabel,
             shortcutSummaryLabel,
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
+        blueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: effectiveAppearance)
+        blueReductionWarningLabel.isHidden = true
 
         let header = makeHeader()
         let controls = makeSection(
@@ -551,7 +568,8 @@ final class MenuBarPopoverView: NSView {
                     trackView: blueReductionTrackView,
                     decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
                     increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
-                )
+                ),
+                blueReductionWarningLabel
             ]
         )
         brightnessTrackView.onUserFractionChange = { [weak self] fraction in
@@ -847,6 +865,7 @@ struct AppDashboardViewModel: Equatable {
     var modeValue: String
     var brightnessValue: String
     var blueReductionValue: String
+    var blueReductionWarning: String?
     var automationValue: String
     var scheduleValue: String
     var shortcutValue: String
@@ -871,6 +890,7 @@ struct AppDashboardViewModel: Equatable {
         modeValue = modeTitle
         brightnessValue = "\(state.targetBrightness)%"
         blueReductionValue = "\(state.targetBlueReduction)%"
+        blueReductionWarning = BlueReductionWarning.message(for: state.targetBlueReduction)
         if state.automationPausedUntilNextBoundary {
             automationValue = state.automationResumeMinuteOfDay.map {
                 "paused until \(Self.timeLabel(for: $0))"
@@ -925,6 +945,7 @@ final class AppDashboardWindowController: NSWindowController {
     private let modeLabel = NSTextField(labelWithString: "")
     private let brightnessLabel = NSTextField(labelWithString: "")
     private let blueReductionLabel = NSTextField(labelWithString: "")
+    private let dashboardBlueReductionWarningLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
     private let scheduleLabel = NSTextField(labelWithString: "")
     private let shortcutLabel = NSTextField(labelWithString: "")
@@ -970,6 +991,8 @@ final class AppDashboardWindowController: NSWindowController {
         modeLabel.stringValue = viewModel.modeValue
         brightnessLabel.stringValue = viewModel.brightnessValue
         blueReductionLabel.stringValue = viewModel.blueReductionValue
+        dashboardBlueReductionWarningLabel.stringValue = viewModel.blueReductionWarning ?? ""
+        dashboardBlueReductionWarningLabel.isHidden = viewModel.blueReductionWarning == nil
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
         blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
         automationLabel.stringValue = viewModel.automationValue
@@ -1004,11 +1027,14 @@ final class AppDashboardWindowController: NSWindowController {
             modeLabel,
             brightnessLabel,
             blueReductionLabel,
+            dashboardBlueReductionWarningLabel,
             automationLabel,
             scheduleLabel,
             shortcutLabel,
             failureLabel
         ].forEach(Self.configureWrappingLabel)
+        dashboardBlueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
+        dashboardBlueReductionWarningLabel.isHidden = true
         failureLabel.font = .systemFont(ofSize: 13, weight: .semibold)
 
         diagnosticsTextView.isEditable = false
@@ -1079,6 +1105,7 @@ final class AppDashboardWindowController: NSWindowController {
                         action: #selector(blueReductionUpPressed)
                     )
                 ),
+                dashboardBlueReductionWarningLabel,
                 makeSummaryRow(title: "Automation", value: automationLabel)
             ]
         )

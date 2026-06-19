@@ -37,6 +37,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.displaySummary, "No display selected")
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.blueReductionLabel, "32%")
+        XCTAssertNil(viewModel.blueReductionWarning)
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
         XCTAssertEqual(viewModel.scheduleSummary, "10:00 · 70% brightness / 20% blue")
@@ -104,6 +105,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.modeValue, "Overlay active")
         XCTAssertEqual(viewModel.brightnessValue, "35%")
         XCTAssertEqual(viewModel.blueReductionValue, "20%")
+        XCTAssertNil(viewModel.blueReductionWarning)
         XCTAssertEqual(viewModel.automationValue, "active")
         XCTAssertEqual(viewModel.scheduleValue, "09:00 · 80% brightness / 12% blue")
         XCTAssertEqual(viewModel.shortcutValue, "6 enabled")
@@ -111,6 +113,22 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
         XCTAssertTrue(viewModel.diagnosticsLog.contains("ERROR softwareDimming: Overlay platform blocked"))
         XCTAssertTrue(viewModel.diagnosticsLog.contains("WARNING display: No eligible external display found"))
+    }
+
+    func testBlueReductionWarningAppearsAtHighRange() {
+        var state = BrightnessState.defaultState()
+        state.targetBlueReduction = 50
+
+        let menuViewModel = MenuBarViewModel(state: state)
+        let dashboardViewModel = AppDashboardViewModel(
+            state: state,
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+
+        XCTAssertEqual(menuViewModel.blueReductionWarning, "High blue reduction may shift colors.")
+        XCTAssertEqual(dashboardViewModel.blueReductionWarning, "High blue reduction may shift colors.")
     }
 
     @MainActor
