@@ -46,7 +46,6 @@
 		AA0000000000000000000079 /* DiagnosticsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007A /* DiagnosticsStoreTests.swift */; };
 		AA000000000000000000007B /* VerificationMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007C /* VerificationMatrix.swift */; };
 		AA000000000000000000007D /* VerificationMatrixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000007E /* VerificationMatrixTests.swift */; };
-		AA000000000000000000007F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000080 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,7 +101,6 @@
 		AA000000000000000000007A /* DiagnosticsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStoreTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000007C /* VerificationMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrix.swift; sourceTree = "<group>"; };
 		AA000000000000000000007E /* VerificationMatrixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerificationMatrixTests.swift; sourceTree = "<group>"; };
-		AA0000000000000000000080 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,7 +133,6 @@
 		AA000000000000000000000B /* InnosDimmer */ = {
 			isa = PBXGroup;
 			children = (
-				AA0000000000000000000080 /* Assets.xcassets */,
 				AA000000000000000000000E /* App */,
 				AA0000000000000000000026 /* UI */,
 				AA0000000000000000000046 /* Domain */,
@@ -317,7 +314,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AA000000000000000000007F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -473,7 +469,7 @@
 		AA000000000000000000001C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -494,7 +490,6 @@
 		AA000000000000000000001D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = NO;
