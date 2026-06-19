@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Schedule Editing UX Mockup</title>
+  <style>
+    :root,
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #111113;
+      --surface: #1b1b1f;
+      --panel: #26262b;
+      --panel-2: #202024;
+      --control: #303036;
+      --text: #f3f3f1;
+      --muted: #aaa9a3;
+      --line: #3b3b40;
+      --blue: #5aa7ff;
+      --blue-strong: #1f7bd9;
+      --green: #75d99b;
+      --amber: #f1c45f;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
+    }
+
+    body[data-theme="light"] {
+      color-scheme: light;
+      --page: #eef0f3;
+      --surface: #f7f7f8;
+      --panel: #ffffff;
+      --panel-2: #f1f2f4;
+      --control: #f7f7f8;
+      --text: #1f2328;
+      --muted: #66707a;
+      --line: #d6d9de;
+      --blue: #0f75d3;
+      --blue-strong: #0b70c9;
+      --green: #196b39;
+      --amber: #8a5b00;
+      --shadow: 0 22px 48px rgba(21, 30, 45, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px;
+      background: var(--page);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .board {
+      width: min(1280px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 780;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .theme-toggle {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+    }
+
+    .theme-toggle button {
+      height: 28px;
+      min-width: 58px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    body[data-theme="dark"] .theme-toggle button[data-theme-button="dark"],
+    body[data-theme="light"] .theme-toggle button[data-theme-button="light"] {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .story {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card,
+    .window,
+    .popover {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      padding: 14px;
+      box-shadow: none;
+      background: var(--panel);
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .decision {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .decision-row {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 10px;
+      align-items: start;
+      min-height: 34px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .num {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(90, 167, 255, 0.16);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .screens {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .popover {
+      width: 420px;
+      min-height: 560px;
+      padding: 16px;
+      box-shadow: none;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .title {
+      font-size: 17px;
+      font-weight: 760;
+    }
+
+    .display {
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .badge,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge {
+      border-color: rgba(117, 217, 155, 0.35);
+      background: rgba(117, 217, 155, 0.12);
+      color: var(--green);
+    }
+
+    .section {
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 8px 10px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .summary-grid dt {
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .summary-grid dd {
+      margin: 0;
+      font-weight: 650;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: 104px 54px 1fr 34px 34px;
+      gap: 8px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    .control + .control {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .value {
+      text-align: right;
+      font-size: 18px;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .track {
+      height: 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 70%, transparent);
+    }
+
+    .fill {
+      width: var(--value);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    button {
+      min-height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .primary {
+      border-color: var(--blue-strong);
+      background: var(--blue-strong);
+      color: #fff;
+    }
+
+    .warning {
+      border-color: rgba(241, 196, 95, 0.42);
+      background: rgba(241, 196, 95, 0.12);
+      color: var(--amber);
+    }
+
+    .wide {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .window {
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+      height: 48px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28c840; }
+
+    .window-title {
+      font-size: 14px;
+      font-weight: 760;
+    }
+
+    .schedule-window {
+      min-height: 560px;
+    }
+
+    .window-body {
+      padding: 16px;
+      background: var(--surface);
+    }
+
+    .window-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 780;
+    }
+
+    .head-copy {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .schedule-editor {
+      display: grid;
+      gap: 10px;
+    }
+
+    .schedule-header,
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 86px 1fr 1fr 34px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .schedule-header {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      text-transform: uppercase;
+    }
+
+    .schedule-row {
+      min-height: 44px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .time-input,
+    .percent-control,
+    .status-field {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .time-input {
+      display: grid;
+      place-items: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .percent-control {
+      display: grid;
+      grid-template-columns: 48px 1fr 26px 26px;
+      gap: 6px;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .small-button {
+      display: grid;
+      place-items: center;
+      min-height: 26px;
+      min-width: 26px;
+      padding: 0;
+    }
+
+    .status-field {
+      display: grid;
+      align-items: center;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dashboard {
+      grid-column: 1 / -1;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .dashboard-schedule {
+      grid-column: 1 / -1;
+    }
+
+    .mini-log {
+      min-height: 110px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 980px) {
+      .story,
+      .screens,
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .popover {
+        width: 100%;
+      }
+
+      .schedule-header {
+        display: none;
+      }
+
+      .schedule-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <main class="board">
+    <header class="topbar">
+      <div>
+        <h1>Schedule editing surface split</h1>
+        <div class="subtitle">Popover opens a schedule-only editor. The app window edits schedule inline. General settings no longer has to be the primary automation editor.</div>
+      </div>
+      <div class="theme-toggle" aria-label="Theme preview">
+        <button type="button" data-theme-button="dark">Dark</button>
+        <button type="button" data-theme-button="light">Light</button>
+      </div>
+    </header>
+
+    <section class="story">
+      <aside class="card">
+        <div class="label">Decision model</div>
+        <div class="decision">
+          <div class="decision-row"><span class="num">1</span><span>Popover keeps schedule compact and adds a single <strong>Edit schedule</strong> action.</span></div>
+          <div class="decision-row"><span class="num">2</span><span>The new Schedule window owns focused schedule editing and uses the existing save path.</span></div>
+          <div class="decision-row"><span class="num">3</span><span>The app window exposes the same schedule rows inline, so dashboard users do not need another navigation step.</span></div>
+          <div class="decision-row"><span class="num">4</span><span>Settings keeps general app preferences: display target, shortcuts, login item, diagnostics.</span></div>
+        </div>
+      </aside>
+
+      <div class="screens">
+        <section class="popover" aria-label="Popover schedule entry mockup">
+          <div class="header">
+            <div class="title">InnosDimmer</div>
+            <div class="badge">Overlay active</div>
+            <div class="display">27QA100M · software dimming · automation paused until 19:00</div>
+          </div>
+
+          <section class="section">
+            <div class="section-title"><span>Quick controls</span><span class="chip">Manual</span></div>
+            <div class="control">
+              <div>Brightness</div><div class="value">45%</div><div class="track"><div class="fill" style="--value: 45%"></div></div><button>−</button><button>+</button>
+            </div>
+            <div class="control">
+              <div>Blue reduction</div><div class="value">32%</div><div class="track"><div class="fill" style="--value: 32%"></div></div><button>−</button><button>+</button>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><span>Schedule</span><span class="chip">Next 19:00</span></div>
+            <dl class="summary-grid">
+              <dt>Current</dt>
+              <dd>09:00 · 80% / 12%, 19:00 · 45% / 32%, 23:00 · 25% / 58%</dd>
+              <dt>Status</dt>
+              <dd>Automation paused until 19:00</dd>
+            </dl>
+            <button class="wide primary" type="button">Edit schedule</button>
+            <div class="button-row">
+              <button type="button">Restore previous</button>
+              <button type="button">Pause automation</button>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><span>Diagnostics</span><span class="chip">Latest</span></div>
+            <div class="status-field">Applied brightness 45% blue reduction 32% on 27QA100M</div>
+            <div class="button-row">
+              <button class="primary" type="button">Open app window</button>
+              <button type="button">Settings</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="window schedule-window" aria-label="Schedule editor window mockup">
+          <div class="titlebar">
+            <div class="traffic" aria-hidden="true"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <div class="window-title">InnosDimmer Schedule</div>
+            <span class="badge">3 rows</span>
+          </div>
+          <div class="window-body">
+            <div class="window-head">
+              <div>
+                <h2>Automation schedule</h2>
+                <div class="head-copy">Focused editor for time, brightness, and blue reduction. Saving applies the current active entry and reschedules the next boundary.</div>
+              </div>
+              <button class="primary" type="button">Save schedule</button>
+            </div>
+
+            <div class="schedule-editor">
+              <div class="schedule-header"><div>Time</div><div>Brightness</div><div>Blue reduction</div><div></div></div>
+              <div class="schedule-row">
+                <div class="time-input">09:00</div>
+                <div class="percent-control"><span>80%</span><div class="track"><div class="fill" style="--value: 80%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>12%</span><div class="track"><div class="fill" style="--value: 12%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button" aria-label="Remove schedule row">−</button>
+              </div>
+              <div class="schedule-row">
+                <div class="time-input">19:00</div>
+                <div class="percent-control"><span>45%</span><div class="track"><div class="fill" style="--value: 45%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>32%</span><div class="track"><div class="fill" style="--value: 32%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button" aria-label="Remove schedule row">−</button>
+              </div>
+              <div class="schedule-row">
+                <div class="time-input">23:00</div>
+                <div class="percent-control"><span>25%</span><div class="track"><div class="fill" style="--value: 25%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>58%</span><div class="track"><div class="fill" style="--value: 58%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button" aria-label="Remove schedule row">−</button>
+              </div>
+            </div>
+
+            <div class="footer">
+              <span>Next boundary: 19:00 · active after save: 45% brightness / 32% blue reduction</span>
+              <div class="footer-actions">
+                <button type="button">Add row</button>
+                <button class="warning" type="button">Reset default</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="window dashboard" aria-label="Dashboard inline schedule editing mockup">
+      <div class="titlebar">
+        <div class="traffic" aria-hidden="true"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+        <div class="window-title">InnosDimmer</div>
+        <span class="badge">Dashboard</span>
+      </div>
+      <div class="window-body">
+        <div class="window-head">
+          <div>
+            <h2>App window with inline schedule editing</h2>
+            <div class="head-copy">The dashboard keeps current-state controls and lets schedule changes happen in place, without opening the schedule window.</div>
+          </div>
+          <button class="primary" type="button">Save all schedule changes</button>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="section">
+            <div class="section-title"><span>Current state</span><span class="chip">27QA100M</span></div>
+            <div class="summary-grid">
+              <dt>Mode</dt><dd>Overlay active</dd>
+              <dt>Brightness</dt><dd>45%</dd>
+              <dt>Blue</dt><dd>32%</dd>
+              <dt>Automation</dt><dd>paused until 19:00</dd>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><span>Diagnostics</span><span class="chip">Latest</span></div>
+            <div class="mini-log">[17:54:03] INFO schedule: Saved 3 schedule entries<br>[17:54:03] INFO schedule: Next boundary scheduled for 19:00<br>[17:54:03] INFO softwareDimming: Applied brightness 45% blue reduction 32%</div>
+          </section>
+
+          <section class="section dashboard-schedule">
+            <div class="section-title"><span>Inline automation schedule</span><span class="chip">No extra window</span></div>
+            <div class="schedule-editor">
+              <div class="schedule-header"><div>Time</div><div>Brightness</div><div>Blue reduction</div><div></div></div>
+              <div class="schedule-row">
+                <div class="time-input">09:00</div>
+                <div class="percent-control"><span>80%</span><div class="track"><div class="fill" style="--value: 80%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>12%</span><div class="track"><div class="fill" style="--value: 12%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button">−</button>
+              </div>
+              <div class="schedule-row">
+                <div class="time-input">19:00</div>
+                <div class="percent-control"><span>45%</span><div class="track"><div class="fill" style="--value: 45%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>32%</span><div class="track"><div class="fill" style="--value: 32%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button">−</button>
+              </div>
+              <div class="schedule-row">
+                <div class="time-input">23:00</div>
+                <div class="percent-control"><span>25%</span><div class="track"><div class="fill" style="--value: 25%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <div class="percent-control"><span>58%</span><div class="track"><div class="fill" style="--value: 58%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
+                <button class="small-button">−</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    for (const button of document.querySelectorAll("[data-theme-button]")) {
+      button.addEventListener("click", () => {
+        document.body.dataset.theme = button.dataset.themeButton;
+      });
+    }
+  </script>
+</body>
+</html>
