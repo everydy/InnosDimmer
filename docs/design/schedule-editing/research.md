@@ -2,248 +2,351 @@
 
 ## Goal
 
-Define a plan-ready UX and implementation direction for making schedule editing easier without overloading the menu bar popover or duplicating settings persistence logic.
+Prepare a plan-ready codebase research document for applying the approved `docs/design/schedule-editing/mockup.html` direction to the native Swift/AppKit app.
 
-The user intent is:
+The current approved UX direction is:
 
-- The popover should expose a clear schedule entry point, not inline full schedule editing.
-- The popover should still include the existing emergency/manual actions: `Quick disable`, `Restore previous`, and `Pause automation`.
-- A dedicated schedule window should open from that entry point and focus only on schedule editing.
-- The app dashboard window should allow schedule editing inline without requiring a separate click into settings.
-- The app dashboard must remain an expanded popover: it keeps editable current-state brightness/blue-reduction controls while adding inline schedule editing.
-- The existing Settings window should stop being the main place for schedule editing, or should demote schedule editing to a secondary entry point.
+- Keep the popover compact.
+- Remove the popover Schedule section's separate `Current` label.
+- Remove the ambiguous Schedule title-row `Next` chip; if next-boundary information stays visible, place it inside the status block.
+- Render popover schedule rows directly left-aligned under the status block.
+- Render popover shortcut hints as aligned rows, table-like without heavy grid decoration.
+- Make `Edit schedule` open the app dashboard/window schedule area instead of opening another schedule editor window.
+- Treat the app dashboard as the full editing hub for current dimming, automation, schedule rows, shortcuts, diagnostics, and save feedback.
+- Keep Settings focused on general preferences and route schedule work to the app window.
+
+Trigger mode: Pre-Plan Research Gate for `plan-first-implementation`.
 
 ## Scope And Entry Points
 
-Local scope:
+Primary implementation scope:
 
-- Menu bar popover: `InnosDimmer/UI/MenuBarPopoverView.swift`
-- Menu command routing: `MenuBarCommand`, `MenuBarActions`, `MenuBarController.perform(_:)`
-- Dashboard window: `AppDashboardWindowController` in `InnosDimmer/UI/MenuBarPopoverView.swift`
-- Settings window schedule fields: `InnosDimmer/UI/SettingsWindowController.swift`
-- Schedule model and persistence: `ScheduleEntry`, `SettingsSnapshot`, `DisplayTargetStore`
-- Runtime schedule decisions: `ScheduleEngine`, `ScheduleTimerController`, `MenuBarController.saveSchedule(_:)`
+- `InnosDimmer/UI/MenuBarPopoverView.swift`
+  - `MenuBarViewModel`
+  - `ScheduleSummaryRowsView`
+  - `MenuBarPopoverView.buildLayout()`
+  - `AppDashboardViewModel`
+  - `AppDashboardWindowController`
+- `InnosDimmer/UI/MenuBarController.swift`
+  - `perform(_:)`
+  - `showAppWindow()`
+  - `showScheduleEditor()`
+  - `makeSettingsActions()`
+  - `makeScheduleEditorActions()`
+- `InnosDimmer/UI/SettingsWindowController.swift`
+  - schedule summary/navigation copy
+  - shortcut table-style editing remains general settings
+- `InnosDimmer/UI/ScheduleEditorView.swift`
+  - reusable fixed-row schedule editor already exists
+- `InnosDimmer/UI/ScheduleEditorWindowController.swift`
+  - already exists, but no longer matches the preferred primary flow
+- `InnosDimmerTests/MenuBarStateTests.swift`
+  - popover view model assertions
+  - popover button routing
+  - dashboard routing and schedule save tests
+  - snapshot capture tests
+- `InnosDimmerTests/HotkeyBindingTests.swift`
+  - settings schedule navigation routing
 
-External scope:
-
-- Apple HIG component guidance for popovers, sliders, pickers, and settings-like native controls. These are official but the browsed pages require JavaScript, so the adoption decision uses them as directional support rather than detailed implementation law.
-
-Out of scope for this plan:
-
-- Changing the schedule engine semantics.
-- Adding calendar/date recurrence beyond time-of-day entries.
-- Changing gamma/overlay dimming behavior.
-- Reworking shortcut editing.
-
-## Relevant Files
+Supporting scope:
 
 - `DESIGN.md`
-- `docs/design-decisions.md`
-- `docs/design/popover-redesign/mockup.html`
-- `docs/design/settings-redesign/mockup.html`
-- `InnosDimmer/UI/MenuBarPopoverView.swift`
-- `InnosDimmer/UI/MenuBarController.swift`
-- `InnosDimmer/UI/SettingsWindowController.swift`
+- `docs/design/schedule-editing/mockup.html`
 - `InnosDimmer/Domain/ScheduleEntry.swift`
+- `InnosDimmer/Domain/ShortcutBinding.swift`
 - `InnosDimmer/Domain/SettingsSnapshot.swift`
 - `InnosDimmer/Services/DisplayTargetStore.swift`
 - `InnosDimmer/Services/ScheduleEngine.swift`
-- `InnosDimmerTests/MenuBarStateTests.swift`
+- `InnosDimmerTests/DisplayTargetStoreTests.swift`
 - `InnosDimmerTests/ScheduleEngineTests.swift`
 - `InnosDimmerTests/SettingsSnapshotTests.swift`
-- `InnosDimmerTests/DisplayTargetStoreTests.swift`
+
+Out of scope:
+
+- Dynamic add/remove schedule rows.
+- Schedule engine semantics.
+- Persistence schema changes.
+- Blue-reduction/gamma implementation changes.
+- External design benchmarking; local code and the approved HTML mockup are sufficient evidence for this plan.
+
+## Relevant Files
+
+Files read for this research:
+
+- `/Users/moonsoo/projects/InnosDimmer/DESIGN.md`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/schedule-editing/mockup.html`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/schedule-editing/research.md`
+- `/Users/moonsoo/projects/InnosDimmer/docs/2026-06-19-schedule-editing-plan-first.md`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/ScheduleEditorView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/ScheduleEditorWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/SettingsWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ScheduleEntry.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/ShortcutBinding.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/Domain/SettingsSnapshot.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/DisplayTargetStoreTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/ScheduleEngineTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/SettingsSnapshotTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/HotkeyBindingTests.swift`
 
 ## Current Behavior
 
-The current user-visible behavior has three surfaces:
+Confirmed current behavior from local code:
 
-- Popover:
-  - Shows schedule summary and next schedule chip.
-  - Offers `Quick disable`, `Restore previous`, `Pause automation`, `Open app window`, and `Settings`.
-  - Does not open a schedule-only editor.
-- App dashboard:
-  - Shows current schedule as a summary row.
-  - Already supports direct brightness/blue-reduction controls and several action buttons.
-  - Does not directly edit schedule entries.
-- Settings window:
-  - Contains display target, schedule, global shortcuts, login item, diagnostics export, and status feedback in one scrollable form.
-  - Schedule editing is hard-coded to three rows through `Layout.scheduleEntryCount = 3`.
-  - Saving schedule uses `SettingsActions.updateSchedule`.
-
-The current schedule data model is simple and stable:
-
-- `ScheduleEntry` stores `id`, `minuteOfDay`, `brightness`, and `warmth`.
-- `SettingsSnapshot` stores `[ScheduleEntry]`.
-- `DisplayTargetStore.saveSchedule(_:)` validates and persists the schedule.
-- `MenuBarController.saveSchedule(_:)` updates `scheduleEntries`, records diagnostics, applies the current schedule decision, and reschedules the boundary timer.
+- The popover already has the main quick-control structure and fixed AppKit styling:
+  - `MenuBarPopoverView.preferredContentSize = NSSize(width: 480, height: 700)`
+  - `ProgressTrackView` supports click/drag percentage changes for brightness and blue reduction.
+  - `PopoverCommandButton.minimumHeight = 30`, addressing the previous thin-button issue.
+- The popover already has an `Edit schedule` command:
+  - `MenuBarCommand.openScheduleEditor` exists.
+  - `MenuBarCommand.buttonCommands` includes `.openScheduleEditor`.
+  - `MenuBarController.perform(_:)` routes `.openScheduleEditor` to `showScheduleEditor()`.
+- The popover Schedule section still differs from the latest mockup:
+  - It creates a title-row `scheduleNextChip` from `scheduleNextLabel`.
+  - It renders `makeSummaryRow(title: "Status", value: automationLabel)`.
+  - It renders `makeSummaryRow(title: "Current", value: scheduleSummaryRowsView)`.
+  - The latest mockup removes the `Current` label and title-row `Next` chip.
+- The popover Shortcuts section still differs from the latest mockup:
+  - `MenuBarViewModel.shortcutSummary` returns one multiline string.
+  - `MenuBarPopoverView` displays that string in `shortcutSummaryLabel` inside `PopoverContainerView`.
+  - The latest mockup wants aligned rows, not a single wrapping text block.
+- A reusable fixed-row `ScheduleEditorView` already exists:
+  - It renders three fixed schedule rows.
+  - It validates `HH:mm` time and `0...100` brightness/blue reduction.
+  - It returns sorted `ScheduleEntry` values via `editedSchedule()`.
+- A `ScheduleEditorWindowController` already exists:
+  - It can save through injected `ScheduleEditorActions.updateSchedule`.
+  - It is now at odds with the latest approved flow, where `Edit schedule` should open the app window instead of another window.
+- The app dashboard already has inline schedule editing:
+  - `AppDashboardWindowController` owns `scheduleEditorView`.
+  - `saveScheduleFromEditor(reportsStatus:)` uses `scheduleActions.updateSchedule`.
+  - It still shows a summary row labeled `Current` before the editor.
+- Settings already routes schedule editing through an action:
+  - `SettingsActions.openScheduleEditor` exists.
+  - `SettingsWindowController` shows `Open schedule editor`.
+  - `MenuBarController.makeSettingsActions()` currently routes this to `showScheduleEditor()`, not `showAppWindow()`.
 
 ## Data Flow And Control Flow
 
-Current schedule save flow:
+Current command flow:
 
 ```text
-SettingsWindowController.saveSchedulePressed()
-  -> scheduleFromFields()
-  -> SettingsActions.updateSchedule(schedule)
-  -> MenuBarController.saveSchedule(schedule)
-  -> DisplayTargetStore.saveSchedule(schedule)
-  -> SettingsSnapshot.replacingSchedule(schedule)
-  -> SettingsSnapshot.sortedSchedule(schedule)
-  -> DisplayTargetStore.save(validatedSnapshot)
-  -> MenuBarController.scheduleEntries = snapshot.schedule
-  -> record(.schedule, ...)
+Popover "Edit schedule"
+  -> MenuBarPopoverView.openScheduleEditorPressed()
+  -> MenuBarActions.perform(.openScheduleEditor)
+  -> MenuBarController.perform(.openScheduleEditor)
+  -> MenuBarController.showScheduleEditor()
+  -> ScheduleEditorWindowController.configure(schedule:)
+  -> separate schedule window opens
+```
+
+Target command flow from the latest mockup:
+
+```text
+Popover "Edit schedule"
+  -> MenuBarActions.perform(.openScheduleEditor)
+  -> MenuBarController.perform(.openScheduleEditor)
+  -> MenuBarController.showAppWindow(focus: schedule area) or showAppWindow()
+  -> AppDashboardWindowController.update(...)
+  -> dashboard inline schedule editor is visible/editable
+```
+
+Current Settings schedule navigation:
+
+```text
+Settings "Open schedule editor"
+  -> SettingsActions.openScheduleEditor()
+  -> MenuBarController.showScheduleEditor()
+```
+
+Target Settings schedule navigation:
+
+```text
+Settings "Open app window schedule"
+  -> SettingsActions.openScheduleEditor() or renamed callback
+  -> MenuBarController.showAppWindow(focus: schedule area) or showAppWindow()
+```
+
+Current schedule save flow to preserve:
+
+```text
+ScheduleEditorView.editedSchedule()
+  -> ScheduleEditorActions.updateSchedule([ScheduleEntry])
+  -> MenuBarController.saveSchedule(_:)
+  -> DisplayTargetStore.saveSchedule(_:)
+  -> SettingsSnapshot.replacingSchedule(_:)
+  -> scheduleEntries = snapshot.schedule
+  -> record(.schedule, "Saved ...")
   -> applyScheduleDecision()
   -> scheduleNextBoundaryTimerIfRunning()
 ```
 
-Runtime automation flow:
-
-```text
-MenuBarController
-  -> ScheduleEngine.decision(at:entries:state:)
-  -> apply scheduled BrightnessCommand when active
-  -> ScheduleTimerController.scheduleNextBoundary(...)
-  -> later boundary fire re-evaluates schedule
-```
-
-The plan should keep this flow intact and reuse it from any new UI.
+The native app must keep this save path. UI code must not call `DisplayTargetStore.saveSchedule(_:)` directly.
 
 ## Existing Abstractions And Boundaries
 
-Use these boundaries:
+Keep these boundaries:
 
-- `ScheduleEntry` is the schedule row model.
-- `SettingsSnapshot` is the persisted settings aggregate.
-- `DisplayTargetStore` owns validation and persistence.
-- `MenuBarController.saveSchedule(_:)` owns runtime side effects after saving.
-- `ScheduleEngine` owns active-entry, next-boundary, manual override, and timer decision logic.
-- `SettingsActions.updateSchedule` is already the right closure shape for view controllers that need schedule persistence without owning app runtime.
+- `MenuBarCommand` is the UI command vocabulary for popover/dashboard button routing.
+- `MenuBarActions` is the AppKit view-to-controller boundary for dimming/navigation commands.
+- `ScheduleEditorActions` is the schedule-save boundary for schedule editor surfaces.
+- `ScheduleEditorView` owns fixed-row schedule input and parsing.
+- `MenuBarController.saveSchedule(_:)` owns runtime schedule side effects after persistence.
+- `DisplayTargetStore` owns settings persistence and validation.
+- `ScheduleEngine` owns active-entry, next-boundary, pause/resume, and timer decision logic.
+- `SettingsWindowController` owns general preferences: display target, shortcuts, login item, diagnostics export, and schedule navigation only.
 
-Potential new boundaries:
-
-- `ScheduleActions` can be a smaller wrapper around `updateSchedule` if a schedule-only controller should not receive display/shortcut/login/diagnostics actions.
-- `ScheduleEditorView` or `ScheduleEditorController` should own schedule row UI and parsing so Settings, Schedule window, and dashboard do not each duplicate field parsing.
+Implementation should not create a second schedule parser unless it is a read-only formatter for summary rows.
 
 ## Side Effects And Integration Points
 
-Schedule editing is not just persistence. A successful save currently:
+Schedule edits affect more than visible UI:
 
-- writes UserDefaults through `DisplayTargetStore`;
-- updates in-memory `scheduleEntries`;
-- records diagnostics;
-- applies the current schedule decision immediately;
-- reschedules the next boundary timer when running;
-- refreshes popover/dashboard state through existing refresh paths.
+- successful saves write the persisted settings snapshot;
+- `scheduleEntries` in `MenuBarController` updates;
+- diagnostics are recorded;
+- current schedule decision may apply a dimming command immediately;
+- boundary timers are rescheduled;
+- popover/dashboard visible state is refreshed through controller update paths.
 
-Any new schedule UI must route through `MenuBarController.saveSchedule(_:)` or an equivalent closure supplied by it. Writing `DisplayTargetStore` directly from a view controller would bypass runtime side effects.
+Navigation also has user-visible side effects:
+
+- opening the app window calls `NSApp.activate(ignoringOtherApps: true)`;
+- currently opening the schedule editor records `Opened schedule editor`;
+- after rerouting, diagnostics/copy should avoid implying that a separate schedule window opened.
 
 ## Risk To Surrounding Systems
 
-- Duplicating schedule parsing in multiple views can create inconsistent validation messages and different accepted input.
-- Bypassing `MenuBarController.saveSchedule(_:)` can persist rows without updating the active runtime schedule or timer.
-- Adding inline schedule controls to the popover would conflict with the active design decision that the popover is a compact quick-control surface.
-- Dropping `Quick disable` from the popover would remove an existing manual safety/action path that belongs with schedule pause/restore actions.
-- Replacing dashboard current-state controls with schedule-only editing would make the app window less capable than the current expanded dashboard direction.
-- Growing the dashboard window without scroll or stable constraints can reintroduce clipping problems already fixed in earlier dashboard work.
-- A schedule-only window that also edits shortcuts/display/login would duplicate the Settings window and weaken the user's requested separation.
+- Removing `scheduleNextLabel` without replacing tests can break `MenuBarStateTests.testMenuBarViewModelUsesStateValues`.
+- Keeping `MenuBarCommand.openScheduleEditor` but changing its meaning can make tests named around "schedule editor" stale even if the route is correct.
+- Deleting `ScheduleEditorWindowController` immediately would create unnecessary project-file churn and test churn; leaving it unused as fallback is lower risk.
+- Shortcut display should not reuse a single multiline label if the goal is stable table-like alignment.
+- If `Edit schedule` opens the app window but the dashboard does not show or scroll to the schedule area, the route may technically work but fail the UX goal.
+- If the dashboard schedule editor remains below too much content, "open app window schedule area" may feel like a hidden route.
+- Settings navigation copy must change with the route; "Open schedule editor" implies the retired separate-window flow.
+- Snapshot capture tests can rewrite PNGs; these generated files are already dirty and should be handled intentionally during implementation verification.
 
 ## Do Not Duplicate Or Bypass
 
 - Do not duplicate `ScheduleEngine` logic in UI.
-- Do not write schedule to `UserDefaults` directly.
+- Do not write schedule directly to `UserDefaults` from UI.
 - Do not create a second schedule persistence key.
-- Do not make the popover a full schedule table.
-- Do not remove `Quick disable` or `Restore previous` from the popover action set.
-- Do not turn the app dashboard into an automation-only editor; keep current-state controls editable.
-- Do not keep schedule editing only inside `SettingsWindowController`.
-- Do not add schedule controls that fail to call `applyScheduleDecision()` and timer rescheduling indirectly through the controller save path.
+- Do not implement add/remove rows in this plan.
+- Do not restore the popover diagnostics block; it was intentionally removed from the compact popover.
+- Do not keep a title-row `Next` chip in the popover Schedule section.
+- Do not keep a visible `Current` row label in the popover Schedule section.
+- Do not make `Edit schedule` open a separate schedule window in the primary command path.
+- Do not remove the dashboard's editable current-state brightness/blue-reduction controls.
+- Do not rename persisted schema fields outside current code's existing `blueReduction` migration work.
 
 ## Open Questions
 
-- Should schedule editing stay limited to exactly three rows for the next implementation, matching current `SettingsWindowController`, or should the new schedule editor allow add/remove rows?
-  - Decision after operator feedback: keep this plan focused on existing row value editing and move actual add/remove implementation into a follow-up plan.
-- Should the dedicated schedule window be modal, panel-style, or a normal titled utility window?
-  - Recommendation: normal titled utility window, because the user may want to compare it with the app dashboard.
-- Should saving a schedule immediately apply the active entry?
-  - Current behavior does this; recommendation is to preserve it.
+- Should `ScheduleEditorWindowController` be removed entirely or kept as an unused fallback for now?
+  - Recommendation for this plan: keep the file and tests only if doing so lowers churn, but remove it from the primary route. A later cleanup can delete it.
+- Should the app window scroll directly to the schedule section after opening?
+  - Recommendation: yes if AppKit implementation can do it narrowly; otherwise open the dashboard and place the schedule editor high enough to be visible without scrolling.
+- Should `MenuBarCommand.openScheduleEditor` be renamed to `openScheduleInAppWindow`?
+  - Recommendation: not in the first commit unless tests become confusing. A user-facing route can change while keeping the command name as an internal compatibility bridge.
 
 ## Plan Implications
 
-Recommended UX split:
+Plan-ready implications:
 
-1. Popover:
-   - Keep summary and next schedule chip.
-   - Add a clear `Edit schedule` button in the Schedule section.
-   - Use two action rows:
-     - `Edit schedule` + `Pause automation`
-     - `Quick disable` + `Restore previous`
-   - Keep `Settings` as general settings, not schedule-first.
-2. Dedicated Schedule window:
-   - New schedule-only editor.
-   - Existing schedule rows in this plan.
-   - Actual add/remove row implementation belongs to the next plan.
-   - Save uses the same runtime save path as Settings.
-3. App dashboard:
-   - Keep current-state brightness and blue-reduction controls editable.
-   - Convert schedule summary into inline editable rows.
-   - Keep diagnostics, current state, and action controls visible.
-   - Use the shared schedule editor component or helper to avoid divergent behavior.
-4. Settings window:
-   - Demote schedule editing to a summary plus `Open schedule editor`, or reuse the same schedule editor component if it remains present.
+- Treat the current codebase as partially implemented, not greenfield.
+- Start with popover presentation changes because they are the user's latest feedback and have narrow blast radius.
+- Change command routing so `.openScheduleEditor` opens the app dashboard, not `ScheduleEditorWindowController`.
+- Keep schedule save behavior centralized through `ScheduleEditorActions` and `MenuBarController.saveSchedule(_:)`.
+- Update Settings copy and route to "Open app window" / "Open app window schedule" semantics.
+- Update tests to reflect the new route and popover presentation:
+  - remove or revise `scheduleNextLabel` expectations;
+  - assert shortcut rows remain aligned/readable via a test-facing representation;
+  - assert `.openScheduleEditor` does not apply dimming and results in app-window route behavior;
+  - preserve existing schedule save tests for dashboard inline editing.
 
-Implementation should introduce schedule command/action routing before changing layout:
+Suggested AppKit shape for popover schedule status:
 
 ```swift
-enum MenuBarCommand {
-    case openScheduleEditor
-    ...
+// Proposed, illustrative only.
+private let scheduleStatusTitleLabel = NSTextField(labelWithString: "")
+private let scheduleStatusDetailLabel = NSTextField(labelWithString: "")
+
+let schedule = makeSection(
+    title: "Schedule",
+    trailing: nil,
+    views: [
+        PopoverContainerView(style: .subtle, content: makeScheduleStatusView()),
+        scheduleSummaryRowsView,
+        makeActionRow([
+            button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
+            automationActionButton
+        ]),
+        statusField("Edit schedule opens the app window schedule area.")
+    ]
+)
+```
+
+Suggested AppKit shape for shortcut rows:
+
+```swift
+// Proposed, illustrative only.
+private final class ShortcutSummaryRowsView: NSView {
+    func update(shortcuts: [ShortcutBinding]) {
+        // four focused rows:
+        // Brightness up/down, Blue up/down
+        // left column: action label
+        // right column: aligned keycap label
+    }
 }
 ```
 
-Then add a schedule-specific controller/view that receives a schedule save closure:
+Suggested routing change:
 
 ```swift
-struct ScheduleEditorActions {
-    var updateSchedule: @MainActor ([ScheduleEntry]) -> Result<SettingsSnapshot, Error>
-}
+// Proposed, illustrative only.
+case .openScheduleEditor:
+    showAppWindow(focus: .schedule)
+```
+
+If focus support is too broad for this pass, the safer first implementation is:
+
+```swift
+case .openScheduleEditor:
+    showAppWindow()
 ```
 
 ## Source Evaluation
 
-| Source | Claim used | Evidence lanes | Score | Decision | Local transfer | Do not copy |
-| --- | --- | --- | --- | --- | --- | --- |
-| `DESIGN.md` | Popover should stay dense, utility-first, and not become full diagnostics/settings surface. | Local design contract | A | Adopt | Directly applies to popover/dashboard/settings roles. | Do not treat this as a ban on a separate schedule window. |
-| `docs/design-decisions.md` | Popover is compact quick-control surface; sliders suit continuous dimming values. | Local decision log | A | Adopt | Supports `Edit schedule` entry point instead of full inline popover schedule editor. | Do not overload popover with all schedule rows. |
-| `InnosDimmer/UI/SettingsWindowController.swift` | Current schedule editor is embedded in general settings and has a three-row form. | Local code | A | Adopt | Defines the current behavior that must be split/reused. | Do not clone this controller wholesale for schedule-only use. |
-| `DisplayTargetStore` + `MenuBarController.saveSchedule(_:)` | Schedule persistence has validation and runtime side effects. | Local code | A | Adopt | Must be the save path for new UI. | Do not write UserDefaults from a new view. |
-| Apple HIG Popovers | Popovers are transient and should expose a small amount of functionality. | Official / primary, JS-rendered page discovered via search | B | Adopt directionally | Supports a schedule button in popover rather than inline schedule table. | Do not over-interpret JS-inaccessible page text as detailed layout law. |
-| Apple HIG Sliders | Sliders represent adjustable values on a horizontal track. | Official / primary, JS-rendered page discovered via search | B | Adopt directionally | Supports brightness/blue reduction slider rows in schedule editor. | Do not replace exact numeric entry where precision matters. |
-| Apple HIG Pickers | Date/time pickers support efficient time selection. | Official / primary, JS-rendered page discovered via search | B | Pilot | Supports using native time entry/picker if AppKit implementation allows. | Do not introduce complex calendar recurrence. |
+| Source | Claim used | Quality | Decision | Notes |
+| --- | --- | --- | --- | --- |
+| `docs/design/schedule-editing/mockup.html` | Latest approved UX direction for popover schedule, shortcut rows, app-window route, settings role. | A, local approved artifact | Adopt | This is the primary source of truth for visual/flow changes. |
+| `DESIGN.md` | Popover should be compact, dense, quick-control oriented; long schedule/shortcut/diagnostics should be summarized. | A, local design contract | Adopt | Supports removing extra labels and keeping schedule editing out of the popover. |
+| `MenuBarPopoverView.swift` | Actual current AppKit implementation and mismatches with mockup. | A, local code | Adopt | Defines implementation targets and existing reusable classes. |
+| `MenuBarController.swift` | Current command routing and schedule save side effects. | A, local code | Adopt | Confirms route change must preserve `saveSchedule(_:)` path. |
+| `ScheduleEditorView.swift` | Existing fixed-row editor and validation. | A, local code | Adopt | Avoids re-planning a greenfield editor. |
+| `MenuBarStateTests.swift` and `HotkeyBindingTests.swift` | Current test surface and expected regressions. | A, local tests | Adopt | Determines required verification updates. |
+| External design/web sources | Not needed for this request. | Not used | Skip | The user approved the local mockup; no fast-changing external facts affect this plan. |
 
 ## Evidence
 
-- Local files read:
-  - `DESIGN.md`
-  - `docs/design-decisions.md`
-  - `docs/design/popover-redesign/mockup.html`
-  - `docs/design/settings-redesign/mockup.html`
-  - `InnosDimmer/UI/MenuBarPopoverView.swift`
-  - `InnosDimmer/UI/MenuBarController.swift`
-  - `InnosDimmer/UI/SettingsWindowController.swift`
-  - `InnosDimmer/Domain/ScheduleEntry.swift`
-  - `InnosDimmer/Domain/SettingsSnapshot.swift`
-  - `InnosDimmer/Services/DisplayTargetStore.swift`
-  - `InnosDimmer/Services/ScheduleEngine.swift`
-  - `InnosDimmerTests/MenuBarStateTests.swift`
-  - `InnosDimmerTests/ScheduleEngineTests.swift`
-  - `InnosDimmerTests/SettingsSnapshotTests.swift`
-  - `InnosDimmerTests/DisplayTargetStoreTests.swift`
-- Commands:
-  - `rg -n "scheduleSummary|scheduleLabel|Open app window|Settings|Pause automation|makeSummaryRow|makeSection|AppDashboard|MenuBarPopoverView|button\\(" InnosDimmer/UI/MenuBarPopoverView.swift`
-  - `rg -n "saveSchedule|scheduleFromFields|ScheduleEntry|ScheduleEngine|schedule" InnosDimmerTests/...`
-- Official links:
-  - Apple HIG overview: https://developer.apple.com/design/human-interface-guidelines
-  - Apple HIG popovers: https://developer.apple.com/design/human-interface-guidelines/popovers
-  - Apple HIG sliders: https://developer.apple.com/design/human-interface-guidelines/sliders
-  - Apple HIG pickers: https://developer.apple.com/design/human-interface-guidelines/pickers
-- Date: 2026-06-19.
+Commands run on 2026-06-19:
+
+- `rg --files`
+- `find .. -name AGENTS.md -print`
+- `git status --short`
+- `rg -n "Popover|popover|Schedule|schedule|Shortcut|shortcut|Diagnostics|Settings|App window|Dashboard|Quick disable|Restore previous|Open app window|Brightness|Blue reduction|Current" .`
+- `rg -n "openScheduleEditor|scheduleNextLabel|scheduleSummaryForTesting|shortcutSummaryForTesting|ScheduleEditor|AppDashboard|SettingsWindow" InnosDimmerTests InnosDimmer/UI`
+- `sed -n ...` reads for the files listed in `Relevant Files`.
+
+Confirmed dirty state before writing this research:
+
+```text
+ M docs/design/popover-redesign/captures/actual-dark.png
+ M docs/design/popover-redesign/captures/actual-light.png
+ M docs/design/popover-redesign/captures/dashboard-dark.png
+ M docs/design/popover-redesign/captures/dashboard-light.png
+ M docs/design/schedule-editing/mockup.html
+```
+
+No external web research was used. Local code and approved design artifacts were sufficient.

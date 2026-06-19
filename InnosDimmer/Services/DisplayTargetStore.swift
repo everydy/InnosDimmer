@@ -75,7 +75,8 @@ final class DisplayTargetStore {
             throw SettingsPersistenceError.emptySchedule
         }
 
-        let shortcutReport = HotkeyManager.validate(snapshot.shortcuts)
+        let normalizedShortcuts = snapshot.shortcuts.normalizedForStorage()
+        let shortcutReport = HotkeyManager.validate(normalizedShortcuts)
         guard shortcutReport.isValid else {
             throw SettingsPersistenceError.invalidShortcutBindings(shortcutReport)
         }
@@ -83,6 +84,7 @@ final class DisplayTargetStore {
         var validatedSnapshot = snapshot
         validatedSnapshot.schemaVersion = SettingsSnapshot.currentSchemaVersion
         validatedSnapshot.schedule = SettingsSnapshot.sortedSchedule(snapshot.schedule)
+        validatedSnapshot.shortcuts = normalizedShortcuts
         return validatedSnapshot
     }
 }

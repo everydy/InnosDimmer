@@ -14,6 +14,7 @@ enum MenuBarCommand: Equatable, Hashable {
     case restorePrevious
     case openAppWindow
     case openSettings
+    case openPopover
 
     static let buttonCommands: [MenuBarCommand] = [
         .brightnessDown,
@@ -372,6 +373,67 @@ private final class ScheduleSummaryRowsView: NSView {
     }
 }
 
+struct ShortcutSummaryRow: Equatable {
+    var action: ShortcutAction
+    var title: String
+    var keyLabel: String
+}
+
+private final class ShortcutSummaryRowsView: NSView {
+    private let stack = NSStackView()
+    private(set) var plainSummary = ""
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 7
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    func update(rows: [ShortcutSummaryRow]) {
+        stack.arrangedSubviews.forEach { view in
+            stack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        plainSummary = rows.map { "\($0.title)  \($0.keyLabel)" }.joined(separator: "\n")
+        rows.map(Self.rowView(for:)).forEach(stack.addArrangedSubview)
+    }
+
+    private static func rowView(for row: ShortcutSummaryRow) -> NSView {
+        let title = NSTextField(labelWithString: row.title)
+        title.font = .systemFont(ofSize: 12, weight: .medium)
+        title.textColor = .labelColor
+        title.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let keyLabel = NSTextField(labelWithString: row.keyLabel)
+        keyLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
+        keyLabel.textColor = .secondaryLabelColor
+        keyLabel.alignment = .right
+        keyLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
+        keyLabel.setContentHuggingPriority(.required, for: .horizontal)
+        keyLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [title, keyLabel])
+        stack.orientation = .horizontal
+        stack.alignment = .firstBaseline
+        stack.spacing = 12
+        return stack
+    }
+}
+
 private final class PopoverCommandButton: NSButton {
     static let minimumHeight: CGFloat = 30
 
@@ -448,8 +510,9 @@ struct MenuBarViewModel: Equatable {
     var automationTitle: String
     var automationActionTitle: String
     var automationActionCommand: MenuBarCommand
-    var scheduleNextLabel: String
+    var scheduleStatusDetail: String
     var scheduleSummary: String
+    var shortcutRows: [ShortcutSummaryRow]
     var shortcutSummary: String
     var diagnosticsSummary: String
 
@@ -473,9 +536,10 @@ struct MenuBarViewModel: Equatable {
         }
         automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
         automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation
-        scheduleNextLabel = Self.scheduleNextLabel(for: schedule)
+        scheduleStatusDetail = Self.scheduleStatusDetail(state: state, schedule: schedule)
         scheduleSummary = Self.scheduleSummary(for: schedule)
-        shortcutSummary = Self.shortcutSummary(for: shortcuts)
+        shortcutRows = Self.shortcutRows(for: shortcuts)
+        shortcutSummary = shortcutRows.map { "\($0.title)  \($0.keyLabel)" }.joined(separator: "\n")
         diagnosticsSummary = Self.diagnosticsSummary(
             state: state,
             latestDiagnosticEvent: latestDiagnosticEvent
@@ -497,14 +561,17 @@ struct MenuBarViewModel: Equatable {
         return labels.joined(separator: "\n")
     }
 
-    private static func scheduleNextLabel(for schedule: [ScheduleEntry]) -> String {
-        guard let next = SettingsSnapshot.sortedSchedule(schedule).first else {
-            return "No schedule"
+    private static func scheduleStatusDetail(state: BrightnessState, schedule: [ScheduleEntry]) -> String {
+        if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
+            return "Next boundary \(timeLabel(for: resumeMinute))"
         }
-        return "Next \(timeLabel(for: next.minuteOfDay))"
+        guard !SettingsSnapshot.sortedSchedule(schedule).isEmpty else {
+            return "No schedule configured"
+        }
+        return "Schedule rows below"
     }
 
-    private static func shortcutSummary(for shortcuts: [ShortcutBinding]) -> String {
+    private static func shortcutRows(for shortcuts: [ShortcutBinding]) -> [ShortcutSummaryRow] {
         let focusedActions: [ShortcutAction] = [
             .brightnessUp,
             .brightnessDown,
@@ -513,8 +580,12 @@ struct MenuBarViewModel: Equatable {
         ]
         return focusedActions.map { action in
             let binding = shortcuts.first { $0.action == action }
-            return "\(shortcutActionLabel(for: action))  \(shortcutLabel(for: binding))"
-        }.joined(separator: "\n")
+            return ShortcutSummaryRow(
+                action: action,
+                title: shortcutActionLabel(for: action),
+                keyLabel: shortcutLabel(for: binding)
+            )
+        }
     }
 
     private static func shortcutActionLabel(for action: ShortcutAction) -> String {
@@ -531,6 +602,8 @@ struct MenuBarViewModel: Equatable {
             return "Quick disable"
         case .restorePreviousDimming:
             return "Restore previous"
+        case .openPopover:
+            return "Open popover"
         }
     }
 
@@ -600,10 +673,9 @@ final class MenuBarPopoverView: NSView {
     private let blueReductionValueLabel = NSTextField(labelWithString: "")
     private let blueReductionWarningLabel = NSTextField(labelWithString: "")
     private let automationLabel = NSTextField(labelWithString: "")
-    private let scheduleNextLabel = NSTextField(labelWithString: "")
-    private let scheduleSummaryLabel = NSTextField(labelWithString: "")
+    private let scheduleStatusDetailLabel = NSTextField(labelWithString: "")
     private let scheduleSummaryRowsView = ScheduleSummaryRowsView()
-    private let shortcutSummaryLabel = NSTextField(labelWithString: "")
+    private let shortcutSummaryRowsView = ShortcutSummaryRowsView()
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
     private let brightnessTrackView = ProgressTrackView()
     private let blueReductionTrackView = ProgressTrackView()
@@ -653,6 +725,7 @@ final class MenuBarPopoverView: NSView {
         blueReductionWarningLabel.stringValue = viewModel.blueReductionWarning ?? ""
         blueReductionWarningLabel.isHidden = viewModel.blueReductionWarning == nil
         automationLabel.stringValue = viewModel.automationTitle
+        scheduleStatusDetailLabel.stringValue = viewModel.scheduleStatusDetail
         automationActionCommand = viewModel.automationActionCommand
         automationActionButton?.title = viewModel.automationActionTitle
         commandButtons[.pauseAutomation] = nil
@@ -660,11 +733,8 @@ final class MenuBarPopoverView: NSView {
         if let automationActionButton {
             commandButtons[automationActionCommand] = automationActionButton
         }
-        scheduleNextLabel.stringValue = viewModel.scheduleNextLabel
-        scheduleNextLabel.invalidateIntrinsicContentSize()
-        scheduleSummaryLabel.stringValue = viewModel.scheduleSummary
         scheduleSummaryRowsView.update(schedule: schedule)
-        shortcutSummaryLabel.stringValue = viewModel.shortcutSummary
+        shortcutSummaryRowsView.update(rows: viewModel.shortcutRows)
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
         blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
@@ -702,8 +772,14 @@ final class MenuBarPopoverView: NSView {
         scheduleSummaryRowsView.plainSummary
     }
 
+    func scheduleStatusForTesting() -> String {
+        [automationLabel.stringValue, scheduleStatusDetailLabel.stringValue]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+    }
+
     func shortcutSummaryForTesting() -> String {
-        shortcutSummaryLabel.stringValue
+        shortcutSummaryRowsView.plainSummary
     }
 
     func simulateBrightnessTrackChangeForTesting(percent: Int) {
@@ -722,11 +798,12 @@ final class MenuBarPopoverView: NSView {
             displaySummaryLabel,
             blueReductionWarningLabel,
             automationLabel,
-            scheduleNextLabel,
-            scheduleSummaryLabel,
-            shortcutSummaryLabel,
+            scheduleStatusDetailLabel,
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
+        automationLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        automationLabel.textColor = .labelColor
+        scheduleStatusDetailLabel.textColor = .secondaryLabelColor
         blueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: effectiveAppearance)
         blueReductionWarningLabel.isHidden = true
 
@@ -766,20 +843,22 @@ final class MenuBarPopoverView: NSView {
         brightnessTrackView.setAccessibilityLabel("Brightness percentage")
         blueReductionTrackView.setAccessibilityLabel("Blue reduction percentage")
 
-        let scheduleNextChip = chipView(scheduleNextLabel)
-        scheduleNextChip.widthAnchor.constraint(greaterThanOrEqualToConstant: 112).isActive = true
         let automationActionButton = button(
             "Pause automation",
             command: .pauseAutomation,
             action: #selector(automationActionPressed)
         )
         self.automationActionButton = automationActionButton
+        let scheduleStatusStack = NSStackView(views: [automationLabel, scheduleStatusDetailLabel])
+        scheduleStatusStack.orientation = .vertical
+        scheduleStatusStack.alignment = .width
+        scheduleStatusStack.spacing = 3
         let schedule = makeSection(
             title: "Schedule",
-            trailing: scheduleNextChip,
+            trailing: nil,
             views: [
-                makeSummaryRow(title: "Status", value: automationLabel),
-                makeSummaryRow(title: "Current", value: scheduleSummaryRowsView),
+                PopoverContainerView(style: .subtle, content: scheduleStatusStack),
+                scheduleSummaryRowsView,
                 makeActionRow([
                     button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
                     automationActionButton
@@ -790,7 +869,7 @@ final class MenuBarPopoverView: NSView {
             title: "Shortcuts",
             trailing: chip("Enabled"),
             views: [
-                PopoverContainerView(style: .subtle, content: shortcutSummaryLabel),
+                PopoverContainerView(style: .subtle, content: shortcutSummaryRowsView),
                 makeActionRow([
                     button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
                     button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
@@ -1135,6 +1214,11 @@ struct AppDashboardViewModel: Equatable {
 }
 
 @MainActor
+enum AppDashboardFocusTarget {
+    case schedule
+}
+
+@MainActor
 final class AppDashboardWindowController: NSWindowController {
     private let modeBadge = StatusBadgeView(mode: .unknown)
     private let actions: MenuBarActions
@@ -1154,6 +1238,7 @@ final class AppDashboardWindowController: NSWindowController {
     private let scheduleStatusLabel = NSTextField(labelWithString: "Schedule changes are ready to save.")
     private let diagnosticsTextView = NSTextView()
     private let diagnosticsScrollView = NSScrollView()
+    private weak var scheduleSectionView: NSView?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var automationActionCommand: MenuBarCommand = .pauseAutomation
     private weak var automationActionButton: NSButton?
@@ -1245,6 +1330,17 @@ final class AppDashboardWindowController: NSWindowController {
 
     func scheduleSummaryForTesting() -> String {
         scheduleLabel.stringValue
+    }
+
+    func focus(_ target: AppDashboardFocusTarget?) {
+        guard target == .schedule else {
+            return
+        }
+        window?.contentView?.layoutSubtreeIfNeeded()
+        if let scheduleSectionView {
+            scheduleSectionView.scrollToVisible(scheduleSectionView.bounds)
+        }
+        window?.makeKeyAndOrderFront(nil)
     }
 
     private func installContent() {
@@ -1353,12 +1449,13 @@ final class AppDashboardWindowController: NSWindowController {
         let scheduleEditor = makeSection(
             title: "Automation schedule",
             views: [
-                makeSummaryRow(title: "Current", value: scheduleLabel),
+                makeSummaryRow(title: "Saved rows", value: scheduleLabel),
                 scheduleEditorView,
                 scheduleSaveButton,
                 scheduleStatusLabel
             ]
         )
+        scheduleSectionView = scheduleEditor
         let automationActionButton = button(
             "Pause automation",
             command: .pauseAutomation,

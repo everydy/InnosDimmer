@@ -95,6 +95,7 @@ final class HotkeyBindingTests: XCTestCase {
         XCTAssertEqual(ShortcutAction.blueReductionDown.menuBarCommand, .blueReductionDown)
         XCTAssertEqual(ShortcutAction.quickDisableOverlay.menuBarCommand, .quickDisable)
         XCTAssertEqual(ShortcutAction.restorePreviousDimming.menuBarCommand, .restorePrevious)
+        XCTAssertEqual(ShortcutAction.openPopover.menuBarCommand, .openPopover)
     }
 
     func testShortcutActionDecodesLegacyWarmthNames() throws {
@@ -126,7 +127,7 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
 
         XCTAssertEqual(backend.registeredBindings, HotkeyManager.defaultBindings)
         XCTAssertEqual(diagnosticsStore.latestEvent?.category, .shortcut)
-        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Registered 6 shortcuts")
+        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Registered 7 shortcuts")
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .info)
     }
 
@@ -246,6 +247,26 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
         controller.openScheduleEditorForTesting()
 
         XCTAssertTrue(didOpenScheduleEditor)
+    }
+
+    @MainActor
+    func testSettingsWindowIncludesOpenPopoverShortcutBinding() {
+        let controller = SettingsWindowController()
+        controller.configure(
+            snapshot: .defaultSnapshot(),
+            displayCandidates: [],
+            loginItemStatus: .notRegistered
+        )
+
+        XCTAssertEqual(
+            controller.shortcutForTesting(action: .openPopover),
+            ShortcutBinding(
+                action: .openPopover,
+                keyCode: 35,
+                modifiers: [.option, .shift],
+                isEnabled: true
+            )
+        )
     }
 
     @MainActor

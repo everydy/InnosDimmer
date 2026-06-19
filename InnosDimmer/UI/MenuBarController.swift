@@ -28,6 +28,8 @@ final class MenuBarController: NSObject {
     private let loginItemController: LoginItemControlling
     private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
+    private var popoverDismissMonitor: Any?
+    private var popoverResignActiveObserver: NSObjectProtocol?
     private var dashboardWindowController: AppDashboardWindowController?
     private var scheduleEditorWindowController: ScheduleEditorWindowController?
     private lazy var settingsWindowController = SettingsWindowController(actions: makeSettingsActions())
@@ -78,6 +80,7 @@ final class MenuBarController: NSObject {
         statusItem.button?.target = self
         statusItem.button?.action = #selector(togglePopover)
         popover.behavior = .transient
+        popover.delegate = self
         popover.contentSize = MenuBarPopoverView.preferredContentSize
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = MenuBarPopoverView(
@@ -89,6 +92,7 @@ final class MenuBarController: NSObject {
                 self?.perform(command)
             }
         )
+        registerPopoverDismissObservers()
         if registersHotkeysOnStart {
             registerHotkeys()
         }
@@ -104,21 +108,67 @@ final class MenuBarController: NSObject {
         runtimeBoundaryReconcileTask?.cancel()
         runtimeBoundaryReconcileTask = nil
         unregisterScheduleReconciliationObservers()
+        unregisterPopoverDismissObservers()
+        closePopover()
         hasStarted = false
     }
 
     @objc func togglePopover() {
+        if popover.isShown {
+            closePopover()
+        } else {
+            showPopover()
+        }
+    }
+
+    func showPopoverForTesting() {
+        showPopover()
+    }
+
+    func popoverIsShownForTesting() -> Bool {
+        popover.isShown
+    }
+
+    nonisolated static func shouldDismissPopover(
+        mouseLocation: CGPoint,
+        popoverFrame: CGRect?,
+        statusItemButtonFrame: CGRect?
+    ) -> Bool {
+        guard let popoverFrame else {
+            return false
+        }
+
+        if popoverFrame.contains(mouseLocation) {
+            return false
+        }
+
+        if let statusItemButtonFrame, statusItemButtonFrame.contains(mouseLocation) {
+            return false
+        }
+
+        return true
+    }
+
+    private func showPopover() {
         guard let button = statusItem.button else {
             return
         }
 
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            _ = stateResolvingSelectedDisplayIfNeeded()
-            refreshPopover()
+        _ = stateResolvingSelectedDisplayIfNeeded()
+        refreshPopover()
+        if !popover.isShown {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
+        installPopoverDismissMonitor()
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func closePopover() {
+        guard popover.isShown else {
+            return
+        }
+
+        popover.performClose(nil)
     }
 
     func perform(_ command: MenuBarCommand) {
@@ -154,9 +204,12 @@ final class MenuBarController: NSObject {
         case .openAppWindow:
             showAppWindow()
         case .openScheduleEditor:
-            showScheduleEditor()
+            showAppWindow(focus: .schedule)
+            record(.appLifecycle, "Opened app window schedule editor")
         case .openSettings:
             openSettings()
+        case .openPopover:
+            showPopover()
         case .pauseAutomation:
             pauseAutomationUntilNextBoundary(messagePrefix: "Automation pause requested")
         case .resumeAutomation:
@@ -226,7 +279,11 @@ final class MenuBarController: NSObject {
         commandBeforeQuickDisable = nil
     }
 
-    private func showAppWindow() {
+    func appWindowIsShownForTesting() -> Bool {
+        dashboardWindowController?.window?.isVisible == true
+    }
+
+    private func showAppWindow(focus: AppDashboardFocusTarget? = nil) {
         let controller = dashboardWindowController ?? AppDashboardWindowController(
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
@@ -236,6 +293,7 @@ final class MenuBarController: NSObject {
         dashboardWindowController = controller
         refreshAppWindow()
         controller.showWindow(nil)
+        controller.focus(focus)
         NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -269,7 +327,7 @@ final class MenuBarController: NSObject {
                 self?.saveSelectedDisplay(display) ?? .failure(SettingsRuntimeError.unavailable)
             },
             openScheduleEditor: { [weak self] in
-                self?.showScheduleEditor()
+                self?.showAppWindow(focus: .schedule)
             },
             updateShortcuts: { [weak self] shortcuts in
                 self?.saveShortcuts(shortcuts) ?? .failure(SettingsRuntimeError.unavailable)
@@ -293,7 +351,7 @@ final class MenuBarController: NSObject {
 
     private func loadPersistedSettingsForRuntime() {
         let snapshot = displayTargetStore.load()
-        shortcutBindings = snapshot.shortcuts
+        shortcutBindings = snapshot.shortcuts.normalizedForStorage()
         scheduleEntries = snapshot.schedule
 
         var state = brightnessController.state
@@ -828,6 +886,58 @@ final class MenuBarController: NSObject {
 
         return true
     }
+
+    private func installPopoverDismissMonitor() {
+        guard popoverDismissMonitor == nil else {
+            return
+        }
+
+        popoverDismissMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] event in
+            guard let self else {
+                return event
+            }
+
+            if Self.shouldDismissPopover(
+                mouseLocation: NSEvent.mouseLocation,
+                popoverFrame: self.popover.contentViewController?.view.window?.frame,
+                statusItemButtonFrame: self.statusItem.button?.window?.frame
+            ) {
+                self.closePopover()
+            }
+
+            return event
+        }
+    }
+
+    private func unregisterPopoverDismissObservers() {
+        if let popoverDismissMonitor {
+            NSEvent.removeMonitor(popoverDismissMonitor)
+            self.popoverDismissMonitor = nil
+        }
+
+        if let popoverResignActiveObserver {
+            NotificationCenter.default.removeObserver(popoverResignActiveObserver)
+            self.popoverResignActiveObserver = nil
+        }
+    }
+
+    private func registerPopoverDismissObservers() {
+        guard popoverResignActiveObserver == nil else {
+            return
+        }
+
+        popoverResignActiveObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.closePopover()
+            }
+        }
+    }
 }
 
 extension ShortcutAction {
@@ -845,6 +955,18 @@ extension ShortcutAction {
             return .quickDisable
         case .restorePreviousDimming:
             return .restorePrevious
+        case .openPopover:
+            return .openPopover
+        }
+    }
+}
+
+extension MenuBarController: NSPopoverDelegate {
+    func popoverDidClose(_ notification: Notification) {
+        _ = notification
+        if let popoverDismissMonitor {
+            NSEvent.removeMonitor(popoverDismissMonitor)
+            self.popoverDismissMonitor = nil
         }
     }
 }

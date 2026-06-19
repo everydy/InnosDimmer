@@ -41,13 +41,34 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.automationActionTitle, "Resume automation")
         XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
-        XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
+        XCTAssertEqual(viewModel.scheduleStatusDetail, "Next boundary 19:00")
         XCTAssertEqual(viewModel.scheduleSummary, "10:00 · ☀ 70% · ◐ 20%")
+        XCTAssertEqual(
+            viewModel.shortcutRows,
+            [
+                ShortcutSummaryRow(action: .brightnessUp, title: "Brightness up", keyLabel: "Off"),
+                ShortcutSummaryRow(action: .brightnessDown, title: "Brightness down", keyLabel: "⌥⇧↓"),
+                ShortcutSummaryRow(action: .blueReductionUp, title: "Blue up", keyLabel: "⌥⇧→"),
+                ShortcutSummaryRow(action: .blueReductionDown, title: "Blue down", keyLabel: "⌥⇧←")
+            ]
+        )
         XCTAssertEqual(
             viewModel.shortcutSummary,
             "Brightness up  Off\nBrightness down  ⌥⇧↓\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
         )
         XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
+    }
+
+    func testMenuBarViewModelShortcutSummaryStillFocusesOnCoreAdjustments() {
+        let state = BrightnessState.defaultState()
+        let shortcuts = ShortcutBinding.defaultBindings
+
+        let viewModel = MenuBarViewModel(state: state, shortcuts: shortcuts)
+
+        XCTAssertEqual(
+            viewModel.shortcutSummary,
+            "Brightness up  ⌥⇧↑\nBrightness down  ⌥⇧↓\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+        )
     }
 
     func testMenuBarViewModelIncludesDisplayAndLatestDiagnosticEvent() {
@@ -115,7 +136,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationActionTitle, "Pause automation")
         XCTAssertEqual(viewModel.automationActionCommand, .pauseAutomation)
         XCTAssertEqual(viewModel.scheduleValue, "09:00 · ☀ 80% · ◐ 12%")
-        XCTAssertEqual(viewModel.shortcutValue, "6 enabled")
+        XCTAssertEqual(viewModel.shortcutValue, "7 enabled")
         XCTAssertEqual(viewModel.failureValue, "1 errors, 1 warnings")
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
         XCTAssertTrue(viewModel.diagnosticsLog.contains("ERROR softwareDimming: Overlay platform blocked"))
@@ -304,8 +325,56 @@ final class MenuBarStateTests: XCTestCase {
         menuBarController.perform(.openScheduleEditor)
 
         XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertTrue(menuBarController.appWindowIsShownForTesting())
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
         XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesOpenPopoverWithoutApplyingDimmingCommand() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.automationPausedUntilNextBoundary = true
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
+            registersHotkeysOnStart: false
+        )
+
+        menuBarController.start()
+        menuBarController.perform(.openPopover)
+
+        XCTAssertEqual(software.appliedCommands, [])
+    }
+
+    func testPopoverDismissalHelperTreatsOutsideClicksAsDismissible() {
+        let popoverFrame = CGRect(x: 100, y: 100, width: 240, height: 240)
+        let statusItemFrame = CGRect(x: 10, y: 10, width: 32, height: 24)
+
+        XCTAssertFalse(
+            MenuBarController.shouldDismissPopover(
+                mouseLocation: CGPoint(x: 150, y: 180),
+                popoverFrame: popoverFrame,
+                statusItemButtonFrame: statusItemFrame
+            )
+        )
+        XCTAssertFalse(
+            MenuBarController.shouldDismissPopover(
+                mouseLocation: CGPoint(x: 20, y: 18),
+                popoverFrame: popoverFrame,
+                statusItemButtonFrame: statusItemFrame
+            )
+        )
+        XCTAssertTrue(
+            MenuBarController.shouldDismissPopover(
+                mouseLocation: CGPoint(x: 40, y: 40),
+                popoverFrame: popoverFrame,
+                statusItemButtonFrame: statusItemFrame
+            )
+        )
     }
 
     @MainActor
@@ -624,6 +693,8 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
         XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · ◐ 21%")
+        XCTAssertEqual(view.scheduleStatusForTesting(), "Automation active\nSchedule rows below")
+        XCTAssertFalse(view.scheduleStatusForTesting().contains("Current"))
         XCTAssertEqual(
             view.shortcutSummaryForTesting(),
             "Brightness up  ⌥⇧↑\nBrightness down  Off\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"

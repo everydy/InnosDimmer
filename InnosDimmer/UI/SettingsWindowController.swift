@@ -102,7 +102,7 @@ final class SettingsWindowController: NSWindowController {
         displayPicker.target = self
         displayPicker.action = #selector(displaySelectionChanged)
 
-        let openScheduleButton = NSButton(title: "Open schedule editor", target: self, action: #selector(openScheduleEditorPressed))
+        let openScheduleButton = NSButton(title: "Open app window", target: self, action: #selector(openScheduleEditorPressed))
         openScheduleButton.bezelStyle = .rounded
 
         let resetShortcutsButton = NSButton(title: "Reset shortcuts", target: self, action: #selector(resetShortcutsPressed))
@@ -288,7 +288,7 @@ final class SettingsWindowController: NSWindowController {
 
     @objc private func openScheduleEditorPressed() {
         actions.openScheduleEditor()
-        report("Opened schedule editor.")
+        report("Opened app window.")
     }
 
     @objc private func shortcutControlChanged() {
@@ -524,6 +524,8 @@ final class SettingsWindowController: NSWindowController {
             return "Quick disable overlay"
         case .restorePreviousDimming:
             return "Restore previous dimming"
+        case .openPopover:
+            return "Open popover"
         }
     }
 
@@ -594,6 +596,8 @@ private final class ShortcutKeyField: NSTextField {
             return 29
         case "r":
             return 15
+        case "p":
+            return 35
         default:
             let normalized = label.lowercased().replacingOccurrences(of: "key ", with: "")
             return UInt16(normalized)
@@ -614,6 +618,8 @@ private final class ShortcutKeyField: NSTextField {
             return "0"
         case 15:
             return "R"
+        case 35:
+            return "P"
         default:
             return "Key \(keyCode)"
         }

@@ -16,6 +16,7 @@ enum ShortcutAction: String, Codable, Equatable, CaseIterable, Sendable {
     case blueReductionDown
     case quickDisableOverlay
     case restorePreviousDimming
+    case openPopover
 
     init(from decoder: Decoder) throws {
         let rawValue = try decoder.singleValueContainer().decode(String.self)
@@ -75,6 +76,28 @@ extension ShortcutBinding {
         ShortcutBinding(action: .blueReductionUp, keyCode: 124, modifiers: [.option, .shift], isEnabled: true),
         ShortcutBinding(action: .blueReductionDown, keyCode: 123, modifiers: [.option, .shift], isEnabled: true),
         ShortcutBinding(action: .quickDisableOverlay, keyCode: 29, modifiers: [.option, .shift], isEnabled: true),
-        ShortcutBinding(action: .restorePreviousDimming, keyCode: 15, modifiers: [.option, .shift], isEnabled: true)
+        ShortcutBinding(action: .restorePreviousDimming, keyCode: 15, modifiers: [.option, .shift], isEnabled: true),
+        ShortcutBinding(action: .openPopover, keyCode: 35, modifiers: [.option, .shift], isEnabled: true)
     ]
+}
+
+extension Array where Element == ShortcutBinding {
+    func normalizedForStorage() -> [ShortcutBinding] {
+        var seenActions = Set<ShortcutAction>()
+        var normalized: [ShortcutBinding] = []
+
+        for binding in self {
+            if seenActions.insert(binding.action).inserted {
+                normalized.append(binding)
+            }
+        }
+
+        for defaultBinding in ShortcutBinding.defaultBindings {
+            if !seenActions.contains(defaultBinding.action) {
+                normalized.append(defaultBinding)
+            }
+        }
+
+        return normalized
+    }
 }

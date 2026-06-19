@@ -84,6 +84,19 @@ final class DisplayTargetStoreTests: XCTestCase {
         XCTAssertEqual(store.load().shortcuts, safeBindings)
     }
 
+    func testLoadBackfillsMissingShortcutBindingsWithDefaults() throws {
+        let defaults = UserDefaults(suiteName: "InnosDimmerTests.\(UUID().uuidString)")!
+        let key = "snapshot"
+        var legacyBindings = ShortcutBinding.defaultBindings
+        legacyBindings.removeAll { $0.action == .openPopover }
+
+        let legacySnapshot = SettingsSnapshot.defaultSnapshot().replacingShortcuts(legacyBindings)
+        defaults.set(try JSONEncoder().encode(legacySnapshot), forKey: key)
+        let store = DisplayTargetStore(defaults: defaults, key: key)
+
+        XCTAssertEqual(store.load().shortcuts, ShortcutBinding.defaultBindings)
+    }
+
     func testLoadFallsBackToDefaultSnapshotWhenPersistedSnapshotIsInvalid() throws {
         let defaults = UserDefaults(suiteName: "InnosDimmerTests.\(UUID().uuidString)")!
         let key = "snapshot"
