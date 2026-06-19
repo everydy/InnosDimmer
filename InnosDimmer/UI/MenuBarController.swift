@@ -228,7 +228,8 @@ final class MenuBarController: NSObject {
         let controller = dashboardWindowController ?? AppDashboardWindowController(
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
-            }
+            },
+            scheduleActions: makeScheduleEditorActions()
         )
         dashboardWindowController = controller
         refreshAppWindow()

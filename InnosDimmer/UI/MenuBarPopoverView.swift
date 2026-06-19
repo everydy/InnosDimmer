@@ -950,6 +950,7 @@ struct AppDashboardViewModel: Equatable {
 final class AppDashboardWindowController: NSWindowController {
     private let modeBadge = StatusBadgeView(mode: .unknown)
     private let actions: MenuBarActions
+    private let scheduleActions: ScheduleEditorActions
     private let displayLabel = NSTextField(labelWithString: "")
     private let modeLabel = NSTextField(labelWithString: "")
     private let brightnessLabel = NSTextField(labelWithString: "")
@@ -961,20 +962,26 @@ final class AppDashboardWindowController: NSWindowController {
     private let failureLabel = NSTextField(labelWithString: "")
     private let brightnessTrackView = ProgressTrackView()
     private let blueReductionTrackView = ProgressTrackView()
+    private let scheduleEditorView = ScheduleEditorView()
+    private let scheduleStatusLabel = NSTextField(labelWithString: "Schedule changes are ready to save.")
     private let diagnosticsTextView = NSTextView()
     private let diagnosticsScrollView = NSScrollView()
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
-    init(actions: MenuBarActions = .noop) {
+    init(
+        actions: MenuBarActions = .noop,
+        scheduleActions: ScheduleEditorActions = .noop
+    ) {
         self.actions = actions
+        self.scheduleActions = scheduleActions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 880),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
-        window.minSize = NSSize(width: 520, height: 700)
+        window.minSize = NSSize(width: 520, height: 760)
         super.init(window: window)
         installContent()
     }
@@ -1006,6 +1013,7 @@ final class AppDashboardWindowController: NSWindowController {
         blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
         automationLabel.stringValue = viewModel.automationValue
         scheduleLabel.stringValue = viewModel.scheduleValue
+        scheduleEditorView.update(schedule: schedule)
         shortcutLabel.stringValue = viewModel.shortcutValue
         failureLabel.stringValue = viewModel.failureValue
         diagnosticsTextView.string = viewModel.diagnosticsLog
@@ -1024,6 +1032,24 @@ final class AppDashboardWindowController: NSWindowController {
         blueReductionTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
     }
 
+    func setScheduleRowForTesting(index: Int, time: String, brightness: String, blueReduction: String) {
+        scheduleEditorView.setRowForTesting(
+            index: index,
+            time: time,
+            brightness: brightness,
+            blueReduction: blueReduction
+        )
+    }
+
+    @discardableResult
+    func saveScheduleForTesting() -> Result<SettingsSnapshot, Error> {
+        saveScheduleFromEditor(reportsStatus: false)
+    }
+
+    func scheduleSummaryForTesting() -> String {
+        scheduleLabel.stringValue
+    }
+
     private func installContent() {
         let title = NSTextField(labelWithString: "InnosDimmer")
         title.font = .systemFont(ofSize: 22, weight: .bold)
@@ -1039,11 +1065,13 @@ final class AppDashboardWindowController: NSWindowController {
             dashboardBlueReductionWarningLabel,
             automationLabel,
             scheduleLabel,
+            scheduleStatusLabel,
             shortcutLabel,
             failureLabel
         ].forEach(Self.configureWrappingLabel)
         dashboardBlueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
         dashboardBlueReductionWarningLabel.isHidden = true
+        scheduleStatusLabel.textColor = .secondaryLabelColor
         failureLabel.font = .systemFont(ofSize: 13, weight: .semibold)
 
         diagnosticsTextView.isEditable = false
@@ -1118,10 +1146,25 @@ final class AppDashboardWindowController: NSWindowController {
                 makeSummaryRow(title: "Automation", value: automationLabel)
             ]
         )
+        let scheduleSaveButton = PopoverCommandButton(
+            title: "Save schedule",
+            style: .primary,
+            target: self,
+            action: #selector(saveSchedulePressed)
+        )
+        scheduleSaveButton.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        let scheduleEditor = makeSection(
+            title: "Automation schedule",
+            views: [
+                makeSummaryRow(title: "Current", value: scheduleLabel),
+                scheduleEditorView,
+                scheduleSaveButton,
+                scheduleStatusLabel
+            ]
+        )
         let configuration = makeSection(
             title: "Configuration",
             views: [
-                makeSummaryRow(title: "Schedule", value: scheduleLabel),
                 makeSummaryRow(title: "Shortcuts", value: shortcutLabel),
                 button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
                 makeActionRow([
@@ -1139,25 +1182,41 @@ final class AppDashboardWindowController: NSWindowController {
             ]
         )
 
-        let arrangedSubviews = [header, currentState, configuration, diagnostics]
+        let arrangedSubviews = [header, currentState, scheduleEditor, configuration, diagnostics]
         let stack = NSStackView(views: arrangedSubviews)
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
 
+        let scrollView = NSScrollView()
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        let documentView = NSView()
+        documentView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = documentView
+        documentView.addSubview(stack)
+
         let contentView = DashboardRootView()
         window?.contentView = contentView
-        contentView.addSubview(stack)
+        contentView.addSubview(scrollView)
         arrangedSubviews.forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
-            stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
-            stack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -18)
+            scrollView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            documentView.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor),
+            stack.leadingAnchor.constraint(equalTo: documentView.leadingAnchor, constant: 18),
+            stack.trailingAnchor.constraint(equalTo: documentView.trailingAnchor, constant: -18),
+            stack.topAnchor.constraint(equalTo: documentView.topAnchor, constant: 18),
+            stack.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -18)
         ])
     }
 
@@ -1323,7 +1382,49 @@ final class AppDashboardWindowController: NSWindowController {
         actions.perform(.pauseAutomation)
     }
 
+    @objc private func saveSchedulePressed() {
+        _ = saveScheduleFromEditor(reportsStatus: true)
+    }
+
     @objc private func openSettingsPressed() {
         actions.perform(.openSettings)
+    }
+
+    private func saveScheduleFromEditor(reportsStatus: Bool) -> Result<SettingsSnapshot, Error> {
+        do {
+            let editedSchedule = try scheduleEditorView.editedSchedule()
+            switch scheduleActions.updateSchedule(editedSchedule) {
+            case .success(let snapshot):
+                scheduleEditorView.update(schedule: snapshot.schedule)
+                scheduleLabel.stringValue = Self.scheduleSummary(for: snapshot.schedule)
+                if reportsStatus {
+                    reportScheduleStatus("Schedule saved.")
+                }
+                return .success(snapshot)
+            case .failure(let error):
+                if reportsStatus {
+                    reportScheduleStatus(error.localizedDescription, isError: true)
+                }
+                return .failure(error)
+            }
+        } catch {
+            if reportsStatus {
+                reportScheduleStatus(error.localizedDescription, isError: true)
+            }
+            return .failure(error)
+        }
+    }
+
+    private func reportScheduleStatus(_ message: String, isError: Bool = false) {
+        scheduleStatusLabel.stringValue = message
+        scheduleStatusLabel.textColor = isError ? .systemRed : .secondaryLabelColor
+    }
+
+    private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
+        MenuBarViewModel(
+            state: .defaultState(),
+            schedule: schedule,
+            shortcuts: []
+        ).scheduleSummary
     }
 }

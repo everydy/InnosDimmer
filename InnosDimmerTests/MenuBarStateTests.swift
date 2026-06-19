@@ -352,6 +352,41 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testAppDashboardSavesInlineScheduleThroughInjectedAction() {
+        var savedSchedule: [ScheduleEntry]?
+        let controller = AppDashboardWindowController(
+            scheduleActions: ScheduleEditorActions(
+                updateSchedule: { schedule in
+                    savedSchedule = schedule
+                    return .success(SettingsSnapshot.defaultSnapshot().replacingSchedule(schedule))
+                }
+            )
+        )
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+        controller.setScheduleRowForTesting(index: 1, time: "10:45", brightness: "62", blueReduction: "20")
+
+        let result = controller.saveScheduleForTesting()
+
+        guard case .success(let snapshot) = result else {
+            XCTFail("Expected dashboard schedule save to succeed")
+            return
+        }
+        XCTAssertEqual(savedSchedule?[1].minuteOfDay, 645)
+        XCTAssertEqual(savedSchedule?[1].brightness, 62)
+        XCTAssertEqual(savedSchedule?[1].blueReduction, 20)
+        XCTAssertEqual(snapshot.schedule[1].minuteOfDay, 645)
+        XCTAssertEqual(
+            controller.scheduleSummaryForTesting(),
+            "09:00 · 80% brightness / 12% blue, 10:45 · 62% brightness / 20% blue, 23:00 · 25% brightness / 58% blue"
+        )
+    }
+
+    @MainActor
     func testMenuBarPopoverUsesExpandedContentSize() {
         let view = MenuBarPopoverView(state: .defaultState())
 
