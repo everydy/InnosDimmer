@@ -140,6 +140,23 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPopoverLayoutFitsPreferredContentSizeInLightAndDark() {
+        let appearances = [
+            NSAppearance(named: .aqua),
+            NSAppearance(named: .darkAqua)
+        ].compactMap { $0 }
+
+        for appearance in appearances {
+            let view = MenuBarPopoverView(state: .defaultState())
+            view.appearance = appearance
+            view.layoutSubtreeIfNeeded()
+
+            XCTAssertLessThanOrEqual(view.fittingSize.width, MenuBarPopoverView.preferredContentSize.width)
+            XCTAssertLessThanOrEqual(view.fittingSize.height, MenuBarPopoverView.preferredContentSize.height)
+        }
+    }
+
+    @MainActor
     func testMenuBarPopoverUpdateRefreshesVisibleStateAndDiagnostics() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
@@ -168,6 +185,9 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(view.displaySummaryForTesting(), "Display: INNOS 27QA100M")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
+        XCTAssertEqual(view.warmthLabelForTesting(), "32%")
+        XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
+        XCTAssertEqual(view.warmthTrackFractionForTesting(), 0.32, accuracy: 0.001)
         XCTAssertEqual(view.scheduleSummaryForTesting(), "Schedule: 10:15 66% / blue 21%")
         XCTAssertEqual(view.shortcutSummaryForTesting(), "Shortcuts: 5 enabled")
         XCTAssertEqual(

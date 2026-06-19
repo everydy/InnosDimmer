@@ -18,6 +18,153 @@ struct MenuBarActions {
     static let noop = MenuBarActions { _ in }
 }
 
+private enum PopoverButtonStyle {
+    case normal
+    case primary
+    case warning
+}
+
+private enum PopoverPalette {
+    static func background(for appearance: NSAppearance) -> NSColor {
+        isDark(appearance) ? NSColor(calibratedWhite: 0.10, alpha: 1) : NSColor(calibratedWhite: 0.96, alpha: 1)
+    }
+
+    static func sectionBackground(for appearance: NSAppearance) -> NSColor {
+        isDark(appearance) ? NSColor(calibratedWhite: 0.15, alpha: 1) : .white
+    }
+
+    static func subtleBackground(for appearance: NSAppearance) -> NSColor {
+        isDark(appearance) ? NSColor(calibratedWhite: 0.12, alpha: 1) : NSColor(calibratedWhite: 0.98, alpha: 1)
+    }
+
+    static func border(for appearance: NSAppearance) -> NSColor {
+        isDark(appearance) ? NSColor(calibratedWhite: 0.27, alpha: 1) : NSColor(calibratedWhite: 0.84, alpha: 1)
+    }
+
+    static func trackBackground(for appearance: NSAppearance) -> NSColor {
+        isDark(appearance) ? NSColor(calibratedWhite: 0.24, alpha: 1) : NSColor(calibratedWhite: 0.88, alpha: 1)
+    }
+
+    static func trackFill(for appearance: NSAppearance) -> NSColor {
+        if isDark(appearance) {
+            return NSColor(calibratedRed: 0.35, green: 0.65, blue: 1.0, alpha: 1)
+        }
+        return NSColor(calibratedRed: 0.09, green: 0.41, blue: 0.76, alpha: 1)
+    }
+
+    static func statusColor(for appearance: NSAppearance) -> NSColor {
+        if isDark(appearance) {
+            return NSColor(calibratedRed: 0.46, green: 0.85, blue: 0.61, alpha: 1)
+        }
+        return NSColor(calibratedRed: 0.12, green: 0.48, blue: 0.27, alpha: 1)
+    }
+
+    static func warningColor(for appearance: NSAppearance) -> NSColor {
+        if isDark(appearance) {
+            return NSColor(calibratedRed: 0.95, green: 0.77, blue: 0.37, alpha: 1)
+        }
+        return NSColor(calibratedRed: 0.54, green: 0.35, blue: 0, alpha: 1)
+    }
+
+    private static func isDark(_ appearance: NSAppearance) -> Bool {
+        appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+}
+
+private final class PopoverContainerView: NSView {
+    enum Style {
+        case section
+        case subtle
+    }
+
+    private let style: Style
+
+    init(style: Style, content: NSView) {
+        self.style = style
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = style == .section ? 8 : 7
+        layer?.borderWidth = 1
+        addSubview(content)
+        content.translatesAutoresizingMaskIntoConstraints = false
+
+        let inset: CGFloat = style == .section ? 12 : 8
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: inset),
+            content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -inset),
+            content.topAnchor.constraint(equalTo: topAnchor, constant: inset),
+            content.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -inset)
+        ])
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        let background: NSColor
+        switch style {
+        case .section:
+            background = PopoverPalette.sectionBackground(for: effectiveAppearance)
+        case .subtle:
+            background = PopoverPalette.subtleBackground(for: effectiveAppearance)
+        }
+        layer?.backgroundColor = background.cgColor
+        layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+    }
+}
+
+private final class ProgressTrackView: NSView {
+    var fraction: CGFloat = 0 {
+        didSet {
+            fraction = min(1, max(0, fraction))
+            needsDisplay = true
+        }
+    }
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: 8)
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        let rect = bounds.insetBy(dx: 0, dy: max(0, (bounds.height - 8) / 2))
+        let radius = rect.height / 2
+
+        PopoverPalette.trackBackground(for: effectiveAppearance).setFill()
+        NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+
+        guard fraction > 0 else {
+            return
+        }
+
+        var fillRect = rect
+        fillRect.size.width = max(rect.height, rect.width * fraction)
+        PopoverPalette.trackFill(for: effectiveAppearance).setFill()
+        NSBezierPath(roundedRect: fillRect, xRadius: radius, yRadius: radius).fill()
+    }
+}
+
 struct MenuBarViewModel: Equatable {
     var modeTitle: String
     var displaySummary: String
@@ -96,6 +243,8 @@ final class MenuBarPopoverView: NSView {
     private let scheduleSummaryLabel = NSTextField(labelWithString: "")
     private let shortcutSummaryLabel = NSTextField(labelWithString: "")
     private let diagnosticsSummaryLabel = NSTextField(labelWithString: "")
+    private let brightnessTrackView = ProgressTrackView()
+    private let warmthTrackView = ProgressTrackView()
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
 
     init(
@@ -141,6 +290,8 @@ final class MenuBarPopoverView: NSView {
         scheduleSummaryLabel.stringValue = viewModel.scheduleSummary
         shortcutSummaryLabel.stringValue = viewModel.shortcutSummary
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
+        brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
+        warmthTrackView.fraction = CGFloat(state.targetWarmth) / 100
     }
 
     func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
@@ -153,6 +304,18 @@ final class MenuBarPopoverView: NSView {
 
     func brightnessLabelForTesting() -> String {
         brightnessValueLabel.stringValue
+    }
+
+    func warmthLabelForTesting() -> String {
+        warmthValueLabel.stringValue
+    }
+
+    func brightnessTrackFractionForTesting() -> CGFloat {
+        brightnessTrackView.fraction
+    }
+
+    func warmthTrackFractionForTesting() -> CGFloat {
+        warmthTrackView.fraction
     }
 
     func diagnosticsSummaryForTesting() -> String {
@@ -168,8 +331,8 @@ final class MenuBarPopoverView: NSView {
     }
 
     private func buildLayout() {
-        let title = NSTextField(labelWithString: "INNOS 27QA100M")
-        title.font = .systemFont(ofSize: 16, weight: .semibold)
+        wantsLayer = true
+        updateBackground()
 
         [
             displaySummaryLabel,
@@ -179,38 +342,63 @@ final class MenuBarPopoverView: NSView {
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
 
-        let brightnessTitle = NSTextField(labelWithString: "Brightness")
-        let warmthTitle = NSTextField(labelWithString: "Blue reduction")
-        let pauseButton = button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
-        let brightnessDownButton = button("Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed))
-        let brightnessUpButton = button("Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))
-        let warmthDownButton = button("Blue reduction down", command: .warmthDown, action: #selector(warmthDownPressed))
-        let warmthUpButton = button("Blue reduction up", command: .warmthUp, action: #selector(warmthUpPressed))
-        let quickDisableButton = button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed))
-        let restorePreviousButton = button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
-        let appWindowButton = button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed))
-        let settingsButton = button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
+        let header = makeHeader()
+        let controls = makeSection(
+            title: "Quick controls",
+            trailing: chip("Automation active"),
+            views: [
+                makeControlGroup(
+                    title: "Brightness",
+                    valueLabel: brightnessValueLabel,
+                    trackView: brightnessTrackView,
+                    decrement: compactButton("-", accessibilityLabel: "Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))
+                ),
+                makeSeparator(),
+                makeControlGroup(
+                    title: "Blue reduction",
+                    valueLabel: warmthValueLabel,
+                    trackView: warmthTrackView,
+                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .warmthDown, action: #selector(warmthDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .warmthUp, action: #selector(warmthUpPressed))
+                )
+            ]
+        )
+        let schedule = makeSection(
+            title: "Schedule",
+            trailing: nil,
+            views: [
+                automationLabel,
+                makeSummaryRow(title: "Next", value: scheduleSummaryLabel),
+                makeSummaryRow(title: "Keys", value: shortcutSummaryLabel),
+                makeActionRow([
+                    button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
+                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
+                ]),
+                button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+            ]
+        )
+        let diagnostics = makeSection(
+            title: "Diagnostics",
+            trailing: chip("Latest"),
+            views: [
+                PopoverContainerView(style: .subtle, content: diagnosticsSummaryLabel),
+                makeActionRow([
+                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
+                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
+                ])
+            ]
+        )
 
         let stack = NSStackView(views: [
-            title,
-            modeBadge,
-            displaySummaryLabel,
-            row(label: brightnessTitle, value: brightnessValueLabel),
-            row(label: warmthTitle, value: warmthValueLabel),
-            automationLabel,
-            scheduleSummaryLabel,
-            shortcutSummaryLabel,
-            diagnosticsSummaryLabel,
-            row(label: brightnessDownButton, value: brightnessUpButton),
-            row(label: warmthDownButton, value: warmthUpButton),
-            row(label: quickDisableButton, value: restorePreviousButton),
-            pauseButton,
-            appWindowButton,
-            settingsButton
+            header,
+            controls,
+            schedule,
+            diagnostics
         ])
         stack.orientation = .vertical
         stack.alignment = .width
-        stack.spacing = 10
+        stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         addSubview(stack)
@@ -222,24 +410,171 @@ final class MenuBarPopoverView: NSView {
         ])
     }
 
-    private func row(label: NSView, value: NSView) -> NSStackView {
-        let stack = NSStackView(views: [label, value])
-        stack.orientation = .horizontal
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateBackground()
+    }
+
+    private func updateBackground() {
+        layer?.backgroundColor = PopoverPalette.background(for: effectiveAppearance).cgColor
+    }
+
+    private func makeHeader() -> NSView {
+        let title = NSTextField(labelWithString: "InnosDimmer")
+        title.font = .systemFont(ofSize: 17, weight: .bold)
+        title.textColor = .labelColor
+
+        configureBadge(modeBadge)
+
+        let topRow = NSStackView(views: [title, modeBadge])
+        topRow.orientation = .horizontal
+        topRow.alignment = .centerY
+        topRow.spacing = 12
+        title.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        modeBadge.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [topRow, displaySummaryLabel])
+        stack.orientation = .vertical
+        stack.alignment = .width
         stack.spacing = 8
-        stack.distribution = .fillEqually
         return stack
+    }
+
+    private func makeSection(title: String, trailing: NSView?, views: [NSView]) -> NSView {
+        let titleLabel = sectionLabel(title)
+        let titleViews = trailing.map { [titleLabel, $0] } ?? [titleLabel]
+        let titleRow = NSStackView(views: titleViews)
+        titleRow.orientation = .horizontal
+        titleRow.alignment = .centerY
+        titleRow.spacing = 10
+        titleLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trailing?.setContentHuggingPriority(.required, for: .horizontal)
+
+        let content = NSStackView(views: [titleRow] + views)
+        content.orientation = .vertical
+        content.alignment = .width
+        content.spacing = 10
+        return PopoverContainerView(style: .section, content: content)
+    }
+
+    private func makeControlGroup(
+        title: String,
+        valueLabel: NSTextField,
+        trackView: ProgressTrackView,
+        decrement: NSButton,
+        increment: NSButton
+    ) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        valueLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .semibold)
+        valueLabel.alignment = .right
+        valueLabel.textColor = .labelColor
+        valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 8
+        titleLabel.widthAnchor.constraint(equalToConstant: 112).isActive = true
+        valueLabel.widthAnchor.constraint(equalToConstant: 54).isActive = true
+        trackView.heightAnchor.constraint(equalToConstant: 8).isActive = true
+        trackView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trackView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return stack
+    }
+
+    private func makeSummaryRow(title: String, value: NSTextField) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let stack = NSStackView(views: [titleLabel, value])
+        stack.orientation = .horizontal
+        stack.alignment = .top
+        stack.spacing = 10
+        return stack
+    }
+
+    private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
+        let stack = NSStackView(views: buttons)
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.distribution = .fillEqually
+        stack.spacing = 8
+        return stack
+    }
+
+    private func makeSeparator() -> NSView {
+        let separator = NSBox()
+        separator.boxType = .separator
+        return separator
     }
 
     private static func configureWrappingLabel(_ label: NSTextField) {
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.font = .systemFont(ofSize: 12)
+        label.textColor = .secondaryLabelColor
     }
 
-    private func button(_ title: String, command: MenuBarCommand, action: Selector) -> NSButton {
+    private func sectionLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title.uppercased())
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        return label
+    }
+
+    private func chip(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        return label
+    }
+
+    private func configureBadge(_ badge: StatusBadgeView) {
+        badge.font = .systemFont(ofSize: 12, weight: .semibold)
+        badge.textColor = PopoverPalette.statusColor(for: effectiveAppearance)
+        badge.alignment = .right
+    }
+
+    private func button(
+        _ title: String,
+        command: MenuBarCommand,
+        action: Selector,
+        style: PopoverButtonStyle = .normal
+    ) -> NSButton {
         let button = NSButton(title: title, target: self, action: action)
         button.bezelStyle = .rounded
+        button.controlSize = .regular
+        button.font = .systemFont(ofSize: 13, weight: .semibold)
+        switch style {
+        case .normal:
+            break
+        case .primary:
+            button.keyEquivalent = "\r"
+        case .warning:
+            button.contentTintColor = PopoverPalette.warningColor(for: effectiveAppearance)
+        }
         commandButtons[command] = button
+        return button
+    }
+
+    private func compactButton(
+        _ title: String,
+        accessibilityLabel: String,
+        command: MenuBarCommand,
+        action: Selector
+    ) -> NSButton {
+        let button = button(title, command: command, action: action)
+        button.setAccessibilityLabel(accessibilityLabel)
+        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
         return button
     }
 
