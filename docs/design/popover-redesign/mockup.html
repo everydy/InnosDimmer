@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>InnosDimmer Dark Popover Redesign Mockup</title>
   <style>
-    :root {
+    :root,
+    body[data-theme="dark"] {
       color-scheme: dark;
+      --page: #111113;
       --bg: #1b1b1f;
       --panel: #26262b;
       --panel-2: #202024;
@@ -20,6 +22,22 @@
       --shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
     }
 
+    body[data-theme="light"] {
+      color-scheme: light;
+      --page: #eef0f3;
+      --bg: #f7f7f8;
+      --panel: #ffffff;
+      --panel-2: #f1f2f4;
+      --text: #1f2328;
+      --muted: #66707a;
+      --line: #d6d9de;
+      --blue: #0f75d3;
+      --blue-strong: #0b70c9;
+      --green: #196b39;
+      --amber: #8a5b00;
+      --shadow: 0 22px 48px rgba(21, 30, 45, 0.16);
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -29,7 +47,7 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background: #111113;
+      background: var(--page);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       color: var(--text);
     }
@@ -42,6 +60,10 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 8px;
       box-shadow: var(--shadow);
+    }
+
+    body[data-theme="light"] .popover {
+      border-color: rgba(30, 42, 60, 0.12);
     }
 
     .header {
@@ -213,9 +235,60 @@
       font-size: 12px;
       line-height: 1.35;
     }
+
+    .theme-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      user-select: none;
+    }
+
+    .theme-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .theme-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+    }
+
+    .theme-switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--blue);
+      transition: transform 140ms ease;
+    }
+
+    body[data-theme="light"] .theme-switch::after {
+      transform: translateX(22px);
+    }
   </style>
 </head>
-<body>
+<body data-theme="dark">
+  <label class="theme-toggle">
+    <span>Dark / Light</span>
+    <input id="theme-toggle" type="checkbox" aria-label="Toggle light mode">
+    <span class="theme-switch" aria-hidden="true"></span>
+  </label>
+
   <main class="popover" aria-label="InnosDimmer menu bar popover mockup">
     <header class="header">
       <h1>InnosDimmer</h1>
@@ -281,5 +354,17 @@
       </div>
     </section>
   </main>
+  <script>
+    const toggle = document.querySelector("#theme-toggle");
+    const savedTheme = localStorage.getItem("innosdimmer-mockup-theme") || "dark";
+    document.body.dataset.theme = savedTheme;
+    toggle.checked = savedTheme === "light";
+
+    toggle.addEventListener("change", () => {
+      const nextTheme = toggle.checked ? "light" : "dark";
+      document.body.dataset.theme = nextTheme;
+      localStorage.setItem("innosdimmer-mockup-theme", nextTheme);
+    });
+  </script>
 </body>
 </html>

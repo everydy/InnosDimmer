@@ -1,0 +1,27 @@
+# Native Popover Snapshot Comparison
+
+## Baseline
+
+- Source mockup: `docs/design/popover-redesign/mockup.html`
+- Native render target: `InnosDimmer/UI/MenuBarPopoverView.swift`
+- Initial score estimate: 52 / 100
+- Main mismatch: section cards collapsed to the right, action rows did not fill available width, and native buttons used default AppKit emphasis instead of the mockup hierarchy.
+
+## Loop Results
+
+| Pass | Score estimate | Decision | Evidence |
+| --- | ---: | --- | --- |
+| Baseline | 52 | Rework | User screenshot and first AppKit snapshot showed narrow, right-aligned sections. |
+| Pass 1 | 75 | Keep | Root sections were constrained to stack width. |
+| Pass 2 | 86 | Keep | Nested rows, action buttons, copy, and diagnostics hierarchy matched the mockup structure. |
+| Pass 3 | 90 | Keep | Header/status labels, schedule trailing label, light/dark palette, and snapshot generation stabilized. |
+
+## Current Evidence
+
+- Dark native snapshot: `docs/design/popover-redesign/captures/actual-dark.png`
+- Light native snapshot: `docs/design/popover-redesign/captures/actual-light.png`
+- Snapshot size: 960 x 1240 pixels, rendered from the native 480 x 620 AppKit popover.
+
+## Residual Difference
+
+The native popover is still rendered by AppKit controls and SF text metrics, so it will not be pixel-identical to the HTML mockup. The important layout contract now matches: full-width sections, compact rows, right-aligned status labels, primary/warning button hierarchy, and one dynamic layout for light and dark appearances.

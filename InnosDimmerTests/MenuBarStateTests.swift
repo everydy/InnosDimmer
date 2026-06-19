@@ -35,13 +35,14 @@ final class MenuBarStateTests: XCTestCase {
         )
 
         XCTAssertEqual(viewModel.modeTitle, "Overlay active")
-        XCTAssertEqual(viewModel.displaySummary, "Display: Not selected")
+        XCTAssertEqual(viewModel.displaySummary, "No display selected")
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.warmthLabel, "32%")
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
-        XCTAssertEqual(viewModel.scheduleSummary, "Schedule: 10:00 70% / blue 20%")
-        XCTAssertEqual(viewModel.shortcutSummary, "Shortcuts: 5 enabled")
-        XCTAssertEqual(viewModel.diagnosticsSummary, "Diagnostics: Overlay active")
+        XCTAssertEqual(viewModel.scheduleNextLabel, "Next 10:00")
+        XCTAssertEqual(viewModel.scheduleSummary, "10:00 · 70% brightness / 20% blue")
+        XCTAssertEqual(viewModel.shortcutSummary, "5 enabled · Option + Shift controls")
+        XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
     }
 
     func testMenuBarViewModelIncludesDisplayAndLatestDiagnosticEvent() {
@@ -56,10 +57,10 @@ final class MenuBarStateTests: XCTestCase {
 
         let viewModel = MenuBarViewModel(state: state, latestDiagnosticEvent: event)
 
-        XCTAssertEqual(viewModel.displaySummary, "Display: INNOS 27QA100M")
+        XCTAssertEqual(viewModel.displaySummary, "INNOS 27QA100M · software dimming")
         XCTAssertEqual(
             viewModel.diagnosticsSummary,
-            "Diagnostics: Software dimming ready. Last: Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
+            "Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
         )
     }
 
@@ -157,6 +158,58 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPopoverWritesDesignSnapshotsWhenRequested() throws {
+        let snapshotDirectory = ProcessInfo.processInfo.environment["INNOSDIMMER_SNAPSHOT_DIR"]
+            ?? "/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures"
+
+        let directoryURL = URL(fileURLWithPath: snapshotDirectory, isDirectory: true)
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.targetBrightness = 45
+        state.targetWarmth = 32
+        state.activeMode = .overlay
+        let event = DiagnosticsEvent(
+            timestamp: Date(timeIntervalSince1970: 0),
+            category: .softwareDimming,
+            message: "Applied brightness 45% and blue reduction 32% on INNOS 27QA100M.",
+            severity: .info
+        )
+
+        let variants: [(String, NSAppearance.Name)] = [
+            ("actual-light", .aqua),
+            ("actual-dark", .darkAqua)
+        ]
+
+        for (name, appearanceName) in variants {
+            guard let appearance = NSAppearance(named: appearanceName) else {
+                continue
+            }
+
+            let view = MenuBarPopoverView(
+                state: state,
+                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, warmth: 32)],
+                shortcuts: ShortcutBinding.defaultBindings,
+                latestDiagnosticEvent: event
+            )
+            view.appearance = appearance
+            view.layoutSubtreeIfNeeded()
+
+            guard let representation = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                XCTFail("Could not create bitmap representation for \(name)")
+                continue
+            }
+            view.cacheDisplay(in: view.bounds, to: representation)
+            guard let data = representation.representation(using: .png, properties: [:]) else {
+                XCTFail("Could not encode snapshot for \(name)")
+                continue
+            }
+            try data.write(to: directoryURL.appendingPathComponent("\(name).png"))
+        }
+    }
+
+    @MainActor
     func testMenuBarPopoverUpdateRefreshesVisibleStateAndDiagnostics() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
@@ -183,16 +236,16 @@ final class MenuBarStateTests: XCTestCase {
             latestDiagnosticEvent: event
         )
 
-        XCTAssertEqual(view.displaySummaryForTesting(), "Display: INNOS 27QA100M")
+        XCTAssertEqual(view.displaySummaryForTesting(), "INNOS 27QA100M · software dimming")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
         XCTAssertEqual(view.warmthLabelForTesting(), "32%")
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.warmthTrackFractionForTesting(), 0.32, accuracy: 0.001)
-        XCTAssertEqual(view.scheduleSummaryForTesting(), "Schedule: 10:15 66% / blue 21%")
-        XCTAssertEqual(view.shortcutSummaryForTesting(), "Shortcuts: 5 enabled")
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · 66% brightness / 21% blue")
+        XCTAssertEqual(view.shortcutSummaryForTesting(), "5 enabled · Option + Shift controls")
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
-            "Diagnostics: Overlay active. Last: Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
+            "Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
         )
     }
 
