@@ -104,8 +104,9 @@ final class GammaDimmingController {
     }
 
     static func blueScale(for blueReduction: Int) -> CGGammaValue {
-        let reduction = CGGammaValue(Clamped.percent(blueReduction)) / 100.0
-        return max(0.0, 1.0 - (reduction * Constants.maximumBlueReduction))
+        let reduction = Double(Clamped.percent(blueReduction)) / 100.0
+        let shapedReduction = CGGammaValue(pow(reduction, 1.35))
+        return max(0.0, 1.0 - (shapedReduction * Constants.maximumBlueReduction))
     }
 
     static func tableByReducingBlue(in table: GammaTableSnapshot, blueReduction: Int) -> GammaTableSnapshot {

@@ -41,8 +41,8 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(reduced.red, original.red)
         XCTAssertEqual(reduced.green, original.green)
         XCTAssertEqual(reduced.blue[0], 0, accuracy: 0.0001)
-        XCTAssertEqual(reduced.blue[1], 0.455, accuracy: 0.0001)
-        XCTAssertEqual(reduced.blue[2], 0.91, accuracy: 0.0001)
+        XCTAssertEqual(reduced.blue[1], 0.4744, accuracy: 0.0001)
+        XCTAssertEqual(reduced.blue[2], 0.9488, accuracy: 0.0001)
         XCTAssertTrue(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
 
         try controller.clear(display: display)
@@ -50,6 +50,14 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertEqual(tableController.setCalls.count, 2)
         XCTAssertEqual(tableController.setCalls[1].table, original)
         XCTAssertFalse(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
+    }
+
+    func testGammaBlueReductionUsesGentleLowEndCurve() {
+        XCTAssertEqual(GammaDimmingController.blueScale(for: 0), 1.0, accuracy: 0.0001)
+        XCTAssertEqual(GammaDimmingController.blueScale(for: 20), 0.9488, accuracy: 0.0001)
+        XCTAssertEqual(GammaDimmingController.blueScale(for: 40), 0.8694, accuracy: 0.0001)
+        XCTAssertEqual(GammaDimmingController.blueScale(for: 50), 0.8235, accuracy: 0.0001)
+        XCTAssertEqual(GammaDimmingController.blueScale(for: 100), 0.55, accuracy: 0.0001)
     }
 
     func testGammaBlueReductionZeroRestoresOriginalTable() throws {
