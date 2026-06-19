@@ -225,11 +225,35 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
 
 final class SettingsWindowShortcutCustomizationTests: XCTestCase {
     @MainActor
+    func testSettingsWindowRoutesScheduleEditorNavigation() {
+        var didOpenScheduleEditor = false
+        let actions = SettingsActions(
+            selectDisplay: { _ in .success(.defaultSnapshot()) },
+            openScheduleEditor: {
+                didOpenScheduleEditor = true
+            },
+            updateShortcuts: { _ in .success(.defaultSnapshot()) },
+            setLaunchAtLogin: { _ in .success(.notRegistered) },
+            exportDiagnostics: { .success(Data()) }
+        )
+        let controller = SettingsWindowController(actions: actions)
+        controller.configure(
+            snapshot: .defaultSnapshot(),
+            displayCandidates: [],
+            loginItemStatus: .notRegistered
+        )
+
+        controller.openScheduleEditorForTesting()
+
+        XCTAssertTrue(didOpenScheduleEditor)
+    }
+
+    @MainActor
     func testSettingsWindowSavesCustomizedShortcutBindings() {
         var savedShortcuts: [ShortcutBinding]?
         let actions = SettingsActions(
             selectDisplay: { _ in .success(.defaultSnapshot()) },
-            updateSchedule: { _ in .success(.defaultSnapshot()) },
+            openScheduleEditor: {},
             updateShortcuts: { shortcuts in
                 savedShortcuts = shortcuts
                 return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
@@ -272,7 +296,7 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
         var savedShortcuts: [ShortcutBinding]?
         let actions = SettingsActions(
             selectDisplay: { _ in .success(.defaultSnapshot()) },
-            updateSchedule: { _ in .success(.defaultSnapshot()) },
+            openScheduleEditor: {},
             updateShortcuts: { shortcuts in
                 savedShortcuts = shortcuts
                 return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))

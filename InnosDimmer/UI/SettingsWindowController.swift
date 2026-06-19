@@ -3,14 +3,14 @@ import UniformTypeIdentifiers
 
 struct SettingsActions {
     var selectDisplay: @MainActor (DisplayIdentity?) -> Result<SettingsSnapshot, Error>
-    var updateSchedule: @MainActor ([ScheduleEntry]) -> Result<SettingsSnapshot, Error>
+    var openScheduleEditor: @MainActor () -> Void
     var updateShortcuts: @MainActor ([ShortcutBinding]) -> Result<SettingsSnapshot, Error>
     var setLaunchAtLogin: @MainActor (Bool) -> Result<LoginItemStatus, Error>
     var exportDiagnostics: @MainActor () -> Result<Data, Error>
 
     static let noop = SettingsActions(
         selectDisplay: { _ in .success(.defaultSnapshot()) },
-        updateSchedule: { _ in .success(.defaultSnapshot()) },
+        openScheduleEditor: {},
         updateShortcuts: { _ in .success(.defaultSnapshot()) },
         setLaunchAtLogin: { _ in .success(.notRegistered) },
         exportDiagnostics: { .success(Data()) }
@@ -55,7 +55,6 @@ final class SettingsWindowController: NSWindowController {
     private let diagnosticsSummary = NSTextField(labelWithString: "Diagnostics: local export available")
     private let matrixSummary = NSTextField(labelWithString: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
     private let statusLabel = NSTextField(labelWithString: "")
-    private let scheduleEditorView = ScheduleEditorView()
     private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
     private var snapshot = SettingsSnapshot.defaultSnapshot()
     private var displayCandidates: [DisplayIdentity] = []
@@ -103,8 +102,8 @@ final class SettingsWindowController: NSWindowController {
         displayPicker.target = self
         displayPicker.action = #selector(displaySelectionChanged)
 
-        let saveScheduleButton = NSButton(title: "Save schedule", target: self, action: #selector(saveSchedulePressed))
-        saveScheduleButton.bezelStyle = .rounded
+        let openScheduleButton = NSButton(title: "Open schedule editor", target: self, action: #selector(openScheduleEditorPressed))
+        openScheduleButton.bezelStyle = .rounded
 
         let resetShortcutsButton = NSButton(title: "Reset shortcuts", target: self, action: #selector(resetShortcutsPressed))
         resetShortcutsButton.bezelStyle = .rounded
@@ -130,8 +129,7 @@ final class SettingsWindowController: NSWindowController {
             displayPicker,
             sectionLabel("Automation"),
             scheduleSummary,
-            scheduleEditorView,
-            saveScheduleButton,
+            openScheduleButton,
             sectionLabel("Global shortcuts"),
             shortcutSummary,
             shortcutStack,
@@ -227,7 +225,6 @@ final class SettingsWindowController: NSWindowController {
 
     private func render() {
         renderDisplayPicker()
-        renderSchedule()
         renderShortcuts()
         renderLoginItem()
         scheduleSummary.stringValue = Self.scheduleSummary(for: snapshot.schedule)
@@ -249,10 +246,6 @@ final class SettingsWindowController: NSWindowController {
         }
 
         displayPicker.selectItem(at: selectedIndex + 1)
-    }
-
-    private func renderSchedule() {
-        scheduleEditorView.update(schedule: snapshot.schedule)
     }
 
     private func renderShortcuts() {
@@ -293,22 +286,9 @@ final class SettingsWindowController: NSWindowController {
         }
     }
 
-    @objc private func saveSchedulePressed() {
-        do {
-            let schedule = try scheduleEditorView.editedSchedule()
-            switch actions.updateSchedule(schedule) {
-            case .success(let updatedSnapshot):
-                snapshot = updatedSnapshot
-                render()
-                report("Schedule saved.")
-            case .failure(let error):
-                render()
-                report(error.localizedDescription, isError: true)
-            }
-        } catch {
-            render()
-            report(error.localizedDescription, isError: true)
-        }
+    @objc private func openScheduleEditorPressed() {
+        actions.openScheduleEditor()
+        report("Opened schedule editor.")
     }
 
     @objc private func shortcutControlChanged() {
@@ -350,6 +330,10 @@ final class SettingsWindowController: NSWindowController {
             render()
             return .failure(error)
         }
+    }
+
+    func openScheduleEditorForTesting() {
+        openScheduleEditorPressed()
     }
 
     func setShortcutForTesting(

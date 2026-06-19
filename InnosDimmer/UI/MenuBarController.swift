@@ -266,8 +266,8 @@ final class MenuBarController: NSObject {
             selectDisplay: { [weak self] display in
                 self?.saveSelectedDisplay(display) ?? .failure(SettingsRuntimeError.unavailable)
             },
-            updateSchedule: { [weak self] schedule in
-                self?.saveSchedule(schedule) ?? .failure(SettingsRuntimeError.unavailable)
+            openScheduleEditor: { [weak self] in
+                self?.showScheduleEditor()
             },
             updateShortcuts: { [weak self] shortcuts in
                 self?.saveShortcuts(shortcuts) ?? .failure(SettingsRuntimeError.unavailable)
