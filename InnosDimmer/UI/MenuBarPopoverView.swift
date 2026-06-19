@@ -13,6 +13,8 @@ enum MenuBarCommand: Equatable, Hashable {
     case quickDisable
     case restorePrevious
     case openAppWindow
+    case openShortcuts
+    case openDiagnostics
     case openSettings
     case openPopover
 
@@ -26,7 +28,7 @@ enum MenuBarCommand: Equatable, Hashable {
         .quickDisable,
         .restorePrevious,
         .openAppWindow,
-        .openSettings
+        .openShortcuts
     ]
 }
 
@@ -44,70 +46,228 @@ private enum PopoverButtonStyle {
 
 private enum PopoverPalette {
     static func background(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.10, alpha: 1) : NSColor(calibratedWhite: 0.96, alpha: 1)
+        token(dark: 0x182436, light: 0xf7f7f8, appearance: appearance)
     }
 
     static func sectionBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.15, alpha: 1) : .white
+        token(dark: 0x2d3f5c, light: 0xffffff, appearance: appearance)
     }
 
     static func subtleBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.12, alpha: 1) : NSColor(calibratedWhite: 0.98, alpha: 1)
+        token(dark: 0x21262d, light: 0xf1f3f5, appearance: appearance)
     }
 
     static func border(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.27, alpha: 1) : NSColor(calibratedWhite: 0.84, alpha: 1)
+        token(dark: 0x465b78, light: 0xd6d9de, appearance: appearance)
     }
 
     static func trackBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.24, alpha: 1) : NSColor(calibratedWhite: 0.88, alpha: 1)
+        isDark(appearance)
+            ? color(0x44536a, alpha: 0.70)
+            : color(0xd6d9de, alpha: 0.70)
     }
 
     static func trackFill(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.35, green: 0.65, blue: 1.0, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.09, green: 0.41, blue: 0.76, alpha: 1)
+        token(dark: 0x61a8ff, light: 0x0f75d3, appearance: appearance)
     }
 
     static func statusColor(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.46, green: 0.85, blue: 0.61, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.12, green: 0.48, blue: 0.27, alpha: 1)
+        token(dark: 0x75d99b, light: 0x196b39, appearance: appearance)
     }
 
     static func warningColor(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.95, green: 0.77, blue: 0.37, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.54, green: 0.35, blue: 0, alpha: 1)
+        token(dark: 0xf1c45f, light: 0x8a5b00, appearance: appearance)
     }
 
     static func buttonBackground(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.19, alpha: 1) : NSColor(calibratedWhite: 0.93, alpha: 1)
+        token(dark: 0x232931, light: 0xf7f7f8, appearance: appearance)
     }
 
     static func buttonBorder(for appearance: NSAppearance) -> NSColor {
-        isDark(appearance) ? NSColor(calibratedWhite: 0.36, alpha: 1) : NSColor(calibratedWhite: 0.76, alpha: 1)
+        border(for: appearance)
+    }
+
+    static func badgeBackground(for appearance: NSAppearance) -> NSColor {
+        token(dark: 0x2d3f5c, light: 0xffffff, appearance: appearance)
     }
 
     static func primaryButtonBackground(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.12, green: 0.48, blue: 0.85, alpha: 1)
-        }
-        return NSColor(calibratedRed: 0.03, green: 0.42, blue: 0.74, alpha: 1)
+        token(dark: 0x2b78d6, light: 0x0b70c9, appearance: appearance)
     }
 
     static func warningButtonBackground(for appearance: NSAppearance) -> NSColor {
-        if isDark(appearance) {
-            return NSColor(calibratedRed: 0.22, green: 0.18, blue: 0.10, alpha: 1)
-        }
-        return NSColor(calibratedRed: 1.00, green: 0.95, blue: 0.84, alpha: 1)
+        warningColor(for: appearance).withAlphaComponent(0.12)
     }
 
     private static func isDark(_ appearance: NSAppearance) -> Bool {
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    private static func token(dark: Int, light: Int, appearance: NSAppearance) -> NSColor {
+        color(isDark(appearance) ? dark : light)
+    }
+
+    private static func color(_ hex: Int, alpha: CGFloat = 1) -> NSColor {
+        NSColor(
+            calibratedRed: CGFloat((hex >> 16) & 0xff) / 255.0,
+            green: CGFloat((hex >> 8) & 0xff) / 255.0,
+            blue: CGFloat(hex & 0xff) / 255.0,
+            alpha: alpha
+        )
+    }
+}
+
+private enum BadgeTone {
+    case neutral
+    case success
+}
+
+private final class BadgePillView: NSView {
+    private let label = NSTextField(labelWithString: "")
+    private let tone: BadgeTone
+    private let compact: Bool
+
+    init(title: String, tone: BadgeTone, compact: Bool = false) {
+        self.tone = tone
+        self.compact = compact
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = compact ? 6 : 8
+        layer?.borderWidth = 1
+
+        label.stringValue = title
+        label.font = compact ? .systemFont(ofSize: 9, weight: .semibold) : .systemFont(ofSize: 12, weight: .semibold)
+        label.alignment = .center
+        label.drawsBackground = false
+        label.isBezeled = false
+        label.isEditable = false
+        label.isSelectable = false
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: compact ? 4 : 8),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: compact ? -4 : -8),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: compact ? 2 : 4),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: compact ? -2 : -4)
+        ])
+
+        updateColors()
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+        setAccessibilityLabel(title)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let size = label.intrinsicContentSize
+        if compact {
+            return NSSize(width: size.width + 8, height: max(16, size.height + 4))
+        }
+        return NSSize(width: size.width + 16, height: max(24, size.height + 8))
+    }
+
+    var stringValue: String {
+        get { label.stringValue }
+        set {
+            label.stringValue = newValue
+            setAccessibilityLabel(newValue)
+            invalidateIntrinsicContentSize()
+        }
+    }
+
+    private func updateColors() {
+        switch tone {
+        case .neutral:
+            layer?.backgroundColor = PopoverPalette.badgeBackground(for: effectiveAppearance).cgColor
+            layer?.borderColor = PopoverPalette.buttonBorder(for: effectiveAppearance).cgColor
+            label.textColor = .secondaryLabelColor
+        case .success:
+            let border = PopoverPalette.statusColor(for: effectiveAppearance)
+            let background = PopoverPalette.statusColor(for: effectiveAppearance).withAlphaComponent(0.12)
+            layer?.backgroundColor = background.cgColor
+            layer?.borderColor = border.withAlphaComponent(0.35).cgColor
+            label.textColor = border
+        }
+    }
+}
+
+private final class ControlTitleView: NSView {
+    init(
+        title: String,
+        systemSymbolName: String,
+        fallback: String,
+        iconColor: NSColor,
+        font: NSFont,
+        textColor: NSColor
+    ) {
+        super.init(frame: .zero)
+
+        let icon = Self.iconView(
+            systemSymbolName: systemSymbolName,
+            fallback: fallback,
+            iconColor: iconColor,
+            font: font
+        )
+        let label = NSTextField(labelWithString: title)
+        label.font = font
+        label.textColor = textColor
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let stack = NSStackView(views: [icon, label])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 6
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+        setAccessibilityLabel(title)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    private static func iconView(
+        systemSymbolName: String,
+        fallback: String,
+        iconColor: NSColor,
+        font: NSFont
+    ) -> NSView {
+        let view: NSView
+        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
+            let imageView = NSImageView(image: image)
+            imageView.contentTintColor = iconColor
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: font.pointSize, weight: .semibold)
+            view = imageView
+        } else {
+            let label = NSTextField(labelWithString: fallback)
+            label.font = font
+            label.textColor = iconColor
+            label.alignment = .center
+            view = label
+        }
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.widthAnchor.constraint(equalToConstant: 16).isActive = true
+        view.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        view.setContentHuggingPriority(.required, for: .horizontal)
+        view.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return view
     }
 }
 
@@ -183,7 +343,7 @@ private final class DashboardRootView: NSView {
 
 private enum BlueReductionWarning {
     static let threshold = 50
-    static let message = "High blue reduction may shift colors."
+    static let message = "High warmth may shift colors."
 
     static func message(for blueReduction: Int) -> String? {
         Clamped.percent(blueReduction) >= threshold ? message : nil
@@ -318,7 +478,7 @@ private final class ScheduleSummaryRowsView: NSView {
         }
 
         plainSummary = entries.map { entry in
-            "\(Self.timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · ◐ \(entry.blueReduction)%"
+            "\(Self.timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · 🌡 \(entry.blueReduction)%"
         }.joined(separator: "\n")
         entries.map(Self.rowView(for:)).forEach { row in
             stack.addArrangedSubview(row)
@@ -326,47 +486,90 @@ private final class ScheduleSummaryRowsView: NSView {
     }
 
     private static func rowView(for entry: ScheduleEntry) -> NSView {
-        let time = NSTextField(labelWithString: timeLabel(for: entry.minuteOfDay))
-        time.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-        time.textColor = .labelColor
-        time.widthAnchor.constraint(equalToConstant: 58).isActive = true
+        let time = pillLabel(timeLabel(for: entry.minuteOfDay))
+        time.widthAnchor.constraint(equalToConstant: 60).isActive = true
 
-        let brightness = metricView(systemSymbolName: "sun.max.fill", fallback: "☀", value: "\(entry.brightness)%", color: .systemYellow)
-        let blue = metricView(systemSymbolName: "drop.fill", fallback: "◐", value: "\(entry.blueReduction)%", color: .systemBlue)
+        let brightness = metricView(
+            systemSymbolName: "sun.max.fill",
+            fallback: "☀",
+            value: "\(entry.brightness)%",
+            iconColor: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1)
+        )
+        let warmth = metricView(
+            systemSymbolName: "thermometer.medium",
+            fallback: "🌡",
+            value: "\(entry.blueReduction)%",
+            iconColor: PopoverPalette.warningColor(for: NSApp.effectiveAppearance)
+        )
 
-        let row = NSStackView(views: [time, brightness, blue])
+        let row = NSStackView(views: [time, brightness, warmth, spacer()])
         row.orientation = .horizontal
         row.alignment = .centerY
-        row.spacing = 12
-        return row
+        row.spacing = 10
+        row.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let container = PopoverContainerView(style: .subtle, content: row)
+        return container
     }
 
-    private static func metricView(systemSymbolName: String, fallback: String, value: String, color: NSColor) -> NSStackView {
-        let icon: NSView
-        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
-            let imageView = NSImageView(image: image)
-            imageView.contentTintColor = color
-            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
-            imageView.widthAnchor.constraint(equalToConstant: 16).isActive = true
-            icon = imageView
-        } else {
-            let label = NSTextField(labelWithString: fallback)
-            label.font = .systemFont(ofSize: 13, weight: .semibold)
-            label.textColor = color
-            label.alignment = .center
-            label.widthAnchor.constraint(equalToConstant: 16).isActive = true
-            icon = label
-        }
-
+    private static func metricView(
+        systemSymbolName: String,
+        fallback: String,
+        value: String,
+        iconColor: NSColor
+    ) -> NSStackView {
+        let icon = metricIcon(systemSymbolName: systemSymbolName, fallback: fallback, iconColor: iconColor)
         let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        valueLabel.font = .systemFont(ofSize: 13, weight: .bold)
         valueLabel.textColor = .labelColor
+        valueLabel.setContentHuggingPriority(.required, for: .horizontal)
+        valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         let stack = NSStackView(views: [icon, valueLabel])
         stack.orientation = .horizontal
         stack.alignment = .centerY
-        stack.spacing = 4
+        stack.spacing = 5
+        stack.setContentHuggingPriority(.required, for: .horizontal)
+        stack.setContentCompressionResistancePriority(.required, for: .horizontal)
         return stack
+    }
+
+    private static func metricIcon(
+        systemSymbolName: String,
+        fallback: String,
+        iconColor: NSColor
+    ) -> NSView {
+        let iconView: NSView
+        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
+            let imageView = NSImageView(image: image)
+            imageView.contentTintColor = iconColor
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            iconView = imageView
+        } else {
+            let label = NSTextField(labelWithString: fallback)
+            label.font = .systemFont(ofSize: 11, weight: .semibold)
+            label.textColor = iconColor
+            label.alignment = .center
+            label.translatesAutoresizingMaskIntoConstraints = false
+            iconView = label
+        }
+
+        return iconView
+    }
+
+    private static func pillLabel(_ title: String) -> NSView {
+        let label = BadgePillView(title: title, tone: .neutral)
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
+    }
+
+    private static func spacer() -> NSView {
+        let view = NSView()
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return view
     }
 
     private static func timeLabel(for minuteOfDay: Int) -> String {
@@ -381,15 +584,49 @@ struct ShortcutSummaryRow: Equatable {
     var keyLabel: String
 }
 
+private struct ShortcutSummaryGroup {
+    var title: String
+    var upKeyLabel: String
+    var downKeyLabel: String
+}
+
+private enum ShortcutSummaryFormatter {
+    static func groups(from rows: [ShortcutSummaryRow]) -> [ShortcutSummaryGroup] {
+        let lookup = Dictionary(uniqueKeysWithValues: rows.map { ($0.action, $0.keyLabel) })
+        return [
+            ShortcutSummaryGroup(
+                title: "Brightness",
+                upKeyLabel: lookup[.brightnessUp] ?? "Off",
+                downKeyLabel: lookup[.brightnessDown] ?? "Off"
+            ),
+            ShortcutSummaryGroup(
+                title: "Warmth",
+                upKeyLabel: lookup[.blueReductionUp] ?? "Off",
+                downKeyLabel: lookup[.blueReductionDown] ?? "Off"
+            )
+        ]
+    }
+
+    static func plainSummary(from rows: [ShortcutSummaryRow]) -> String {
+        groups(from: rows)
+            .map { "\($0.title)  Up  \($0.upKeyLabel)  Down  \($0.downKeyLabel)" }
+            .joined(separator: "\n")
+    }
+}
+
 private final class ShortcutSummaryRowsView: NSView {
     private let stack = NSStackView()
     private(set) var plainSummary = ""
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.borderWidth = 1
+        layer?.masksToBounds = true
         stack.orientation = .vertical
         stack.alignment = .width
-        stack.spacing = 7
+        stack.spacing = 0
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -398,10 +635,16 @@ private final class ShortcutSummaryRowsView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
+        updateColors()
     }
 
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
     }
 
     func update(rows: [ShortcutSummaryRow]) {
@@ -410,37 +653,231 @@ private final class ShortcutSummaryRowsView: NSView {
             view.removeFromSuperview()
         }
 
-        plainSummary = rows.map { "\($0.title)  \($0.keyLabel)" }.joined(separator: "\n")
-        rows.map(Self.rowView(for:)).forEach { row in
-            stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        let groups = ShortcutSummaryFormatter.groups(from: rows)
+        plainSummary = ShortcutSummaryFormatter.plainSummary(from: rows)
+        for (index, group) in groups.enumerated() {
+            if index > 0 {
+                let separator = ShortcutSeparatorView()
+                stack.addArrangedSubview(separator)
+                separator.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            }
+            let rowView = ShortcutPairRowView(group: group)
+            stack.addArrangedSubview(rowView)
+            rowView.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
     }
 
-    private static func rowView(for row: ShortcutSummaryRow) -> NSView {
-        let title = NSTextField(labelWithString: row.title)
-        title.font = .systemFont(ofSize: 12, weight: .medium)
-        title.textColor = .labelColor
-        title.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        title.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.subtleBackground(for: effectiveAppearance).cgColor
+        layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+    }
+}
 
-        let keyLabel = NSTextField(labelWithString: row.keyLabel)
-        keyLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
-        keyLabel.textColor = .secondaryLabelColor
-        keyLabel.alignment = .right
-        keyLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 72).isActive = true
-        keyLabel.setContentHuggingPriority(.required, for: .horizontal)
-        keyLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+private final class ShortcutSeparatorView: NSView {
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: 1)
+    }
 
-        let spacer = NSView()
-        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        updateColors()
+    }
 
-        let stack = NSStackView(views: [title, spacer, keyLabel])
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+    }
+}
+
+private final class ShortcutPairRowView: NSView {
+    private enum Metrics {
+        static let titleWidth: CGFloat = 84
+        static let directionWidth: CGFloat = 30
+        static let rowHeight: CGFloat = 34
+        static let horizontalPadding: CGFloat = 10
+    }
+
+    init(group: ShortcutSummaryGroup) {
+        super.init(frame: .zero)
+        wantsLayer = true
+        updateColors()
+
+        let title = Self.titleLabel(group.title)
+        let upLabel = Self.directionLabel("Up")
+        let upKey = ShortcutKeyChipView(title: group.upKeyLabel)
+        let downLabel = Self.directionLabel("Down")
+        let downKey = ShortcutKeyChipView(title: group.downKeyLabel)
+        let actionGrid = NSStackView(views: [upLabel, upKey, downLabel, downKey])
+        actionGrid.orientation = .horizontal
+        actionGrid.alignment = .centerY
+        actionGrid.spacing = 6
+        actionGrid.translatesAutoresizingMaskIntoConstraints = false
+
+        title.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(title)
+        addSubview(actionGrid)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: Metrics.rowHeight),
+            title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.horizontalPadding),
+            title.centerYAnchor.constraint(equalTo: centerYAnchor),
+            title.widthAnchor.constraint(equalToConstant: Metrics.titleWidth),
+            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: 10),
+            actionGrid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Metrics.horizontalPadding),
+            actionGrid.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.subtleBackground(for: effectiveAppearance).cgColor
+    }
+
+    private static func titleLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = .labelColor
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
+    }
+
+    private static func directionLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.textColor = .secondaryLabelColor
+        label.alignment = .right
+        label.widthAnchor.constraint(equalToConstant: Metrics.directionWidth).isActive = true
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
+    }
+
+}
+
+private final class ShortcutKeyChipView: NSView {
+    private enum Metrics {
+        static let horizontalPadding: CGFloat = 8
+        static let topPadding: CGFloat = 2
+        static let bottomPadding: CGFloat = 3
+    }
+
+    private let stack = NSStackView()
+    private var tokenLabels: [NSTextField] = []
+    private var plusLabels: [NSTextField] = []
+    private let isOff: Bool
+
+    init(title: String) {
+        isOff = title == "Off"
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = 6
+        layer?.borderWidth = 1
+
         stack.orientation = .horizontal
-        stack.alignment = .firstBaseline
-        stack.spacing = 12
-        return stack
+        stack.alignment = .centerY
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        buildTokens(from: title)
+
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 20),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.horizontalPadding),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Metrics.horizontalPadding),
+            stack.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+
+        updateColors()
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let stackSize = stack.fittingSize
+        return NSSize(
+            width: stackSize.width + (Metrics.horizontalPadding * 2),
+            height: 20
+        )
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.buttonBackground(for: effectiveAppearance).cgColor
+        layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+        tokenLabels.forEach { label in
+            label.textColor = isOff ? .secondaryLabelColor : .labelColor
+        }
+        plusLabels.forEach { label in
+            label.textColor = .tertiaryLabelColor
+        }
+    }
+
+    private func buildTokens(from title: String) {
+        let tokens = isOff ? [title] : title.map(String.init)
+        for (index, token) in tokens.enumerated() {
+            if index > 0 {
+                let plus = Self.label(
+                    "+",
+                    font: .monospacedSystemFont(ofSize: 9, weight: .semibold)
+                )
+                plusLabels.append(plus)
+                stack.addArrangedSubview(plus)
+                stack.setCustomSpacing(4, after: plus)
+            }
+
+            let tokenLabel = Self.label(
+                token,
+                font: isOff
+                    ? .monospacedSystemFont(ofSize: 12, weight: .bold)
+                    : .monospacedSystemFont(ofSize: 13, weight: .heavy)
+            )
+            tokenLabels.append(tokenLabel)
+            stack.addArrangedSubview(tokenLabel)
+            if !isOff {
+                stack.setCustomSpacing(4, after: tokenLabel)
+            }
+        }
+    }
+
+    private static func label(_ title: String, font: NSFont) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = font
+        label.alignment = .center
+        label.lineBreakMode = .byClipping
+        label.maximumNumberOfLines = 1
+        label.drawsBackground = false
+        label.isBezeled = false
+        label.isEditable = false
+        label.isSelectable = false
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
     }
 }
 
@@ -513,6 +950,7 @@ private final class PopoverCommandButton: NSButton {
 
 struct MenuBarViewModel: Equatable {
     var modeTitle: String
+    var quickControlsBadgeTitle: String
     var displaySummary: String
     var brightnessLabel: String
     var blueReductionLabel: String
@@ -533,7 +971,18 @@ struct MenuBarViewModel: Equatable {
         latestDiagnosticEvent: DiagnosticsEvent? = nil
     ) {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
-        displaySummary = state.display.map { "\($0.localizedName) · software dimming" } ?? "No display selected"
+        quickControlsBadgeTitle = state.automationPausedUntilNextBoundary ? "MANUAL" : "AUTO"
+        displaySummary = state.display.map { display in
+            var parts = [Self.displaySummaryDisplayName(for: display), "software dimming"]
+            if state.automationPausedUntilNextBoundary {
+                if let resumeMinute = state.automationResumeMinuteOfDay {
+                    parts.append("automation paused until \(Self.timeLabel(for: resumeMinute))")
+                } else {
+                    parts.append("automation paused until next schedule boundary")
+                }
+            }
+            return parts.joined(separator: " · ")
+        } ?? "No display selected"
         brightnessLabel = "\(state.targetBrightness)%"
         blueReductionLabel = "\(state.targetBlueReduction)%"
         blueReductionWarning = BlueReductionWarning.message(for: state.targetBlueReduction)
@@ -549,7 +998,7 @@ struct MenuBarViewModel: Equatable {
         scheduleStatusDetail = Self.scheduleStatusDetail(state: state, schedule: schedule)
         scheduleSummary = Self.scheduleSummary(for: schedule)
         shortcutRows = Self.shortcutRows(for: shortcuts)
-        shortcutSummary = shortcutRows.map { "\($0.title)  \($0.keyLabel)" }.joined(separator: "\n")
+        shortcutSummary = ShortcutSummaryFormatter.plainSummary(from: shortcutRows)
         diagnosticsSummary = Self.diagnosticsSummary(
             state: state,
             latestDiagnosticEvent: latestDiagnosticEvent
@@ -563,7 +1012,7 @@ struct MenuBarViewModel: Equatable {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · ◐ \(entry.blueReduction)%"
+            "\(timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · 🌡 \(entry.blueReduction)%"
         }
         guard !labels.isEmpty else {
             return "Not configured"
@@ -605,9 +1054,9 @@ struct MenuBarViewModel: Equatable {
         case .brightnessDown:
             return "Brightness down"
         case .blueReductionUp:
-            return "Blue up"
+            return "Warmth up"
         case .blueReductionDown:
-            return "Blue down"
+            return "Warmth down"
         case .quickDisableOverlay:
             return "Quick disable"
         case .restorePreviousDimming:
@@ -622,24 +1071,29 @@ struct MenuBarViewModel: Equatable {
             return "Off"
         }
 
-        return modifierLabel(for: binding.modifiers) + keyLabel(for: binding.keyCode)
+        return shortcutKeyLabel(modifiers: binding.modifiers, keyCode: binding.keyCode)
     }
 
-    private static func modifierLabel(for modifiers: ShortcutModifiers) -> String {
-        var label = ""
+    private static func shortcutKeyLabel(modifiers: ShortcutModifiers, keyCode: UInt16) -> String {
+        var parts: [String] = []
         if modifiers.contains(.control) {
-            label += "⌃"
+            parts.append("⌃")
         }
         if modifiers.contains(.option) {
-            label += "⌥"
+            parts.append("⌥")
         }
         if modifiers.contains(.shift) {
-            label += "⇧"
+            parts.append("⇧")
         }
         if modifiers.contains(.command) {
-            label += "⌘"
+            parts.append("⌘")
         }
-        return label
+
+        let key = keyLabel(for: keyCode)
+        guard !parts.isEmpty else {
+            return key
+        }
+        return parts.joined() + key
     }
 
     private static func keyLabel(for keyCode: UInt16) -> String {
@@ -671,12 +1125,21 @@ struct MenuBarViewModel: Equatable {
 
         return ModeStatusLabel.title(for: state.activeMode)
     }
+
+    private static func displaySummaryDisplayName(for display: DisplayIdentity) -> String {
+        display.localizedName.replacingOccurrences(
+            of: "^INNOS\\s+",
+            with: "",
+            options: .regularExpression
+        )
+    }
 }
 
 final class MenuBarPopoverView: NSView {
-    static let preferredContentSize = NSSize(width: 480, height: 700)
+    static let preferredContentSize = NSSize(width: 428, height: 749)
 
-    private let modeBadge: StatusBadgeView
+    private let modeBadge: BadgePillView
+    private let quickControlsBadge: BadgePillView
     private let actions: MenuBarActions
     private let displaySummaryLabel = NSTextField(labelWithString: "")
     private let brightnessValueLabel = NSTextField(labelWithString: "")
@@ -700,7 +1163,8 @@ final class MenuBarPopoverView: NSView {
         latestDiagnosticEvent: DiagnosticsEvent? = nil,
         actions: MenuBarActions = .noop
     ) {
-        modeBadge = StatusBadgeView(mode: state.activeMode)
+        modeBadge = BadgePillView(title: ModeStatusLabel.title(for: state.activeMode), tone: .success)
+        quickControlsBadge = BadgePillView(title: "AUTO", tone: .neutral)
         self.actions = actions
         super.init(frame: NSRect(origin: .zero, size: Self.preferredContentSize))
         buildLayout()
@@ -729,6 +1193,8 @@ final class MenuBarPopoverView: NSView {
             latestDiagnosticEvent: latestDiagnosticEvent
         )
         modeBadge.stringValue = viewModel.modeTitle
+        modeBadge.setAccessibilityLabel(viewModel.modeTitle)
+        quickControlsBadge.stringValue = viewModel.quickControlsBadgeTitle
         displaySummaryLabel.stringValue = viewModel.displaySummary
         brightnessValueLabel.stringValue = viewModel.brightnessLabel
         blueReductionValueLabel.stringValue = viewModel.blueReductionLabel
@@ -820,10 +1286,13 @@ final class MenuBarPopoverView: NSView {
         let header = makeHeader()
         let controls = makeSection(
             title: "Quick controls",
-            trailing: chip("Automation active"),
+            trailing: quickControlsBadge,
             views: [
                 makeControlGroup(
                     title: "Brightness",
+                    iconSystemName: "sun.max.fill",
+                    iconFallback: "☀",
+                    iconColor: PopoverPalette.warningColor(for: effectiveAppearance),
                     valueLabel: brightnessValueLabel,
                     trackView: brightnessTrackView,
                     decrement: compactButton("-", accessibilityLabel: "Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed)),
@@ -831,11 +1300,14 @@ final class MenuBarPopoverView: NSView {
                 ),
                 makeSeparator(),
                 makeControlGroup(
-                    title: "Blue reduction",
+                    title: "Warmth",
+                    iconSystemName: "thermometer.medium",
+                    iconFallback: "🌡",
+                    iconColor: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1),
                     valueLabel: blueReductionValueLabel,
                     trackView: blueReductionTrackView,
-                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
-                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
+                    decrement: compactButton("-", accessibilityLabel: "Warmth down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Warmth up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
                 ),
                 blueReductionWarningLabel,
                 makeActionRow([
@@ -851,7 +1323,7 @@ final class MenuBarPopoverView: NSView {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("Warmth percentage")
 
         let automationActionButton = button(
             "Pause automation",
@@ -877,12 +1349,12 @@ final class MenuBarPopoverView: NSView {
         )
         let shortcuts = makeSection(
             title: "Shortcuts",
-            trailing: chip("Enabled"),
+            trailing: pillBadge("ENABLED", tone: .neutral, compact: true),
             views: [
-                PopoverContainerView(style: .subtle, content: shortcutSummaryRowsView),
+                shortcutSummaryRowsView,
                 makeActionRow([
-                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
-                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
+                    button("Edit Shortcuts", command: .openShortcuts, action: #selector(openShortcutsPressed)),
+                    button("Open Control Window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary)
                 ])
             ]
         )
@@ -926,8 +1398,6 @@ final class MenuBarPopoverView: NSView {
         title.font = .systemFont(ofSize: 17, weight: .bold)
         title.textColor = .labelColor
 
-        configureBadge(modeBadge)
-
         let topRow = NSStackView(views: [title, modeBadge])
         topRow.orientation = .horizontal
         topRow.alignment = .centerY
@@ -935,11 +1405,12 @@ final class MenuBarPopoverView: NSView {
         title.setContentHuggingPriority(.defaultLow, for: .horizontal)
         modeBadge.setContentHuggingPriority(.required, for: .horizontal)
 
-        let stack = NSStackView(views: [topRow, displaySummaryLabel])
+        let separator = makeSeparator()
+        let stack = NSStackView(views: [topRow, displaySummaryLabel, separator])
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 8
-        [topRow, displaySummaryLabel].forEach { view in
+        [topRow, displaySummaryLabel, separator].forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
@@ -970,26 +1441,34 @@ final class MenuBarPopoverView: NSView {
 
     private func makeControlGroup(
         title: String,
+        iconSystemName: String,
+        iconFallback: String,
+        iconColor: NSColor,
         valueLabel: NSTextField,
         trackView: ProgressTrackView,
         decrement: NSButton,
         increment: NSButton
     ) -> NSStackView {
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        titleLabel.textColor = .labelColor
-        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+        let titleView = ControlTitleView(
+            title: title,
+            systemSymbolName: iconSystemName,
+            fallback: iconFallback,
+            iconColor: iconColor,
+            font: .systemFont(ofSize: 13, weight: .semibold),
+            textColor: .labelColor
+        )
+        titleView.setContentHuggingPriority(.required, for: .horizontal)
 
         valueLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .semibold)
         valueLabel.alignment = .right
         valueLabel.textColor = .labelColor
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
 
-        let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
+        let stack = NSStackView(views: [titleView, valueLabel, trackView, decrement, increment])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 8
-        titleLabel.widthAnchor.constraint(equalToConstant: 112).isActive = true
+        titleView.widthAnchor.constraint(equalToConstant: 96).isActive = true
         valueLabel.widthAnchor.constraint(equalToConstant: 54).isActive = true
         trackView.heightAnchor.constraint(equalToConstant: 18).isActive = true
         trackView.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -1043,19 +1522,9 @@ final class MenuBarPopoverView: NSView {
         return label
     }
 
-    private func chip(_ title: String) -> NSTextField {
-        let label = NSTextField(labelWithString: title)
-        return chipView(label)
-    }
-
-    private func chipView(_ label: NSTextField) -> NSTextField {
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
-        label.textColor = .secondaryLabelColor
-        label.maximumNumberOfLines = 1
-        label.lineBreakMode = .byTruncatingTail
-        label.setContentHuggingPriority(.required, for: .horizontal)
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        return label
+    private func pillBadge(_ title: String, tone: BadgeTone, compact: Bool = false) -> BadgePillView {
+        let badge = BadgePillView(title: title, tone: tone, compact: compact)
+        return badge
     }
 
     private func spacer() -> NSView {
@@ -1067,12 +1536,6 @@ final class MenuBarPopoverView: NSView {
 
     private static func percent(from fraction: CGFloat) -> Int {
         Clamped.percent(Int((fraction * 100).rounded()))
-    }
-
-    private func configureBadge(_ badge: StatusBadgeView) {
-        badge.font = .systemFont(ofSize: 12, weight: .semibold)
-        badge.textColor = PopoverPalette.statusColor(for: effectiveAppearance)
-        badge.alignment = .right
     }
 
     private func button(
@@ -1136,6 +1599,10 @@ final class MenuBarPopoverView: NSView {
         actions.perform(.openAppWindow)
     }
 
+    @objc private func openShortcutsPressed() {
+        actions.perform(.openShortcuts)
+    }
+
     @objc private func openSettingsPressed() {
         actions.perform(.openSettings)
     }
@@ -1197,7 +1664,7 @@ struct AppDashboardViewModel: Equatable {
         failureValue = "\(errors) errors, \(warnings) warnings"
         displayLine = "Display: \(displayValue)"
         modeLine = "Mode: \(modeValue)"
-        brightnessLine = "Brightness: \(brightnessValue) / Blue reduction: \(blueReductionValue)"
+        brightnessLine = "Brightness: \(brightnessValue) / Warmth: \(blueReductionValue)"
         automationLine = "Automation: \(automationValue)"
         scheduleLine = "Schedule: \(scheduleValue)"
         shortcutLine = "Shortcuts: \(shortcutValue)"
@@ -1225,7 +1692,13 @@ struct AppDashboardViewModel: Equatable {
 
 @MainActor
 enum AppDashboardFocusTarget {
+    case home
+    case current
+    case display
     case schedule
+    case shortcuts
+    case settings
+    case diagnostics
 }
 
 @MainActor
@@ -1249,6 +1722,9 @@ final class AppDashboardWindowController: NSWindowController {
     private let diagnosticsTextView = NSTextView()
     private let diagnosticsScrollView = NSScrollView()
     private weak var scheduleSectionView: NSView?
+    private weak var currentSectionView: NSView?
+    private weak var configurationSectionView: NSView?
+    private weak var diagnosticsSectionView: NSView?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var automationActionCommand: MenuBarCommand = .pauseAutomation
     private weak var automationActionButton: NSButton?
@@ -1343,12 +1819,25 @@ final class AppDashboardWindowController: NSWindowController {
     }
 
     func focus(_ target: AppDashboardFocusTarget?) {
-        guard target == .schedule else {
+        guard let target else {
             return
         }
         window?.contentView?.layoutSubtreeIfNeeded()
-        if let scheduleSectionView {
-            scheduleSectionView.scrollToVisible(scheduleSectionView.bounds)
+        let targetView: NSView?
+        switch target {
+        case .home:
+            targetView = window?.contentView
+        case .current, .display:
+            targetView = currentSectionView
+        case .schedule:
+            targetView = scheduleSectionView
+        case .shortcuts, .settings:
+            targetView = configurationSectionView
+        case .diagnostics:
+            targetView = diagnosticsSectionView
+        }
+        if let targetView {
+            targetView.scrollToVisible(targetView.bounds)
         }
         window?.makeKeyAndOrderFront(nil)
     }
@@ -1403,7 +1892,7 @@ final class AppDashboardWindowController: NSWindowController {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Dashboard brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Dashboard blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("Dashboard warmth percentage")
 
         let header = makeHeader(title: title)
         let currentState = makeSection(
@@ -1413,6 +1902,9 @@ final class AppDashboardWindowController: NSWindowController {
                 makeSummaryRow(title: "Mode", value: modeLabel),
                 makeControlGroup(
                     title: "Brightness",
+                    iconSystemName: "sun.max.fill",
+                    iconFallback: "☀",
+                    iconColor: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1),
                     valueLabel: brightnessLabel,
                     trackView: brightnessTrackView,
                     decrement: compactButton(
@@ -1429,18 +1921,21 @@ final class AppDashboardWindowController: NSWindowController {
                     )
                 ),
                 makeControlGroup(
-                    title: "Blue reduction",
+                    title: "Warmth",
+                    iconSystemName: "thermometer.medium",
+                    iconFallback: "🌡",
+                    iconColor: PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance),
                     valueLabel: blueReductionLabel,
                     trackView: blueReductionTrackView,
                     decrement: compactButton(
                         "-",
-                        accessibilityLabel: "Dashboard blue reduction down",
+                        accessibilityLabel: "Dashboard warmth down",
                         command: .blueReductionDown,
                         action: #selector(blueReductionDownPressed)
                     ),
                     increment: compactButton(
                         "+",
-                        accessibilityLabel: "Dashboard blue reduction up",
+                        accessibilityLabel: "Dashboard warmth up",
                         command: .blueReductionUp,
                         action: #selector(blueReductionUpPressed)
                     )
@@ -1449,6 +1944,7 @@ final class AppDashboardWindowController: NSWindowController {
                 makeSummaryRow(title: "Automation", value: automationLabel)
             ]
         )
+        currentSectionView = currentState
         let scheduleSaveButton = PopoverCommandButton(
             title: "Save schedule",
             style: .primary,
@@ -1484,6 +1980,7 @@ final class AppDashboardWindowController: NSWindowController {
                 button("Settings", command: .openSettings, action: #selector(openSettingsPressed))
             ]
         )
+        configurationSectionView = configuration
         let diagnostics = makeSection(
             title: "Diagnostics",
             views: [
@@ -1491,6 +1988,7 @@ final class AppDashboardWindowController: NSWindowController {
                 diagnosticsScrollView
             ]
         )
+        diagnosticsSectionView = diagnostics
 
         let arrangedSubviews = [header, currentState, scheduleEditor, configuration, diagnostics]
         let stack = NSStackView(views: arrangedSubviews)
@@ -1568,23 +2066,31 @@ final class AppDashboardWindowController: NSWindowController {
 
     private func makeControlGroup(
         title: String,
+        iconSystemName: String,
+        iconFallback: String,
+        iconColor: NSColor,
         valueLabel: NSTextField,
         trackView: ProgressTrackView,
         decrement: NSButton,
         increment: NSButton
     ) -> NSStackView {
-        let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
-        titleLabel.textColor = .secondaryLabelColor
-        titleLabel.widthAnchor.constraint(equalToConstant: 116).isActive = true
-        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+        let titleView = ControlTitleView(
+            title: title,
+            systemSymbolName: iconSystemName,
+            fallback: iconFallback,
+            iconColor: iconColor,
+            font: .systemFont(ofSize: 12, weight: .semibold),
+            textColor: .secondaryLabelColor
+        )
+        titleView.widthAnchor.constraint(equalToConstant: 116).isActive = true
+        titleView.setContentHuggingPriority(.required, for: .horizontal)
 
         valueLabel.font = .monospacedDigitSystemFont(ofSize: 16, weight: .semibold)
         valueLabel.alignment = .right
         valueLabel.widthAnchor.constraint(equalToConstant: 52).isActive = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
 
-        let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
+        let stack = NSStackView(views: [titleView, valueLabel, trackView, decrement, increment])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 10

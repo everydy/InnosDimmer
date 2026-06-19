@@ -252,7 +252,7 @@ private func makeDimmingControlGroup(
 
 Review artifact:
 
-`docs/design/window-redesign/mockup.html`
+`docs/design/window-redesign/app-window-componentized-mockup.html`
 
 This mockup is intentionally static except for page switching and theme preview. It is not wired to real app data.
 

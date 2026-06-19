@@ -195,7 +195,7 @@
       gap: 8px;
       align-items: start;
       padding-bottom: 12px;
-      border-bottom: 1px solid var(--line);
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 78%, var(--text) 22%);
     }
 
     .title {
@@ -351,6 +351,39 @@
       background: var(--blue);
     }
 
+    .metric-icon.warmth,
+    .control-icon.warmth {
+      position: relative;
+      color: var(--warn);
+      background: transparent;
+    }
+
+    .metric-icon.warmth::before,
+    .control-icon.warmth::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 2px;
+      width: 4px;
+      height: 10px;
+      border: 2px solid currentColor;
+      border-bottom: 0;
+      border-radius: 5px 5px 0 0;
+      box-sizing: border-box;
+    }
+
+    .metric-icon.warmth::after,
+    .control-icon.warmth::after {
+      content: "";
+      position: absolute;
+      left: 5px;
+      bottom: 1px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
     .shortcut-list {
       display: grid;
       gap: 6px;
@@ -382,6 +415,37 @@
       justify-self: end;
       min-width: 72px;
       text-align: right;
+    }
+
+    .shortcut-table .shortcut-group {
+      grid-template-columns: 94px 1fr;
+      min-height: 34px;
+    }
+
+    .shortcut-name {
+      color: var(--text);
+      font-weight: 780;
+    }
+
+    .shortcut-actions {
+      display: grid;
+      grid-template-columns: minmax(44px, auto) minmax(58px, auto) minmax(58px, auto) minmax(58px, auto);
+      gap: 8px;
+      align-items: center;
+      justify-content: end;
+      color: var(--muted);
+    }
+
+    .shortcut-action-label {
+      color: var(--muted);
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .shortcut-table .shortcut-actions .keycap {
+      min-width: 0;
+      justify-self: start;
+      text-align: left;
     }
 
     .shortcut-item {
@@ -416,6 +480,34 @@
       gap: 8px;
       align-items: center;
       min-height: 40px;
+    }
+
+    .control-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      color: var(--text);
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .control-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .control-icon.sun {
+      color: #f1c45f;
+    }
+
+    .control-icon.warmth {
+      color: var(--warn);
     }
 
     .control + .control {
@@ -639,26 +731,8 @@
       gap: 8px;
     }
 
-    .dashboard {
-      grid-column: 1 / -1;
-    }
-
     .settings-window {
       grid-column: 1 / -1;
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .dashboard-schedule {
-      grid-column: 1 / -1;
-    }
-
-    .dashboard-current {
-      min-height: 100%;
     }
 
     .settings-grid {
@@ -731,7 +805,6 @@
     @media (max-width: 980px) {
       .story,
       .screens,
-      .dashboard-grid,
       .settings-grid {
         grid-template-columns: 1fr;
       }
@@ -758,8 +831,8 @@
   <main class="board">
     <header class="topbar">
       <div>
-        <h1>Unified app-window editing model</h1>
-        <div class="subtitle">Popover stays compact, Edit schedule opens the app window, and the app window becomes the single place where dimming, automation, schedule, shortcuts, and diagnostics are readable together.</div>
+        <h1>Popover schedule route model</h1>
+        <div class="subtitle">Popover stays compact and shows only the controls needed before routing into the fuller app surface.</div>
       </div>
       <div class="theme-toggle" aria-label="Theme preview">
         <button type="button" data-theme-button="dark">Dark</button>
@@ -772,9 +845,9 @@
         <div class="label">Decision model</div>
         <div class="decision">
           <div class="decision-row"><span class="num">1</span><span>Popover keeps quick controls and compact summaries only.</span></div>
-          <div class="decision-row"><span class="num">2</span><span><strong>Edit schedule</strong> opens the app window instead of a separate schedule window.</span></div>
-          <div class="decision-row"><span class="num">3</span><span>The app window becomes the full editing hub: current state, schedule, shortcuts, diagnostics, and save status.</span></div>
-          <div class="decision-row"><span class="num">4</span><span>Settings stays for general preferences and routes schedule work back to the app window.</span></div>
+          <div class="decision-row"><span class="num">2</span><span><strong>Edit schedule</strong> routes to the fuller app surface instead of spawning another schedule-only window.</span></div>
+          <div class="decision-row"><span class="num">3</span><span>This mockup keeps the schedule route visible without duplicating the fuller surface design.</span></div>
+          <div class="decision-row"><span class="num">4</span><span>Settings stays for general preferences and links back to the primary surface.</span></div>
         </div>
       </aside>
 
@@ -789,10 +862,10 @@
           <section class="section">
             <div class="section-title"><span>Quick controls</span><span class="chip">Manual</span></div>
             <div class="control">
-              <div>Brightness</div><div class="value">45%</div><div class="track"><div class="fill" style="--value: 45%"></div></div><button>−</button><button>+</button>
+              <div class="control-label"><span class="control-icon sun">☀</span><span>Brightness</span></div><div class="value">45%</div><div class="track"><div class="fill" style="--value: 45%"></div></div><button>−</button><button>+</button>
             </div>
             <div class="control">
-              <div>Blue reduction</div><div class="value">32%</div><div class="track"><div class="fill" style="--value: 32%"></div></div><button>−</button><button>+</button>
+              <div class="control-label"><span class="control-icon warmth" aria-hidden="true"></span><span>Warmth</span></div><div class="value">32%</div><div class="track"><div class="fill" style="--value: 32%"></div></div><button>−</button><button>+</button>
             </div>
             <div class="button-row">
               <button class="warning" type="button">Quick disable</button>
@@ -808,29 +881,32 @@
                 <span>Next boundary 19:00</span>
               </div>
               <div class="schedule-list">
-                <div class="schedule-item"><time>09:00</time><span class="metric"><span class="metric-icon sun">☀</span>80%</span><span class="metric"><span class="metric-icon blue">◐</span>12%</span></div>
-                <div class="schedule-item"><time>19:00</time><span class="metric"><span class="metric-icon sun">☀</span>45%</span><span class="metric"><span class="metric-icon blue">◐</span>32%</span></div>
-                <div class="schedule-item"><time>23:00</time><span class="metric"><span class="metric-icon sun">☀</span>25%</span><span class="metric"><span class="metric-icon blue">◐</span>58%</span></div>
+                <div class="schedule-item"><time>09:00</time><span class="metric"><span class="metric-icon sun">☀</span>80%</span><span class="metric"><span class="metric-icon warmth" aria-hidden="true"></span>12%</span></div>
+                <div class="schedule-item"><time>19:00</time><span class="metric"><span class="metric-icon sun">☀</span>45%</span><span class="metric"><span class="metric-icon warmth" aria-hidden="true"></span>32%</span></div>
+                <div class="schedule-item"><time>23:00</time><span class="metric"><span class="metric-icon sun">☀</span>25%</span><span class="metric"><span class="metric-icon warmth" aria-hidden="true"></span>58%</span></div>
               </div>
             </div>
             <div class="button-row">
               <button class="primary" type="button">Edit schedule</button>
               <button type="button">Pause automation</button>
             </div>
-            <div class="status-field">Edit schedule opens the app window schedule area.</div>
           </section>
 
           <section class="section">
             <div class="section-title"><span>Shortcuts</span><span class="chip">Enabled</span></div>
             <div class="shortcut-list shortcut-table">
-              <div class="shortcut-item"><span>Brightness up</span><span class="keycap">⌥⇧↑</span></div>
-              <div class="shortcut-item"><span>Brightness down</span><span class="keycap">⌥⇧↓</span></div>
-              <div class="shortcut-item"><span>Blue up</span><span class="keycap">⌥⇧→</span></div>
-              <div class="shortcut-item"><span>Blue down</span><span class="keycap">⌥⇧←</span></div>
+              <div class="shortcut-item shortcut-group">
+                <span class="shortcut-name">Brightness</span>
+                <span class="shortcut-actions"><span class="shortcut-action-label">Up</span><span class="keycap">⌥⇧↑</span><span class="shortcut-action-label">Down</span><span class="keycap">⌥⇧↓</span></span>
+              </div>
+              <div class="shortcut-item shortcut-group">
+                <span class="shortcut-name">Warmth</span>
+                <span class="shortcut-actions"><span class="shortcut-action-label">Up</span><span class="keycap">⌥⇧→</span><span class="shortcut-action-label">Down</span><span class="keycap">⌥⇧←</span></span>
+              </div>
             </div>
             <div class="button-row">
-              <button type="button">Settings</button>
-              <button class="primary" type="button">Open app window</button>
+              <button type="button">Edit Shortcuts</button>
+              <button class="primary" type="button">Open Control Window</button>
             </div>
           </section>
         </section>
@@ -868,92 +944,6 @@
       </div>
     </section>
 
-    <section class="window dashboard" aria-label="Dashboard inline schedule editing mockup">
-      <div class="titlebar">
-        <div class="traffic" aria-hidden="true"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-        <div class="window-title">InnosDimmer</div>
-        <span class="badge">Dashboard</span>
-      </div>
-      <div class="window-body">
-        <div class="window-head">
-          <div>
-            <h2>App window editing hub</h2>
-            <div class="head-copy">Everything important is editable or visible here: current dimming, automation state, schedule rows, shortcut hints, diagnostics, and save results.</div>
-          </div>
-          <button class="primary" type="button">Save schedule changes</button>
-        </div>
-
-        <div class="dashboard-grid">
-          <section class="section dashboard-current">
-            <div class="section-title"><span>Current state controls</span><span class="chip">27QA100M</span></div>
-            <div class="control">
-              <div>Brightness</div><div class="value">45%</div><div class="track"><div class="fill" style="--value: 45%"></div></div><button>−</button><button>+</button>
-            </div>
-            <div class="control">
-              <div>Blue reduction</div><div class="value">32%</div><div class="track"><div class="fill" style="--value: 32%"></div></div><button>−</button><button>+</button>
-            </div>
-            <div class="status-field">Automation paused until 19:00</div>
-            <div class="button-row">
-              <button class="warning" type="button">Quick disable</button>
-              <button type="button">Restore previous</button>
-            </div>
-            <div class="button-row">
-              <button type="button">Pause automation</button>
-              <button type="button">Settings</button>
-            </div>
-          </section>
-
-          <section class="section">
-            <div class="section-title"><span>Shortcuts</span><span class="chip">Synced</span></div>
-            <div class="shortcut-list">
-              <div class="shortcut-item"><span>Brightness up</span><span class="keycap">⌥⇧↑</span></div>
-              <div class="shortcut-item"><span>Brightness down</span><span class="keycap">⌥⇧↓</span></div>
-              <div class="shortcut-item"><span>Blue up</span><span class="keycap">⌥⇧→</span></div>
-              <div class="shortcut-item"><span>Blue down</span><span class="keycap">⌥⇧←</span></div>
-            </div>
-            <button class="wide" type="button">Open settings</button>
-          </section>
-
-          <section class="section">
-            <div class="section-title"><span>Diagnostics</span><span class="chip">Latest</span></div>
-            <div class="mini-log">[17:54:03] INFO schedule: Saved 3 schedule entries<br>[17:54:03] INFO schedule: Next boundary scheduled for 19:00<br>[17:54:03] INFO softwareDimming: Applied brightness 45% blue reduction 32%</div>
-          </section>
-
-          <section class="section dashboard-schedule">
-            <div class="section-title"><span>Inline automation schedule</span><span class="chip">No extra window</span></div>
-            <div class="schedule-editor">
-              <div class="schedule-header"><div>Time</div><div>Brightness</div><div>Blue reduction</div><div></div></div>
-              <div class="schedule-row">
-                <div class="time-input">09:00</div>
-                <div class="percent-control"><span>80%</span><div class="track"><div class="fill" style="--value: 80%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <div class="percent-control"><span>12%</span><div class="track"><div class="fill" style="--value: 12%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" disabled>−</button>
-              </div>
-              <div class="schedule-row">
-                <div class="time-input">19:00</div>
-                <div class="percent-control"><span>45%</span><div class="track"><div class="fill" style="--value: 45%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <div class="percent-control"><span>32%</span><div class="track"><div class="fill" style="--value: 32%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" disabled>−</button>
-              </div>
-              <div class="schedule-row">
-                <div class="time-input">23:00</div>
-                <div class="percent-control"><span>25%</span><div class="track"><div class="fill" style="--value: 25%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <div class="percent-control"><span>58%</span><div class="track"><div class="fill" style="--value: 58%"></div></div><button class="small-button">−</button><button class="small-button">+</button></div>
-                <button class="small-button" disabled>−</button>
-              </div>
-            </div>
-            <div class="footer">
-              <span>Add/remove schedule rows: next plan. This plan keeps editable values and save flow focused.</span>
-              <div class="footer-actions">
-                <button type="button" disabled>Add row next</button>
-                <button class="warning" type="button">Reset default</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-    </section>
-
     <section class="window settings-window" aria-label="Settings window mockup">
       <div class="titlebar">
         <div class="traffic" aria-hidden="true"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
@@ -987,8 +977,8 @@
             <div class="shortcut-list">
               <div class="shortcut-item"><span>Brightness up</span><span class="keycap">⌥⇧↑</span></div>
               <div class="shortcut-item"><span>Brightness down</span><span class="keycap">⌥⇧↓</span></div>
-              <div class="shortcut-item"><span>Blue up</span><span class="keycap">⌥⇧→</span></div>
-              <div class="shortcut-item"><span>Blue down</span><span class="keycap">⌥⇧←</span></div>
+              <div class="shortcut-item"><span>Warmth up</span><span class="keycap">⌥⇧→</span></div>
+              <div class="shortcut-item"><span>Warmth down</span><span class="keycap">⌥⇧←</span></div>
               <div class="shortcut-item"><span>Quick disable</span><span class="keycap">⌥⇧0</span></div>
               <div class="shortcut-item"><span>Restore previous</span><span class="keycap">⌥⇧R</span></div>
             </div>
@@ -1000,7 +990,7 @@
 
           <section class="section">
             <div class="section-title"><span>Automation schedule</span><span class="chip">App window</span></div>
-            <div class="status-field">09:00 · ☀ 80% · ◐ 12%<br>19:00 · ☀ 45% · ◐ 32%<br>23:00 · ☀ 25% · ◐ 58%</div>
+            <div class="status-field">09:00 · ☀ 80% · 🌡 12%<br>19:00 · ☀ 45% · 🌡 32%<br>23:00 · ☀ 25% · 🌡 58%</div>
             <button class="primary wide" type="button">Open app window schedule</button>
           </section>
 

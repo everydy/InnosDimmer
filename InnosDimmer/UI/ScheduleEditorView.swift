@@ -17,7 +17,8 @@ enum ScheduleEditorError: LocalizedError, Equatable {
 @MainActor
 final class ScheduleEditorView: NSView {
     private enum Layout {
-        static let fieldWidth: CGFloat = 72
+        static let timeFieldWidth: CGFloat = 72
+        static let percentFieldWidth: CGFloat = 92
         static let rowSpacing: CGFloat = 8
         static let columnSpacing: CGFloat = 8
     }
@@ -62,7 +63,7 @@ final class ScheduleEditorView: NSView {
                 throw ScheduleEditorError.invalidPercent(row: index + 1, field: "brightness")
             }
             guard let blueReduction = Int(row.blueReduction.stringValue), (0...100).contains(blueReduction) else {
-                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "blue reduction")
+                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "warmth")
             }
 
             return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, blueReduction: blueReduction)
@@ -87,9 +88,19 @@ final class ScheduleEditorView: NSView {
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         let header = NSStackView(views: [
-            fixedLabel("Time"),
-            fixedLabel("Brightness"),
-            fixedLabel("Blue")
+            fixedLabel("Time", width: Layout.timeFieldWidth),
+            metricLabel(
+                "Brightness",
+                systemSymbolName: "sun.max.fill",
+                fallback: "☀",
+                color: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1)
+            ),
+            metricLabel(
+                "Warmth",
+                systemSymbolName: "thermometer.medium",
+                fallback: "🌡",
+                color: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1)
+            )
         ])
         header.orientation = .horizontal
         header.spacing = Layout.columnSpacing
@@ -97,9 +108,9 @@ final class ScheduleEditorView: NSView {
 
         for _ in 0..<rowCount {
             let controls = RowControls(
-                time: editableField(),
-                brightness: editableField(),
-                blueReduction: editableField()
+                time: editableField(width: Layout.timeFieldWidth),
+                brightness: editableField(width: Layout.percentFieldWidth),
+                blueReduction: editableField(width: Layout.percentFieldWidth)
             )
             rows.append(controls)
 
@@ -118,17 +129,54 @@ final class ScheduleEditorView: NSView {
         ])
     }
 
-    private func fixedLabel(_ title: String) -> NSTextField {
+    private func fixedLabel(_ title: String, width: CGFloat) -> NSTextField {
         let label = NSTextField(labelWithString: title)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.widthAnchor.constraint(equalToConstant: Layout.fieldWidth).isActive = true
+        label.widthAnchor.constraint(equalToConstant: width).isActive = true
         return label
     }
 
-    private func editableField() -> NSTextField {
+    private func metricLabel(
+        _ title: String,
+        systemSymbolName: String,
+        fallback: String,
+        color: NSColor
+    ) -> NSView {
+        let icon: NSView
+        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
+            let imageView = NSImageView(image: image)
+            imageView.contentTintColor = color
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            icon = imageView
+        } else {
+            let label = NSTextField(labelWithString: fallback)
+            label.font = .systemFont(ofSize: 11, weight: .semibold)
+            label.textColor = color
+            label.alignment = .center
+            label.translatesAutoresizingMaskIntoConstraints = false
+            icon = label
+        }
+        icon.widthAnchor.constraint(equalToConstant: 14).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: 14).isActive = true
+
+        let label = NSTextField(labelWithString: title)
+        label.lineBreakMode = .byTruncatingTail
+
+        let stack = NSStackView(views: [icon, label])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 5
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.widthAnchor.constraint(equalToConstant: Layout.percentFieldWidth).isActive = true
+        stack.setAccessibilityLabel(title)
+        return stack
+    }
+
+    private func editableField(width: CGFloat) -> NSTextField {
         let field = NSTextField(string: "")
         field.translatesAutoresizingMaskIntoConstraints = false
-        field.widthAnchor.constraint(equalToConstant: Layout.fieldWidth).isActive = true
+        field.widthAnchor.constraint(equalToConstant: width).isActive = true
         return field
     }
 

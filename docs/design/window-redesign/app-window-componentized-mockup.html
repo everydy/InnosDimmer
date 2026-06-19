@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer App Window Componentized Mockup</title>
+  <style>
+    /*
+      Component mapping:
+      - .section-shell -> InnosSectionView
+      - .status-chip -> InnosStatusChipView
+      - .command-button -> InnosCommandButton
+      - .dimming-control-group -> InnosDimmingControlGroupView
+      - .dimming-track -> InnosDimmingTrackView
+      - .component-action-row -> InnosComponentFactory.actionRow
+      - .summary-row-list -> InnosComponentFactory.summaryRow
+      - .token-list, .token-card, .token-box, .token-mini-track, .token-schedule-row,
+        .token-shortcut-row, .token-log-row -> detail-page review components
+    */
+    :root,
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --page: #111113;
+      --window: #1b1b1f;
+      --panel: #26262b;
+      --panel-2: #202024;
+      --control: #303036;
+      --text: #f3f3f1;
+      --muted: #aaa9a3;
+      --line: #3b3b40;
+      --blue: #5aa7ff;
+      --blue-strong: #1f7bd9;
+      --green: #75d99b;
+      --amber: #f1c45f;
+      --red: #ff6b6b;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.46);
+    }
+
+    body[data-theme="light"] {
+      color-scheme: light;
+      --page: #eef0f3;
+      --window: #f7f7f8;
+      --panel: #ffffff;
+      --panel-2: #f1f2f4;
+      --control: #f7f7f8;
+      --text: #1f2328;
+      --muted: #66707a;
+      --line: #d6d9de;
+      --blue: #0f75d3;
+      --blue-strong: #0b70c9;
+      --green: #196b39;
+      --amber: #8a5b00;
+      --red: #b42318;
+      --shadow: 0 22px 48px rgba(21, 30, 45, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--page);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .window {
+      width: min(860px, 100%);
+      height: 620px;
+      display: grid;
+      grid-template-rows: 50px 1fr;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: var(--window);
+      box-shadow: var(--shadow);
+    }
+
+    body[data-theme="light"] .window {
+      border-color: rgba(30, 42, 60, 0.12);
+    }
+
+    .titlebar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      height: 50px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #28c840; }
+
+    .window-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .theme-toggle {
+      display: inline-grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--window);
+    }
+
+    .theme-toggle button {
+      height: 26px;
+      min-width: 58px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    body[data-theme="dark"] .theme-toggle button[data-theme-button="dark"],
+    body[data-theme="light"] .theme-toggle button[data-theme-button="light"] {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .page {
+      display: none;
+      min-width: 0;
+      min-height: 0;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .page.active {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p,
+    dl,
+    dd {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+      line-height: 1.16;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 760;
+      letter-spacing: 0;
+    }
+
+    h3,
+    .section-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .subtitle,
+    .caption {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .page-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .home-head {
+      grid-template-columns: 1fr auto;
+    }
+
+    .status-cluster,
+    .action-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .quick-command-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .quick-command-row .button {
+      width: 100%;
+      min-width: 0;
+      padding-inline: 8px;
+    }
+
+    .section-actions {
+      justify-content: end;
+      margin-top: 10px;
+    }
+
+    .status-cluster {
+      justify-content: end;
+    }
+
+    .badge,
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .badge.ready,
+    .chip.ready {
+      border-color: rgba(117, 217, 155, 0.35);
+      background: rgba(117, 217, 155, 0.12);
+      color: var(--green);
+    }
+
+    .badge.warn,
+    .chip.warn {
+      border-color: rgba(241, 196, 95, 0.42);
+      background: rgba(241, 196, 95, 0.12);
+      color: var(--amber);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.12fr 0.88fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .detail-layout {
+      display: grid;
+      grid-template-columns: 258px 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .automation-layout {
+      grid-template-columns: 1fr;
+      align-content: start;
+    }
+
+    .shortcuts-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .section {
+      min-width: 0;
+      min-height: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .section + .section {
+      margin-top: 12px;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .quick-actions-head {
+      align-items: center;
+    }
+
+    .quick-actions-head .section-title {
+      display: flex;
+      align-items: center;
+      min-height: 24px;
+      font-size: 13px;
+    }
+
+    .snapshot {
+      display: grid;
+      gap: 10px;
+    }
+
+    .control {
+      display: grid;
+      grid-template-columns: 112px 52px 1fr 34px 34px;
+      gap: 8px;
+      align-items: center;
+      min-height: 40px;
+    }
+
+    .control + .control {
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .label {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .value {
+      color: var(--text);
+      text-align: right;
+      font-size: 18px;
+      font-weight: 720;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .track {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 78%, transparent);
+    }
+
+    .fill {
+      width: var(--value);
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    .track::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: calc(var(--thumb) * 1% - 7px);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--blue);
+      border: 1px solid var(--panel);
+      transform: translateY(-50%);
+    }
+
+    .button,
+    .back {
+      min-height: 30px;
+      padding: 0 11px;
+      border: 1px solid #55555b;
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    body[data-theme="light"] .button,
+    body[data-theme="light"] .back {
+      border-color: #c4c9d1;
+    }
+
+    .button.icon {
+      width: 34px;
+      padding: 0;
+      font-size: 16px;
+      font-weight: 760;
+    }
+
+    .icon-svg {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .button,
+    .back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .button.icon .icon-svg {
+      width: 17px;
+      height: 17px;
+    }
+
+    .button.primary {
+      border-color: var(--blue-strong);
+      background: var(--blue-strong);
+      color: #fff;
+    }
+
+    .button.warning {
+      border-color: rgba(241, 196, 95, 0.42);
+      background: rgba(241, 196, 95, 0.12);
+      color: var(--amber);
+    }
+
+    .button.danger {
+      border-color: rgba(255, 107, 107, 0.38);
+      background: rgba(255, 107, 107, 0.1);
+      color: var(--red);
+    }
+
+    .button.full {
+      width: 100%;
+    }
+
+    .button:focus-visible,
+    .back:focus-visible,
+    .tile:focus-visible,
+    .theme-toggle button:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 8px 12px;
+      align-items: start;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .summary-grid dt {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .summary-grid dd {
+      min-width: 0;
+      color: var(--text);
+      font-weight: 620;
+    }
+
+    .ops-strip {
+      display: grid;
+      gap: 7px;
+    }
+
+    .ops-item {
+      display: grid;
+      grid-template-columns: minmax(96px, auto) 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+
+    .ops-kicker {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .ops-value {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.25;
+      text-align: right;
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .tile {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: start;
+      min-height: 88px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .tile:hover {
+      border-color: color-mix(in srgb, var(--blue) 56%, var(--line));
+      background: color-mix(in srgb, var(--panel) 88%, var(--blue) 12%);
+    }
+
+    .tile h3 {
+      color: var(--text);
+      text-transform: none;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .tile .meta {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .glyph {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--control);
+      color: var(--blue);
+    }
+
+    .glyph::before,
+    .glyph::after {
+      content: "";
+      position: absolute;
+      background: var(--blue);
+    }
+
+    .glyph.current::before {
+      left: 8px;
+      top: 9px;
+      width: 18px;
+      height: 7px;
+      border-radius: 999px;
+      box-shadow: 0 8px 0 color-mix(in srgb, var(--blue) 72%, transparent);
+    }
+
+    .glyph.current::after {
+      left: 21px;
+      top: 6px;
+      width: 4px;
+      height: 13px;
+      border-radius: 999px;
+      box-shadow: -10px 9px 0 var(--blue);
+    }
+
+    .glyph.display::before {
+      left: 7px;
+      top: 8px;
+      width: 20px;
+      height: 13px;
+      border: 2px solid var(--blue);
+      border-radius: 3px;
+      background: transparent;
+    }
+
+    .glyph.display::after {
+      left: 12px;
+      bottom: 7px;
+      width: 10px;
+      height: 2px;
+      border-radius: 2px;
+    }
+
+    .glyph.automation::before {
+      left: 8px;
+      top: 8px;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .glyph.automation::after {
+      left: 16px;
+      top: 11px;
+      width: 2px;
+      height: 11px;
+      transform: rotate(38deg);
+      transform-origin: bottom;
+    }
+
+    .glyph.shortcuts::before {
+      left: 7px;
+      top: 9px;
+      width: 20px;
+      height: 16px;
+      border: 2px solid var(--blue);
+      border-radius: 4px;
+      background: transparent;
+    }
+
+    .glyph.shortcuts::after {
+      left: 11px;
+      top: 14px;
+      width: 12px;
+      height: 2px;
+      box-shadow: 0 5px 0 var(--blue);
+    }
+
+    .glyph.settings::before {
+      left: 9px;
+      top: 9px;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .glyph.settings::after {
+      left: 15px;
+      top: 5px;
+      width: 4px;
+      height: 24px;
+      border-radius: 2px;
+      box-shadow: -8px 8px 0 -1px var(--blue), 8px -8px 0 -1px var(--blue);
+    }
+
+    .glyph.diagnostics::before {
+      left: 9px;
+      top: 7px;
+      width: 16px;
+      height: 20px;
+      border: 2px solid var(--blue);
+      border-radius: 3px;
+      background: transparent;
+    }
+
+    .glyph.diagnostics::after {
+      left: 13px;
+      top: 13px;
+      width: 8px;
+      height: 2px;
+      box-shadow: 0 5px 0 var(--blue);
+    }
+
+    .glyph::before,
+    .glyph::after {
+      content: none;
+      display: none;
+    }
+
+    .glyph .icon-svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .detail-main {
+      display: grid;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .schedule-table {
+      gap: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 66px 1fr 1fr auto;
+      gap: 0;
+      align-items: stretch;
+      min-height: 54px;
+      border-top: 1px solid var(--line);
+    }
+
+    .schedule-row:first-child {
+      border-top: 0;
+    }
+
+    .schedule-header {
+      min-height: 34px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .schedule-header > div,
+    .schedule-row > .schedule-input,
+    .schedule-row > .schedule-control,
+    .schedule-row > .button {
+      border-left: 1px solid var(--line);
+    }
+
+    .schedule-header > div:first-child,
+    .schedule-row > .schedule-input:first-child {
+      border-left: 0;
+    }
+
+    .schedule-header > div {
+      padding: 0 10px;
+    }
+
+    .schedule-input,
+    .schedule-number {
+      width: 100%;
+      min-width: 0;
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 760;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .schedule-input {
+      height: 100%;
+      border: 0;
+      border-radius: 0;
+    }
+
+    .schedule-control {
+      display: grid;
+      grid-template-columns: 56px minmax(80px, 1fr) 60px;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+      padding: 8px;
+      border-top: 0;
+      border-right: 0;
+      border-bottom: 0;
+      border-radius: 0;
+      background: var(--control);
+    }
+
+    .schedule-control .track {
+      min-width: 0;
+    }
+
+    .schedule-stepper {
+      display: grid;
+      grid-template-columns: 30px 30px;
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+
+    .schedule-step {
+      width: 30px;
+      height: 30px;
+      min-height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .button.icon.schedule-step {
+      width: 30px;
+    }
+
+    .schedule-number {
+      width: 56px;
+      height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+    }
+
+    .schedule-step + .schedule-step {
+      border-left: 1px solid var(--line);
+    }
+
+    .box {
+      min-height: 32px;
+      display: grid;
+      align-items: center;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 1fr 44px 44px 44px 44px 44px 78px;
+      gap: 6px;
+      align-items: center;
+      min-height: 32px;
+    }
+
+    .shortcut-row.header {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .check,
+    .toggle {
+      justify-self: center;
+    }
+
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 22px;
+      border-radius: 999px;
+      background: var(--blue-strong);
+    }
+
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    .check,
+    .key {
+      min-height: 28px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .key {
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .diagnostics-layout {
+      grid-template-columns: 300px 1fr;
+    }
+
+    .matrix-card {
+      align-content: start;
+    }
+
+    .matrix-overview {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .matrix-score {
+      display: grid;
+      gap: 2px;
+    }
+
+    .matrix-number {
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 760;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .matrix-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .matrix-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .matrix-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 30px;
+      padding: 6px 8px;
+      border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--control) 72%, transparent);
+      font-size: 12px;
+    }
+
+    .matrix-row span:first-child {
+      color: var(--muted);
+      font-weight: 650;
+    }
+
+    .matrix-row strong {
+      color: var(--text);
+      font-weight: 760;
+    }
+
+    .log {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 10px;
+      min-height: 34px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    .log-feed {
+      align-content: start;
+    }
+
+    .log time {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log strong {
+      color: var(--amber);
+    }
+
+    @media (max-width: 820px) {
+      body {
+        padding: 0;
+        place-items: stretch;
+      }
+
+      .window {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+        overflow: auto;
+      }
+
+      .layout,
+      .detail-layout,
+      .page-head,
+      .home-head,
+      .control,
+      .schedule-row,
+      .shortcut-row {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ops-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .status-cluster {
+        justify-content: start;
+      }
+
+      .value {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+    <symbol id="icon-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v11h14V10"/></symbol>
+    <symbol id="icon-keyboard" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></symbol>
+    <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="icon-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="M6 3.5v17l15-8.5z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="icon-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></symbol>
+    <symbol id="icon-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.7-6L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.7 6L3 16"/><path d="M3 21v-5h5"/></symbol>
+    <symbol id="icon-rotate-ccw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="icon-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7H7v7"/><path d="M7 3v5h8"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M9.7 4.6 11 2h2l1.3 2.6 2.9.4 1 1.7-1.8 2.2.5 2.9-1.7 1-2.7-1.1-2.7 1.1-1.7-1 .5-2.9-1.8-2.2 1-1.7z"/><circle cx="12" cy="9" r="2.5"/><path d="M5 19h14"/><path d="M7 22h10"/></symbol>
+    <symbol id="icon-sliders-horizontal" viewBox="0 0 24 24"><path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/></symbol>
+  </svg>
+  <main
+    class="window"
+    aria-label="InnosDimmer componentized app window mockup"
+    data-component-source="InnosDimmer/UI/DesignSystem"
+  >
+    <header class="titlebar">
+      <div class="traffic" aria-hidden="true">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      <div class="window-title">InnosDimmer</div>
+      <div class="theme-toggle" aria-label="Theme preview">
+        <button type="button" data-theme-button="dark">Dark</button>
+        <button type="button" data-theme-button="light">Light</button>
+      </div>
+    </header>
+
+    <section class="page active" data-page="home" aria-label="Home">
+      <header class="page-head home-head">
+        <div>
+          <h1>InnosDimmer Control Center</h1>
+        </div>
+        <div class="status-cluster">
+          <span class="badge status-chip ready">Overlay active</span>
+          <span class="badge status-chip warn">Paused until 19:00</span>
+          <span class="badge status-chip ready">Login item on</span>
+        </div>
+      </header>
+
+      <div class="layout">
+        <div>
+          <section class="section section-shell snapshot" aria-labelledby="home-quick-actions">
+            <div class="section-head quick-actions-head">
+              <div>
+                <div class="section-title" id="home-quick-actions">Quick actions</div>
+              </div>
+              <span class="chip status-chip ready">Automation active</span>
+            </div>
+            <div class="control dimming-control-group">
+              <div class="label">Brightness</div>
+              <div class="value">45%</div>
+              <div class="track dimming-track" style="--thumb:45" aria-label="Brightness 45 percent"><div class="fill" style="--value:45%"></div></div>
+              <button class="button command-button icon" type="button" aria-label="Brightness down">-</button>
+              <button class="button command-button icon" type="button" aria-label="Brightness up">+</button>
+            </div>
+            <div class="control dimming-control-group">
+              <div class="label">Blue reduction</div>
+              <div class="value">32%</div>
+              <div class="track dimming-track" style="--thumb:32" aria-label="Blue reduction 32 percent"><div class="fill" style="--value:32%"></div></div>
+              <button class="button command-button icon" type="button" aria-label="Blue reduction down">-</button>
+              <button class="button command-button icon" type="button" aria-label="Blue reduction up">+</button>
+            </div>
+            <div class="action-row component-action-row quick-command-row">
+              <button class="button command-button warning" type="button">Disable</button>
+              <button class="button command-button" type="button">Restore</button>
+              <button class="button command-button" type="button">Resume</button>
+            </div>
+          </section>
+
+          <section class="section section-shell" aria-labelledby="home-ops">
+            <div class="section-head">
+              <div>
+                <div class="section-title" id="home-ops">Next actions</div>
+              </div>
+            </div>
+            <div class="ops-strip">
+              <div class="ops-item token-card">
+                <div class="ops-kicker">Schedule</div>
+                <div class="ops-value">19:00 · 45% / blue 32%</div>
+              </div>
+              <div class="ops-item token-card">
+                <div class="ops-kicker">Diagnostics</div>
+                <div class="ops-value">1 warning</div>
+              </div>
+              <div class="ops-item token-card">
+                <div class="ops-kicker">Shortcuts</div>
+                <div class="ops-value">7 enabled</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <nav class="nav-grid" aria-label="Settings pages">
+          <button class="tile" type="button" data-go="current">
+            <span class="glyph current" aria-hidden="true"><svg class="icon-svg"><use href="#icon-sliders-horizontal"></use></svg></span>
+            <span><h3>Current status</h3><span class="meta">Resolved display, mode, automation, and available commands.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="display">
+            <span class="glyph display" aria-hidden="true"><svg class="icon-svg"><use href="#icon-monitor"></use></svg></span>
+            <span><h3>Display</h3><span class="meta">Target display, picker state, and detection summary.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="automation">
+            <span class="glyph automation" aria-hidden="true"><svg class="icon-svg"><use href="#icon-clock"></use></svg></span>
+            <span><h3>Schedule</h3><span class="meta">Schedule summary, editor entry, pause and resume.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="shortcuts">
+            <span class="glyph shortcuts" aria-hidden="true"><svg class="icon-svg"><use href="#icon-keyboard"></use></svg></span>
+            <span><h3>Shortcuts</h3><span class="meta">All global bindings, including Open popover.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="settings">
+            <span class="glyph settings" aria-hidden="true"><svg class="icon-svg"><use href="#icon-settings"></use></svg></span>
+            <span><h3>Settings</h3><span class="meta">Launch at login, saved state, and persistence status.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="diagnostics">
+            <span class="glyph diagnostics" aria-hidden="true"><svg class="icon-svg"><use href="#icon-activity"></use></svg></span>
+            <span><h3>Diagnostics</h3><span class="meta">Verification matrix, recent failures, and JSON export.</span></span>
+          </button>
+        </nav>
+      </div>
+    </section>
+
+    <section class="page" data-page="current" aria-label="Current status page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Current status</h2>
+          <p class="subtitle">A read-only status page for the current dimming state, without duplicating the home quick controls.</p>
+        </div>
+        <span class="badge status-chip ready">Overlay active</span>
+      </header>
+      <div class="detail-main">
+        <section class="section section-shell">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Snapshot lines</div>
+              <p class="caption">Matches the dashboard view model strings.</p>
+            </div>
+            <span class="chip status-chip">Live</span>
+          </div>
+          <dl class="summary-grid summary-row-list">
+            <dt>Display</dt>
+            <dd>27QA100M</dd>
+            <dt>Mode</dt>
+            <dd>Software overlay + gamma blue reduction</dd>
+            <dt>Brightness</dt>
+            <dd>Brightness: 45% / Blue reduction: 32%</dd>
+            <dt>Automation</dt>
+            <dd>Automation: paused until 19:00</dd>
+          </dl>
+        </section>
+        <section class="section section-shell">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Commands</div>
+              <p class="caption">Commands visible in the popover remain visible here.</p>
+            </div>
+          </div>
+          <div class="action-row component-action-row">
+            <button class="button command-button primary" type="button">Open app window</button>
+            <button class="button command-button" type="button">Settings</button>
+            <button class="button command-button" type="button">Resume automation</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="page" data-page="display" aria-label="Display page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Display</h2>
+          <p class="subtitle">The target display setting, with the popover current-state summary kept visible.</p>
+        </div>
+        <button class="button command-button primary" type="button">Refresh displays</button>
+      </header>
+      <div class="detail-layout">
+        <section class="section section-shell snapshot">
+          <div class="section-head"><div><div class="section-title">Current state</div><p class="caption">27QA100M - overlay active</p></div><span class="chip status-chip ready">Ready</span></div>
+          <dl class="summary-grid summary-row-list">
+            <dt>Display</dt><dd>27QA100M</dd>
+            <dt>Mode</dt><dd>Software overlay + gamma</dd>
+            <dt>Brightness</dt><dd>45%</dd>
+            <dt>Blue</dt><dd>32%</dd>
+          </dl>
+        </section>
+        <div class="detail-main">
+          <section class="section section-shell">
+            <div class="section-head">
+              <div><div class="section-title">Target display</div><p class="caption">Equivalent to the existing settings display picker.</p></div>
+              <span class="chip status-chip ready">Resolved</span>
+            </div>
+            <dl class="summary-grid summary-row-list">
+              <dt>Selected</dt><dd><div class="box token-box">Automatic external display</div></dd>
+              <dt>Resolved to</dt><dd><div class="box token-box">27QA100M - HDMI - Display 2</div></dd>
+              <dt>Main display</dt><dd><div class="box token-box">No</div></dd>
+              <dt>Gamma table</dt><dd><div class="box token-box">Supported, 1024 samples</div></dd>
+            </dl>
+          </section>
+          <section class="section section-shell">
+            <div class="section-head"><div><div class="section-title">Saved selection</div><p class="caption">Persists through `DisplayTargetStore.saveSelectedDisplay`.</p></div></div>
+            <div class="action-row component-action-row">
+              <button class="button command-button primary" type="button">Save display</button>
+              <button class="button command-button" type="button">Use automatic</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="automation" aria-label="Automation page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Automation</h2>
+          <p class="subtitle">Reuse the popover Schedule section, then expose the full schedule rows.</p>
+        </div>
+        <button class="button command-button warning" type="button">Resume automation</button>
+      </header>
+      <div class="detail-layout automation-layout">
+        <section class="section section-shell automation-summary">
+          <div class="section-head">
+            <div><div class="section-title">Schedule</div><p class="caption">Compact schedule state and primary actions.</p></div>
+            <span class="chip status-chip warn">Next 19:00</span>
+          </div>
+          <dl class="summary-grid summary-row-list">
+            <dt>Status</dt><dd>Paused until 19:00</dd>
+            <dt>Current</dt><dd>19:00 - 45% brightness / 32% blue</dd>
+            <dt>Shortcuts</dt><dd>Option + Shift controls</dd>
+          </dl>
+        </section>
+        <section class="section section-shell">
+          <div class="section-head">
+            <div><div class="section-title">Schedule rows</div><p class="caption">Same values as `SettingsWindowController.scheduleSummary`.</p></div>
+          </div>
+          <div class="list token-list schedule-table">
+            <div class="schedule-row schedule-header">
+              <div>Time</div>
+              <div>Bright</div>
+              <div>Warmth</div>
+              <div></div>
+            </div>
+            <div class="schedule-row token-schedule-row">
+              <input class="schedule-input token-box" type="text" value="09:00" aria-label="Schedule time 09:00">
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="80%" aria-label="Brightness 09:00 value">
+                <div class="track dimming-track" style="--thumb:80"><div class="fill" style="--value:80%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 09:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 09:00 up">+</button>
+                </div>
+              </div>
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="12%" aria-label="Warmth 09:00 value">
+                <div class="track dimming-track" style="--thumb:12"><div class="fill" style="--value:12%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 09:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 09:00 up">+</button>
+                </div>
+              </div>
+              <button class="button command-button icon" type="button" aria-label="Remove 09:00 schedule row">-</button>
+            </div>
+            <div class="schedule-row token-schedule-row">
+              <input class="schedule-input token-box" type="text" value="19:00" aria-label="Schedule time 19:00">
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="45%" aria-label="Brightness 19:00 value">
+                <div class="track dimming-track" style="--thumb:45"><div class="fill" style="--value:45%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 19:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 19:00 up">+</button>
+                </div>
+              </div>
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="32%" aria-label="Warmth 19:00 value">
+                <div class="track dimming-track" style="--thumb:32"><div class="fill" style="--value:32%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 19:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 19:00 up">+</button>
+                </div>
+              </div>
+              <button class="button command-button icon" type="button" aria-label="Remove 19:00 schedule row">-</button>
+            </div>
+            <div class="schedule-row token-schedule-row">
+              <input class="schedule-input token-box" type="text" value="23:00" aria-label="Schedule time 23:00">
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="25%" aria-label="Brightness 23:00 value">
+                <div class="track dimming-track" style="--thumb:25"><div class="fill" style="--value:25%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 23:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Brightness 23:00 up">+</button>
+                </div>
+              </div>
+              <div class="schedule-control token-mini-track">
+                <input class="schedule-number" type="text" value="58%" aria-label="Warmth 23:00 value">
+                <div class="track dimming-track" style="--thumb:58"><div class="fill" style="--value:58%"></div></div>
+                <div class="schedule-stepper">
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 23:00 down">-</button>
+                  <button class="button command-button icon schedule-step" type="button" aria-label="Warmth 23:00 up">+</button>
+                </div>
+              </div>
+              <button class="button command-button icon" type="button" aria-label="Remove 23:00 schedule row">-</button>
+            </div>
+          </div>
+          <div class="action-row component-action-row section-actions">
+            <button class="button command-button" type="button">Pause automation</button>
+            <button class="button command-button primary" type="button">Save schedule</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="page" data-page="shortcuts" aria-label="Shortcuts page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Shortcuts</h2>
+          <p class="subtitle">All `ShortcutAction.allCases`, including the newly present Open popover action.</p>
+        </div>
+        <div class="action-row component-action-row">
+          <button class="button command-button primary" type="button">Save shortcuts</button>
+          <button class="button command-button" type="button">Reset</button>
+        </div>
+      </header>
+      <div class="detail-layout shortcuts-layout">
+        <section class="section section-shell">
+          <div class="section-head"><div><div class="section-title">Global shortcuts</div><p class="caption">Matches the current settings table model.</p></div></div>
+          <div class="list token-list">
+            <div class="shortcut-row token-shortcut-row header"><div>Action</div><div>On</div><div>Opt</div><div>Shift</div><div>Ctrl</div><div>Cmd</div><div>Key</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Brightness up</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">Up</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Brightness down</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">Down</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Blue reduction up</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">Right</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Blue reduction down</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">Left</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Quick disable overlay</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">0</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Restore previous dimming</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">R</div></div>
+            <div class="shortcut-row token-shortcut-row"><div>Open popover</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">P</div></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="page" data-page="settings" aria-label="Settings page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Settings</h2>
+          <p class="subtitle">Renamed from Startup so this page can hold persistent app settings, including launch at login.</p>
+        </div>
+        <button class="button command-button primary" type="button">Apply settings</button>
+      </header>
+      <div class="detail-layout">
+        <section class="section section-shell">
+          <div class="section-head"><div><div class="section-title">Launch at login</div><p class="caption">Current `LoginItemController` state.</p></div><span class="chip status-chip ready">Enabled</span></div>
+          <dl class="summary-grid summary-row-list">
+            <dt>State</dt><dd><div class="box token-box">Launch at login: enabled</div></dd>
+            <dt>Approval</dt><dd><div class="box token-box">No System Settings approval needed</div></dd>
+            <dt>Behavior</dt><dd><div class="box token-box">App reappears in the menu bar after macOS login</div></dd>
+          </dl>
+        </section>
+        <div class="detail-main">
+          <section class="section section-shell">
+            <div class="section-head"><div><div class="section-title">Saved settings</div><p class="caption">All durable settings represented somewhere in this window.</p></div></div>
+            <dl class="summary-grid summary-row-list">
+              <dt>Target display</dt><dd>Automatic external display</dd>
+              <dt>Schedule</dt><dd>3 rows saved</dd>
+              <dt>Shortcuts</dt><dd>7 normalized bindings</dd>
+              <dt>Schema</dt><dd>Current SettingsSnapshot schema</dd>
+            </dl>
+          </section>
+          <section class="section section-shell">
+            <div class="section-head"><div><div class="section-title">Status label</div><p class="caption">Existing transient feedback remains visible.</p></div></div>
+            <div class="box token-box">Launch at login updated.</div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" data-page="diagnostics" aria-label="Diagnostics page">
+      <header class="page-head">
+        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
+        <div>
+          <h2>Diagnostics</h2>
+          <p class="subtitle">Readable failures and the existing diagnostics export in one focused page.</p>
+        </div>
+        <button class="button command-button primary" type="button">Export diagnostics</button>
+      </header>
+      <div class="detail-layout diagnostics-layout">
+        <section class="section section-shell matrix-card">
+          <div class="section-head">
+            <div>
+              <div class="section-title">Verification matrix</div>
+              <p class="caption">Current capability checks.</p>
+            </div>
+            <span class="chip status-chip ready">Handled</span>
+          </div>
+          <div class="matrix-overview">
+            <div class="matrix-score">
+              <span class="matrix-number">8</span>
+              <span class="matrix-label">handled checks</span>
+            </div>
+            <span class="chip status-chip ready">0 blocked</span>
+          </div>
+          <div class="matrix-list token-list">
+            <div class="matrix-row"><span>Overlay</span><strong>Applied</strong></div>
+            <div class="matrix-row"><span>Gamma</span><strong>Applied</strong></div>
+            <div class="matrix-row"><span>Hotkeys</span><strong>Registered</strong></div>
+            <div class="matrix-row"><span>Login item</span><strong>Enabled</strong></div>
+            <div class="matrix-row"><span>Missing</span><strong>0</strong></div>
+          </div>
+        </section>
+        <section class="section section-shell log-feed" aria-label="Recent diagnostics log">
+          <div class="list token-list">
+            <div class="log token-log-row"><time>17:54</time><span>Settings saved.</span></div>
+            <div class="log token-log-row"><time>17:53</time><span>Gamma table restored before applying new blue reduction.</span></div>
+            <div class="log token-log-row"><time>17:48</time><span><strong>Warning</strong> automation paused until 19:00.</span></div>
+            <div class="log token-log-row"><time>17:45</time><span>Shortcut monitor registered 7 bindings.</span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const commandIconRules = [
+      { match: /^Back$/, icon: "arrow-left" },
+      { match: /^\+$/, icon: "plus" },
+      { match: /^-$/, icon: "minus" },
+      { match: /^Remove .* schedule row$/, icon: "minus" },
+      { match: /down$/i, icon: "minus" },
+      { match: /up$/i, icon: "plus" },
+      { match: /^Disable$|^Quick disable$/, icon: "power" },
+      { match: /^Restore$|^Restore previous|^Reset$/, icon: "rotate-ccw" },
+      { match: /^Resume$|^Resume automation$/, icon: "play" },
+      { match: /^Pause automation$/, icon: "pause" },
+      { match: /^Schedule$/, icon: "clock" },
+      { match: /^Refresh displays$/, icon: "refresh-cw" },
+      { match: /^Save|^Apply/, icon: "save" },
+      { match: /^Export diagnostics$/, icon: "download" },
+      { match: /^Settings$/, icon: "settings" },
+      { match: /^Diagnostics$/, icon: "activity" },
+      { match: /^Use automatic|^Open app window$/, icon: "monitor" }
+    ];
+
+    function makeIcon(name) {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      svg.classList.add("icon-svg");
+      svg.setAttribute("aria-hidden", "true");
+      use.setAttribute("href", `#icon-${name}`);
+      svg.append(use);
+      return svg;
+    }
+
+    function labelFor(button) {
+      return (button.getAttribute("aria-label") || button.textContent).trim().replace(/^←\s*/, "");
+    }
+
+    function applyCommandIcons() {
+      for (const button of document.querySelectorAll(".command-button")) {
+        const label = labelFor(button);
+        const rule = commandIconRules.find((candidate) => candidate.match.test(label));
+        if (!rule || button.querySelector(".icon-svg")) continue;
+
+        if (button.classList.contains("icon")) {
+          button.textContent = "";
+          button.append(makeIcon(rule.icon));
+        } else {
+          button.textContent = label;
+          button.prepend(makeIcon(rule.icon));
+        }
+      }
+    }
+
+    function showPage(pageName) {
+      for (const page of document.querySelectorAll("[data-page]")) {
+        page.classList.toggle("active", page.dataset.page === pageName);
+      }
+    }
+
+    for (const trigger of document.querySelectorAll("[data-go]")) {
+      trigger.addEventListener("click", () => showPage(trigger.dataset.go));
+    }
+
+    for (const button of document.querySelectorAll("[data-theme-button]")) {
+      button.addEventListener("click", () => {
+        document.body.dataset.theme = button.dataset.themeButton;
+      });
+    }
+
+    applyCommandIcons();
+  </script>
+</body>
+</html>

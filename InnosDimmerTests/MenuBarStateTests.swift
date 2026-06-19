@@ -41,22 +41,38 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
         XCTAssertEqual(viewModel.automationActionTitle, "Resume automation")
         XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
+        XCTAssertEqual(viewModel.quickControlsBadgeTitle, "MANUAL")
         XCTAssertEqual(viewModel.scheduleStatusDetail, "Next boundary 19:00")
-        XCTAssertEqual(viewModel.scheduleSummary, "10:00 · ☀ 70% · ◐ 20%")
+        XCTAssertEqual(viewModel.scheduleSummary, "10:00 · ☀ 70% · 🌡 20%")
         XCTAssertEqual(
             viewModel.shortcutRows,
             [
                 ShortcutSummaryRow(action: .brightnessUp, title: "Brightness up", keyLabel: "Off"),
                 ShortcutSummaryRow(action: .brightnessDown, title: "Brightness down", keyLabel: "⌥⇧↓"),
-                ShortcutSummaryRow(action: .blueReductionUp, title: "Blue up", keyLabel: "⌥⇧→"),
-                ShortcutSummaryRow(action: .blueReductionDown, title: "Blue down", keyLabel: "⌥⇧←")
+                ShortcutSummaryRow(action: .blueReductionUp, title: "Warmth up", keyLabel: "⌥⇧→"),
+                ShortcutSummaryRow(action: .blueReductionDown, title: "Warmth down", keyLabel: "⌥⇧←")
             ]
         )
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness up  Off\nBrightness down  ⌥⇧↓\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+            "Brightness  Up  Off  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
         XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
+    }
+
+    func testMenuBarViewModelAppendsPausedStatusToDisplaySummaryWhenDisplayExists() {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.automationPausedUntilNextBoundary = true
+        state.automationResumeMinuteOfDay = 1_140
+
+        let viewModel = MenuBarViewModel(state: state)
+
+        XCTAssertEqual(
+            viewModel.displaySummary,
+            "27QA100M · software dimming · automation paused until 19:00"
+        )
+        XCTAssertEqual(viewModel.quickControlsBadgeTitle, "MANUAL")
     }
 
     func testMenuBarViewModelShortcutSummaryStillFocusesOnCoreAdjustments() {
@@ -67,7 +83,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness up  ⌥⇧↑\nBrightness down  ⌥⇧↓\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+            "Brightness  Up  ⌥⇧↑  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
     }
 
@@ -77,16 +93,16 @@ final class MenuBarStateTests: XCTestCase {
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
-            message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
+            message: "Applied brightness 45% warmth 32% on INNOS 27QA100M",
             severity: .info
         )
 
         let viewModel = MenuBarViewModel(state: state, latestDiagnosticEvent: event)
 
-        XCTAssertEqual(viewModel.displaySummary, "INNOS 27QA100M · software dimming")
+        XCTAssertEqual(viewModel.displaySummary, "27QA100M · software dimming")
         XCTAssertEqual(
             viewModel.diagnosticsSummary,
-            "Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
+            "Applied brightness 45% warmth 32% on INNOS 27QA100M"
         )
     }
 
@@ -126,7 +142,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(viewModel.displayLine, "Display: INNOS 27QA100M")
         XCTAssertEqual(viewModel.modeLine, "Mode: Overlay active")
-        XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Blue reduction: 20%")
+        XCTAssertEqual(viewModel.brightnessLine, "Brightness: 35% / Warmth: 20%")
         XCTAssertEqual(viewModel.displayValue, "INNOS 27QA100M")
         XCTAssertEqual(viewModel.modeValue, "Overlay active")
         XCTAssertEqual(viewModel.brightnessValue, "35%")
@@ -135,7 +151,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.automationValue, "active")
         XCTAssertEqual(viewModel.automationActionTitle, "Pause automation")
         XCTAssertEqual(viewModel.automationActionCommand, .pauseAutomation)
-        XCTAssertEqual(viewModel.scheduleValue, "09:00 · ☀ 80% · ◐ 12%")
+        XCTAssertEqual(viewModel.scheduleValue, "09:00 · ☀ 80% · 🌡 12%")
         XCTAssertEqual(viewModel.shortcutValue, "7 enabled")
         XCTAssertEqual(viewModel.failureValue, "1 errors, 1 warnings")
         XCTAssertEqual(viewModel.failureLine, "Failures: 1 errors, 1 warnings")
@@ -155,8 +171,8 @@ final class MenuBarStateTests: XCTestCase {
             events: []
         )
 
-        XCTAssertEqual(menuViewModel.blueReductionWarning, "High blue reduction may shift colors.")
-        XCTAssertEqual(dashboardViewModel.blueReductionWarning, "High blue reduction may shift colors.")
+        XCTAssertEqual(menuViewModel.blueReductionWarning, "High warmth may shift colors.")
+        XCTAssertEqual(dashboardViewModel.blueReductionWarning, "High warmth may shift colors.")
     }
 
     @MainActor
@@ -180,6 +196,8 @@ final class MenuBarStateTests: XCTestCase {
             button.performClick(nil)
         }
 
+        XCTAssertEqual(view.commandButtonForTesting(.openShortcuts)?.title, "Edit Shortcuts")
+        XCTAssertEqual(view.commandButtonForTesting(.openAppWindow)?.title, "Open Control Window")
         XCTAssertEqual(routedCommands, MenuBarCommand.buttonCommands)
     }
 
@@ -248,7 +266,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(
             controller.scheduleSummaryForTesting(),
-            "09:00 · 80% brightness / 12% blue\n10:15 · 66% brightness / 21% blue\n19:00 · 45% brightness / 30% blue"
+            "09:00 · 80% brightness / 12% warmth\n10:15 · 66% brightness / 21% warmth\n19:00 · 45% brightness / 30% warmth"
         )
     }
 
@@ -280,7 +298,7 @@ final class MenuBarStateTests: XCTestCase {
         let invalidPercentView = ScheduleEditorView()
         invalidPercentView.setRowForTesting(index: 2, time: "23:00", brightness: "25", blueReduction: "101")
         XCTAssertThrowsError(try invalidPercentView.editedSchedule()) { error in
-            XCTAssertEqual(error.localizedDescription, "Schedule row 3 needs blue reduction from 0 to 100.")
+            XCTAssertEqual(error.localizedDescription, "Schedule row 3 needs warmth from 0 to 100.")
         }
     }
 
@@ -323,6 +341,27 @@ final class MenuBarStateTests: XCTestCase {
         )
 
         menuBarController.perform(.openScheduleEditor)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertTrue(menuBarController.appWindowIsShownForTesting())
+        XCTAssertEqual(brightnessController.state.targetBrightness, 80)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesSettingsAndShortcutsToAppWindowWithoutApplyingDimmingCommand() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
+
+        menuBarController.perform(.openSettings)
+        menuBarController.perform(.openShortcuts)
 
         XCTAssertEqual(software.appliedCommands, [])
         XCTAssertTrue(menuBarController.appWindowIsShownForTesting())
@@ -509,18 +548,19 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(snapshot.schedule[1].minuteOfDay, 645)
         XCTAssertEqual(
             controller.scheduleSummaryForTesting(),
-            "09:00 · ☀ 80% · ◐ 12%\n10:45 · ☀ 62% · ◐ 20%\n23:00 · ☀ 25% · ◐ 58%"
+            "09:00 · ☀ 80% · 🌡 12%\n10:45 · ☀ 62% · 🌡 20%\n23:00 · ☀ 25% · 🌡 58%"
         )
     }
 
     @MainActor
-    func testMenuBarPopoverUsesExpandedContentSize() {
+    func testMenuBarPopoverUsesContentFitSizeWithoutBottomSlack() {
         let view = MenuBarPopoverView(state: .defaultState())
 
         XCTAssertEqual(view.frame.size.width, MenuBarPopoverView.preferredContentSize.width)
         XCTAssertEqual(view.frame.size.height, MenuBarPopoverView.preferredContentSize.height)
-        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.width, 460)
-        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 520)
+        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.width, 420)
+        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 745)
+        XCTAssertLessThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 755)
     }
 
     @MainActor
@@ -553,10 +593,12 @@ final class MenuBarStateTests: XCTestCase {
         state.targetBrightness = 45
         state.targetBlueReduction = 32
         state.activeMode = .overlay
+        state.automationPausedUntilNextBoundary = true
+        state.automationResumeMinuteOfDay = 1_140
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
-            message: "Applied brightness 45% and blue reduction 32% on INNOS 27QA100M.",
+            message: "Applied brightness 45% and warmth 32% on INNOS 27QA100M.",
             severity: .info
         )
 
@@ -572,7 +614,11 @@ final class MenuBarStateTests: XCTestCase {
 
             let view = MenuBarPopoverView(
                 state: state,
-                schedule: [ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 32)],
+                schedule: [
+                    ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12),
+                    ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 32),
+                    ScheduleEntry(minuteOfDay: 1_380, brightness: 25, blueReduction: 58)
+                ],
                 shortcuts: ShortcutBinding.defaultBindings,
                 latestDiagnosticEvent: event
             )
@@ -611,7 +657,7 @@ final class MenuBarStateTests: XCTestCase {
             DiagnosticsEvent(
                 timestamp: Date(timeIntervalSince1970: 0),
                 category: .softwareDimming,
-                message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
+                message: "Applied brightness 45% warmth 32% on INNOS 27QA100M",
                 severity: .info
             ),
             DiagnosticsEvent(
@@ -671,7 +717,7 @@ final class MenuBarStateTests: XCTestCase {
         let event = DiagnosticsEvent(
             timestamp: Date(timeIntervalSince1970: 0),
             category: .softwareDimming,
-            message: "Applied brightness 45% blue reduction 32% on INNOS 27QA100M",
+            message: "Applied brightness 45% warmth 32% on INNOS 27QA100M",
             severity: .info
         )
 
@@ -687,21 +733,21 @@ final class MenuBarStateTests: XCTestCase {
             latestDiagnosticEvent: event
         )
 
-        XCTAssertEqual(view.displaySummaryForTesting(), "INNOS 27QA100M · software dimming")
+        XCTAssertEqual(view.displaySummaryForTesting(), "27QA100M · software dimming")
         XCTAssertEqual(view.brightnessLabelForTesting(), "45%")
         XCTAssertEqual(view.blueReductionLabelForTesting(), "32%")
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
-        XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · ◐ 21%")
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · 🌡 21%")
         XCTAssertEqual(view.scheduleStatusForTesting(), "Automation active\nSchedule rows below")
         XCTAssertFalse(view.scheduleStatusForTesting().contains("Current"))
         XCTAssertEqual(
             view.shortcutSummaryForTesting(),
-            "Brightness up  ⌥⇧↑\nBrightness down  Off\nBlue up  ⌥⇧→\nBlue down  ⌥⇧←"
+            "Brightness  Up  ⌥⇧↑  Down  Off\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
-            "Applied brightness 45% blue reduction 32% on INNOS 27QA100M"
+            "Applied brightness 45% warmth 32% on INNOS 27QA100M"
         )
     }
 
@@ -806,7 +852,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(software.appliedCommands.map(\.brightness), [75])
         XCTAssertTrue(diagnosticsStore.events.contains { event in
             event.category == .softwareDimming
-                && event.message == "Applied brightness 75% blue reduction 12% on INNOS 27QA100M"
+                && event.message == "Applied brightness 75% warmth 12% on INNOS 27QA100M"
         })
         XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Software dimming active for INNOS 27QA100M")
     }

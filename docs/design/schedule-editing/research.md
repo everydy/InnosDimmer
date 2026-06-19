@@ -281,8 +281,7 @@ let schedule = makeSection(
         makeActionRow([
             button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
             automationActionButton
-        ]),
-        statusField("Edit schedule opens the app window schedule area.")
+        ])
     ]
 )
 ```

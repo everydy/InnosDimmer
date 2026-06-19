@@ -206,6 +206,12 @@ final class MenuBarController: NSObject {
         case .openScheduleEditor:
             showAppWindow(focus: .schedule)
             record(.appLifecycle, "Opened app window schedule editor")
+        case .openShortcuts:
+            showAppWindow(focus: .shortcuts)
+            record(.appLifecycle, "Opened app window shortcuts page")
+        case .openDiagnostics:
+            showAppWindow(focus: .diagnostics)
+            record(.appLifecycle, "Opened app window diagnostics page")
         case .openSettings:
             openSettings()
         case .openPopover:
@@ -310,14 +316,8 @@ final class MenuBarController: NSObject {
     }
 
     private func openSettings() {
-        record(.appLifecycle, "Opened settings")
-        settingsWindowController.configure(
-            snapshot: displayTargetStore.load(),
-            displayCandidates: displayInventory.activeDisplays(),
-            loginItemStatus: loginItemController.status()
-        )
-        settingsWindowController.showWindow(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        record(.appLifecycle, "Opened app window settings page")
+        showAppWindow(focus: .settings)
         refreshPopover()
     }
 
@@ -601,7 +601,7 @@ final class MenuBarController: NSObject {
 
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
-        record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.blueReduction)%")
+        record(.schedule, "Applied scheduled brightness \(entry.brightness)% warmth \(entry.blueReduction)%")
         refreshPopover()
         return true
     }
@@ -799,7 +799,7 @@ final class MenuBarController: NSObject {
         let state = brightnessController.state
         record(
             Self.diagnosticsCategory(for: state.activeMode),
-            "Applied brightness \(state.targetBrightness)% blue reduction \(state.targetBlueReduction)% on \(command.display.localizedName)",
+            "Applied brightness \(state.targetBrightness)% warmth \(state.targetBlueReduction)% on \(command.display.localizedName)",
             Self.diagnosticsSeverity(for: state.activeMode)
         )
 

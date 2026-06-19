@@ -264,7 +264,7 @@ final class ScheduleRuntimeTests: XCTestCase {
         XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
         XCTAssertEqual(brightnessController.state.lastAppliedCommandSource, .menuSlider)
         XCTAssertFalse(diagnosticsStore.events.contains { event in
-            event.message == "Applied scheduled brightness 80% blue reduction 12%"
+            event.message == "Applied scheduled brightness 80% warmth 12%"
         })
         XCTAssertEqual(diagnosticsStore.latestEvent?.category, .softwareDimming)
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .error)

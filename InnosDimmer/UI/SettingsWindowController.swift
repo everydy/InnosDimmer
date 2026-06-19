@@ -501,7 +501,7 @@ final class SettingsWindowController: NSWindowController {
 
     private static func sortedScheduleLabels(_ schedule: [ScheduleEntry]) -> [String] {
         SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / blue \(entry.blueReduction)%"
+            "\(timeLabel(for: entry.minuteOfDay)) \(entry.brightness)% / warmth \(entry.blueReduction)%"
         }
     }
 
@@ -517,9 +517,9 @@ final class SettingsWindowController: NSWindowController {
         case .brightnessDown:
             return "Brightness down"
         case .blueReductionUp:
-            return "Blue reduction up"
+            return "Warmth up"
         case .blueReductionDown:
-            return "Blue reduction down"
+            return "Warmth down"
         case .quickDisableOverlay:
             return "Quick disable overlay"
         case .restorePreviousDimming:

@@ -54,7 +54,7 @@
 - Documentation:
   - Source of truth: `DESIGN.md`, `docs/design-decisions.md`, and this contract.
   - Visual proof: `docs/design/shared-control-system/specimen.html`.
-  - Existing app-window exploration: `docs/design/window-redesign/mockup.html`.
+  - Existing app-window exploration: `docs/design/window-redesign/app-window-componentized-mockup.html`.
 - Dev integration:
   - Extract shared AppKit helpers only after the specimen and current mockup agree.
   - Prefer adapting `MenuBarPopoverView` helpers before creating a separate window-only style layer.
@@ -84,7 +84,7 @@
   - `docs/design-decisions.md`
   - `InnosDimmer/UI/MenuBarPopoverView.swift`
   - `docs/design/popover-redesign/mockup.html`
-  - `docs/design/window-redesign/mockup.html`
+  - `docs/design/window-redesign/app-window-componentized-mockup.html`
 - Existing tokens:
   - `PopoverPalette.background`
   - `PopoverPalette.sectionBackground`
