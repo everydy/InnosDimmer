@@ -15,12 +15,12 @@
 - Risk: do not delete generated source images; do not touch signing, deployment, or external publishing.
 
 ## Status
-- complete
+- verifying
 
 ## Checkpoint
-- Done: generated image located, copied to `docs/assets/innos-dimmer-app-icon-source.png`, resized into `InnosDimmer/Assets.xcassets/AppIcon.appiconset`, wired into `InnosDimmer.xcodeproj`, JSON/dimensions checked, and Debug build passed.
-- Current: mission complete.
-- Next: inspect the built app icon visually in Finder/Dock if desired.
+- Done: generated image located, copied to `docs/assets/innos-dimmer-app-icon-source.png`, resized into `InnosDimmer/Assets.xcassets/AppIcon.appiconset`, and wired into `InnosDimmer.xcodeproj`.
+- Current: verifying asset dimensions and Xcode build.
+- Next: close the mission after checks pass.
 
 ## Resume Rule
 - Resume in `/Users/moonsoo/projects/InnosDimmer`; inspect `.codex/mission-goal.md`, `git status --short`, and `InnosDimmer/Assets.xcassets/AppIcon.appiconset`.
