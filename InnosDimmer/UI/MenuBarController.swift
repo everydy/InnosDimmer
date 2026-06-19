@@ -29,6 +29,7 @@ final class MenuBarController: NSObject {
     private let currentMinuteOfDay: () -> Int
     private let popover = NSPopover()
     private var dashboardWindowController: AppDashboardWindowController?
+    private var scheduleEditorWindowController: ScheduleEditorWindowController?
     private lazy var settingsWindowController = SettingsWindowController(actions: makeSettingsActions())
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
@@ -152,6 +153,8 @@ final class MenuBarController: NSObject {
             restorePrevious()
         case .openAppWindow:
             showAppWindow()
+        case .openScheduleEditor:
+            showScheduleEditor()
         case .openSettings:
             openSettings()
         case .pauseAutomation:
@@ -231,6 +234,16 @@ final class MenuBarController: NSObject {
         refreshAppWindow()
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showScheduleEditor() {
+        let controller = scheduleEditorWindowController ?? ScheduleEditorWindowController()
+        scheduleEditorWindowController = controller
+        controller.configure(schedule: scheduleEntries)
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        record(.appLifecycle, "Opened schedule editor")
+        refreshPopover()
     }
 
     private func openSettings() {

@@ -187,6 +187,39 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testScheduleEditorWindowShellShowsCurrentSchedule() {
+        let controller = ScheduleEditorWindowController()
+        controller.configure(schedule: [
+            ScheduleEntry(minuteOfDay: 615, brightness: 66, blueReduction: 21),
+            ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12)
+        ])
+
+        XCTAssertEqual(
+            controller.scheduleSummaryForTesting(),
+            "09:00 · 80% brightness / 12% blue\n10:15 · 66% brightness / 21% blue"
+        )
+    }
+
+    @MainActor
+    func testMenuBarControllerRoutesOpenScheduleEditorWithoutApplyingDimmingCommand() throws {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: state, softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
+
+        menuBarController.perform(.openScheduleEditor)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertEqual(brightnessController.state.targetBrightness, 80)
+        XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
+    }
+
+    @MainActor
     func testAppDashboardButtonsRouteEditableCommands() {
         let dashboardCommands: [MenuBarCommand] = [
             .brightnessDown,

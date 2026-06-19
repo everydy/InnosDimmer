@@ -28,6 +28,7 @@
 		AA000000000000000000004D /* MenuBarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000051 /* MenuBarPopoverView.swift */; };
 		AA000000000000000000004E /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000052 /* SettingsWindowController.swift */; };
 		AA000000000000000000004F /* BrightnessController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000053 /* BrightnessController.swift */; };
+		AA0000000000000000000081 /* ScheduleEditorWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000082 /* ScheduleEditorWindowController.swift */; };
 		AA0000000000000000000054 /* DisplayTargetStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000055 /* DisplayTargetStoreTests.swift */; };
 		AA0000000000000000000056 /* DisplayTargetResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000058 /* DisplayTargetResolver.swift */; };
 		AA0000000000000000000057 /* DisplayInventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000059 /* DisplayInventory.swift */; };
@@ -84,6 +85,7 @@
 		AA0000000000000000000051 /* MenuBarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopoverView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000052 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000053 /* BrightnessController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrightnessController.swift; sourceTree = "<group>"; };
+		AA0000000000000000000082 /* ScheduleEditorWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleEditorWindowController.swift; sourceTree = "<group>"; };
 		AA0000000000000000000055 /* DisplayTargetStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetStoreTests.swift; sourceTree = "<group>"; };
 		AA0000000000000000000058 /* DisplayTargetResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayTargetResolver.swift; sourceTree = "<group>"; };
 		AA0000000000000000000059 /* DisplayInventory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayInventory.swift; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 			children = (
 				AA0000000000000000000025 /* MenuBarController.swift */,
 				AA0000000000000000000051 /* MenuBarPopoverView.swift */,
+				AA0000000000000000000082 /* ScheduleEditorWindowController.swift */,
 				AA0000000000000000000052 /* SettingsWindowController.swift */,
 				AA0000000000000000000050 /* StatusBadgeView.swift */,
 			);
@@ -339,6 +342,7 @@
 				AA0000000000000000000021 /* AppDelegate.swift in Sources */,
 				AA0000000000000000000022 /* MenuBarController.swift in Sources */,
 				AA000000000000000000004D /* MenuBarPopoverView.swift in Sources */,
+				AA0000000000000000000081 /* ScheduleEditorWindowController.swift in Sources */,
 				AA000000000000000000004E /* SettingsWindowController.swift in Sources */,
 				AA000000000000000000004C /* StatusBadgeView.swift in Sources */,
 				AA0000000000000000000039 /* Clamped.swift in Sources */,

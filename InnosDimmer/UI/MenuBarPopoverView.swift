@@ -7,6 +7,7 @@ enum MenuBarCommand: Equatable, Hashable {
     case blueReductionDown
     case blueReductionUp
     case setBlueReduction(Int)
+    case openScheduleEditor
     case pauseAutomation
     case quickDisable
     case restorePrevious
@@ -18,6 +19,7 @@ enum MenuBarCommand: Equatable, Hashable {
         .brightnessUp,
         .blueReductionDown,
         .blueReductionUp,
+        .openScheduleEditor,
         .pauseAutomation,
         .quickDisable,
         .restorePrevious,
@@ -590,10 +592,13 @@ final class MenuBarPopoverView: NSView {
                 automationLabel,
                 makeSummaryRow(title: "Current", value: scheduleSummaryLabel),
                 makeSummaryRow(title: "Shortcuts", value: shortcutSummaryLabel),
-                button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
                 makeActionRow([
-                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed)),
+                    button("Edit schedule", command: .openScheduleEditor, action: #selector(openScheduleEditorPressed), style: .primary),
                     button("Pause automation", command: .pauseAutomation, action: #selector(pauseAutomationPressed))
+                ]),
+                makeActionRow([
+                    button("Quick disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
+                    button("Restore previous", command: .restorePrevious, action: #selector(restorePreviousPressed))
                 ])
             ]
         )
@@ -848,6 +853,10 @@ final class MenuBarPopoverView: NSView {
 
     @objc private func restorePreviousPressed() {
         actions.perform(.restorePrevious)
+    }
+
+    @objc private func openScheduleEditorPressed() {
+        actions.perform(.openScheduleEditor)
     }
 
     @objc private func openAppWindowPressed() {
