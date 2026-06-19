@@ -191,13 +191,46 @@ final class MenuBarStateTests: XCTestCase {
         let controller = ScheduleEditorWindowController()
         controller.configure(schedule: [
             ScheduleEntry(minuteOfDay: 615, brightness: 66, blueReduction: 21),
-            ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12)
+            ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12),
+            ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 30)
         ])
 
         XCTAssertEqual(
             controller.scheduleSummaryForTesting(),
-            "09:00 · 80% brightness / 12% blue\n10:15 · 66% brightness / 21% blue"
+            "09:00 · 80% brightness / 12% blue\n10:15 · 66% brightness / 21% blue\n19:00 · 45% brightness / 30% blue"
         )
+    }
+
+    @MainActor
+    func testScheduleEditorViewReturnsSortedEditedSchedule() throws {
+        let view = ScheduleEditorView()
+        view.update(schedule: [
+            ScheduleEntry(minuteOfDay: 615, brightness: 66, blueReduction: 21),
+            ScheduleEntry(minuteOfDay: 540, brightness: 80, blueReduction: 12),
+            ScheduleEntry(minuteOfDay: 1_140, brightness: 45, blueReduction: 30)
+        ])
+        view.setRowForTesting(index: 1, time: "10:30", brightness: "61", blueReduction: "19")
+
+        let schedule = try view.editedSchedule()
+
+        XCTAssertEqual(schedule.map(\.minuteOfDay), [540, 630, 1_140])
+        XCTAssertEqual(schedule.map(\.brightness), [80, 61, 45])
+        XCTAssertEqual(schedule.map(\.blueReduction), [12, 19, 30])
+    }
+
+    @MainActor
+    func testScheduleEditorViewReportsInvalidFields() {
+        let invalidTimeView = ScheduleEditorView()
+        invalidTimeView.setRowForTesting(index: 0, time: "24:00", brightness: "80", blueReduction: "12")
+        XCTAssertThrowsError(try invalidTimeView.editedSchedule()) { error in
+            XCTAssertEqual(error.localizedDescription, "Schedule row 1 needs a time in HH:mm format.")
+        }
+
+        let invalidPercentView = ScheduleEditorView()
+        invalidPercentView.setRowForTesting(index: 2, time: "23:00", brightness: "25", blueReduction: "101")
+        XCTAssertThrowsError(try invalidPercentView.editedSchedule()) { error in
+            XCTAssertEqual(error.localizedDescription, "Schedule row 3 needs blue reduction from 0 to 100.")
+        }
     }
 
     @MainActor

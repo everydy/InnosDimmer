@@ -20,18 +20,10 @@ struct SettingsActions {
 @MainActor
 final class SettingsWindowController: NSWindowController {
     private enum Layout {
-        static let scheduleEntryCount = 3
-        static let fieldWidth: CGFloat = 72
         static let shortcutActionWidth: CGFloat = 122
         static let shortcutToggleWidth: CGFloat = 34
         static let shortcutModifierWidth: CGFloat = 38
         static let shortcutKeyWidth: CGFloat = 58
-    }
-
-    private struct ScheduleControls {
-        var time: NSTextField
-        var brightness: NSTextField
-        var blueReduction: NSTextField
     }
 
     private struct ShortcutControls {
@@ -44,16 +36,10 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private enum SettingsFormError: LocalizedError {
-        case invalidTime(row: Int)
-        case invalidPercent(row: Int, field: String)
         case invalidShortcutKey(action: String)
 
         var errorDescription: String? {
             switch self {
-            case .invalidTime(let row):
-                return "Schedule row \(row) needs a time in HH:mm format."
-            case .invalidPercent(let row, let field):
-                return "Schedule row \(row) needs \(field) from 0 to 100."
             case .invalidShortcutKey(let action):
                 return "\(action) needs a key code from 0 to 65535."
             }
@@ -69,7 +55,7 @@ final class SettingsWindowController: NSWindowController {
     private let diagnosticsSummary = NSTextField(labelWithString: "Diagnostics: local export available")
     private let matrixSummary = NSTextField(labelWithString: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
     private let statusLabel = NSTextField(labelWithString: "")
-    private var scheduleControls: [ScheduleControls] = []
+    private let scheduleEditorView = ScheduleEditorView()
     private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
     private var snapshot = SettingsSnapshot.defaultSnapshot()
     private var displayCandidates: [DisplayIdentity] = []
@@ -138,14 +124,13 @@ final class SettingsWindowController: NSWindowController {
         statusLabel.lineBreakMode = .byWordWrapping
         statusLabel.maximumNumberOfLines = 2
 
-        let scheduleStack = makeScheduleStack()
         let shortcutStack = makeShortcutStack()
         let stack = NSStackView(views: [
             sectionLabel("Target display"),
             displayPicker,
             sectionLabel("Automation"),
             scheduleSummary,
-            scheduleStack,
+            scheduleEditorView,
             saveScheduleButton,
             sectionLabel("Global shortcuts"),
             shortcutSummary,
@@ -190,38 +175,6 @@ final class SettingsWindowController: NSWindowController {
                 stack.bottomAnchor.constraint(equalTo: documentView.bottomAnchor, constant: -20)
             ])
         }
-    }
-
-    private func makeScheduleStack() -> NSStackView {
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 6
-
-        let header = NSStackView(views: [
-            fixedLabel("Time", width: Layout.fieldWidth),
-            fixedLabel("Brightness", width: Layout.fieldWidth),
-            fixedLabel("Blue", width: Layout.fieldWidth)
-        ])
-        header.orientation = .horizontal
-        header.spacing = 8
-        stack.addArrangedSubview(header)
-
-        for _ in 0..<Layout.scheduleEntryCount {
-            let controls = ScheduleControls(
-                time: editableField(),
-                brightness: editableField(),
-                blueReduction: editableField()
-            )
-            scheduleControls.append(controls)
-
-            let row = NSStackView(views: [controls.time, controls.brightness, controls.blueReduction])
-            row.orientation = .horizontal
-            row.spacing = 8
-            stack.addArrangedSubview(row)
-        }
-
-        return stack
     }
 
     private func makeShortcutStack() -> NSStackView {
@@ -299,14 +252,7 @@ final class SettingsWindowController: NSWindowController {
     }
 
     private func renderSchedule() {
-        let entries = Array(snapshot.schedule.prefix(Layout.scheduleEntryCount))
-        for index in 0..<scheduleControls.count {
-            let entry = index < entries.count ? entries[index] : ScheduleEntry.defaultSchedule[index]
-            let controls = scheduleControls[index]
-            controls.time.stringValue = Self.timeLabel(for: entry.minuteOfDay)
-            controls.brightness.stringValue = "\(entry.brightness)"
-            controls.blueReduction.stringValue = "\(entry.blueReduction)"
-        }
+        scheduleEditorView.update(schedule: snapshot.schedule)
     }
 
     private func renderShortcuts() {
@@ -349,7 +295,7 @@ final class SettingsWindowController: NSWindowController {
 
     @objc private func saveSchedulePressed() {
         do {
-            let schedule = try scheduleFromFields()
+            let schedule = try scheduleEditorView.editedSchedule()
             switch actions.updateSchedule(schedule) {
             case .success(let updatedSnapshot):
                 snapshot = updatedSnapshot
@@ -497,22 +443,6 @@ final class SettingsWindowController: NSWindowController {
         }
     }
 
-    private func scheduleFromFields() throws -> [ScheduleEntry] {
-        try scheduleControls.enumerated().map { index, controls in
-            guard let minuteOfDay = Self.minuteOfDay(from: controls.time.stringValue) else {
-                throw SettingsFormError.invalidTime(row: index + 1)
-            }
-            guard let brightness = Int(controls.brightness.stringValue), (0...100).contains(brightness) else {
-                throw SettingsFormError.invalidPercent(row: index + 1, field: "brightness")
-            }
-            guard let blueReduction = Int(controls.blueReduction.stringValue), (0...100).contains(blueReduction) else {
-                throw SettingsFormError.invalidPercent(row: index + 1, field: "blue reduction")
-            }
-
-            return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, blueReduction: blueReduction)
-        }
-    }
-
     private func shortcutBindingsFromControls() throws -> [ShortcutBinding] {
         try ShortcutAction.allCases.map { action in
             guard let controls = shortcutControls[action],
@@ -564,13 +494,6 @@ final class SettingsWindowController: NSWindowController {
         return label
     }
 
-    private func editableField(width: CGFloat = Layout.fieldWidth) -> NSTextField {
-        let field = NSTextField(string: "")
-        field.translatesAutoresizingMaskIntoConstraints = false
-        field.widthAnchor.constraint(equalToConstant: width).isActive = true
-        return field
-    }
-
     private func editableKeyField(width: CGFloat) -> ShortcutKeyField {
         let field = ShortcutKeyField()
         field.translatesAutoresizingMaskIntoConstraints = false
@@ -601,21 +524,6 @@ final class SettingsWindowController: NSWindowController {
     private static func timeLabel(for minuteOfDay: Int) -> String {
         let minute = max(0, min(1_439, minuteOfDay))
         return String(format: "%02d:%02d", minute / 60, minute % 60)
-    }
-
-    private static func minuteOfDay(from label: String) -> Int? {
-        let parts = label
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .split(separator: ":", omittingEmptySubsequences: false)
-        guard parts.count == 2,
-              let hour = Int(parts[0]),
-              let minute = Int(parts[1]),
-              (0...23).contains(hour),
-              (0...59).contains(minute) else {
-            return nil
-        }
-
-        return hour * 60 + minute
     }
 
     private static func actionLabel(for action: ShortcutAction) -> String {

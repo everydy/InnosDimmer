@@ -2,7 +2,7 @@ import AppKit
 
 @MainActor
 final class ScheduleEditorWindowController: NSWindowController {
-    private let scheduleSummaryLabel = NSTextField(labelWithString: "")
+    private let scheduleEditorView = ScheduleEditorView()
     private let statusLabel = NSTextField(labelWithString: "Schedule editor ready.")
     private var schedule: [ScheduleEntry] = ScheduleEntry.defaultSchedule
 
@@ -29,7 +29,9 @@ final class ScheduleEditorWindowController: NSWindowController {
     }
 
     func scheduleSummaryForTesting() -> String {
-        scheduleSummaryLabel.stringValue
+        (try? scheduleEditorView.editedSchedule())
+            .map(Self.scheduleSummary)
+            ?? ""
     }
 
     private func installContent() {
@@ -43,18 +45,13 @@ final class ScheduleEditorWindowController: NSWindowController {
         subtitle.lineBreakMode = .byWordWrapping
         subtitle.maximumNumberOfLines = 0
 
-        scheduleSummaryLabel.font = .systemFont(ofSize: 13)
-        scheduleSummaryLabel.textColor = .labelColor
-        scheduleSummaryLabel.lineBreakMode = .byWordWrapping
-        scheduleSummaryLabel.maximumNumberOfLines = 0
-
         statusLabel.font = .systemFont(ofSize: 12)
         statusLabel.textColor = .secondaryLabelColor
 
         let content = NSStackView(views: [
             title,
             subtitle,
-            makeSection(title: "Current schedule", content: scheduleSummaryLabel),
+            makeSection(title: "Current schedule", content: scheduleEditorView),
             statusLabel
         ])
         content.orientation = .vertical
@@ -86,10 +83,14 @@ final class ScheduleEditorWindowController: NSWindowController {
     }
 
     private func render() {
+        scheduleEditorView.update(schedule: schedule)
+    }
+
+    private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
             "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% blue"
         }
-        scheduleSummaryLabel.stringValue = labels.isEmpty ? "Not configured" : labels.joined(separator: "\n")
+        return labels.isEmpty ? "Not configured" : labels.joined(separator: "\n")
     }
 
     private static func timeLabel(for minuteOfDay: Int) -> String {
