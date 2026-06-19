@@ -147,6 +147,15 @@ The redesign must preserve `MenuBarCommand.allCases`, existing routing tests, an
 
 The HTML mockup is a review artifact, not the implementation surface. The real product surface is `NSPopover` content backed by `MenuBarPopoverView.swift`, so the implementation should translate the mockup into AppKit primitives instead of embedding web content.
 
+### Commit 1 Preservation Contract
+
+- `mockup.html` is the static visual reference for spacing, hierarchy, grouping, and control emphasis.
+- `implementation-plan.md` is the approved execution source for later commit units and should remain the source of truth for unit boundaries.
+- Native implementation work belongs in `MenuBarPopoverView.swift` and related AppKit view code, not in HTML, WebKit, or embedded web content.
+- The HTML class names are review anchors only. Future Swift changes should use the mapping below, not reuse the HTML/CSS as runtime code.
+- The first native pass must preserve relative command routing through `MenuBarCommand` and `MenuBarActions`; draggable absolute sliders require a later command-model plan.
+- Light and dark behavior must use one native AppKit layout with dynamic colors or one small dynamic palette, not separate Swift layout branches.
+
 ### HTML Mockup Element To AppKit Mapping
 
 | Mockup element | Native implementation target | Notes |
