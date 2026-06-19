@@ -267,6 +267,8 @@ private final class ProgressTrackView: NSView {
 }
 
 private final class PopoverCommandButton: NSButton {
+    static let minimumHeight: CGFloat = 30
+
     private let popoverStyle: PopoverButtonStyle
 
     init(title: String, style: PopoverButtonStyle, target: AnyObject?, action: Selector?) {
@@ -287,6 +289,11 @@ private final class PopoverCommandButton: NSButton {
 
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override var intrinsicContentSize: NSSize {
+        let size = super.intrinsicContentSize
+        return NSSize(width: size.width, height: max(Self.minimumHeight, size.height))
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -779,6 +786,7 @@ final class MenuBarPopoverView: NSView {
         style: PopoverButtonStyle = .normal
     ) -> NSButton {
         let button = PopoverCommandButton(title: title, style: style, target: self, action: action)
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
         commandButtons[command] = button
         return button
     }

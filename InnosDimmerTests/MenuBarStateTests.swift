@@ -139,6 +139,21 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPopoverCommandButtonsKeepMinimumActionHeight() {
+        let view = MenuBarPopoverView(state: .defaultState())
+        view.layoutSubtreeIfNeeded()
+
+        for command in MenuBarCommand.buttonCommands {
+            guard let button = view.commandButtonForTesting(command) else {
+                XCTFail("Missing button for \(command)")
+                continue
+            }
+
+            XCTAssertGreaterThanOrEqual(button.fittingSize.height, 30, "Button for \(command) is too thin")
+        }
+    }
+
+    @MainActor
     func testMenuBarPopoverTracksRouteAbsolutePercentageCommands() {
         var routedCommands: [MenuBarCommand] = []
         let view = MenuBarPopoverView(
