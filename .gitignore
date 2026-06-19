@@ -12,3 +12,4 @@ xcuserdata/
 
 # Codex Flow runtime artifacts
 .codex-flow/
+.codex/
