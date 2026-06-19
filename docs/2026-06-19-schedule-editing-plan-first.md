@@ -12,6 +12,20 @@ Make schedule editing easier by splitting it into the right UI surfaces:
 
 후행 실행: `구현커밋`
 
+## Plan Lock Status
+
+Status: Approved for 후행 `구현커밋`.
+
+Approved basis:
+
+- Current review artifact: `docs/design/schedule-editing/mockup.html`.
+- Popover action layout is fixed as:
+  - Row 1: `Edit schedule` + `Pause automation`
+  - Row 2: `Quick disable` + `Restore previous`
+- Schedule window edits existing schedule rows only in this plan.
+- App dashboard must be an expanded popover: keep current-state brightness/blue controls and add inline schedule editing.
+- Dynamic add/remove schedule rows are explicitly deferred to `Next Plan Backlog`.
+
 ## 검토용 결과물
 
 - [Research](design/schedule-editing/research.md)
@@ -23,6 +37,8 @@ Make schedule editing easier by splitting it into the right UI surfaces:
 
 - Static local file: `/Users/moonsoo/projects/InnosDimmer/docs/design/schedule-editing/mockup.html`
 - No localhost server is required because the mockup is a self-contained HTML artifact.
+
+HTML 생략 사유: 해당 없음. HTML 검토물이 `docs/design/schedule-editing/mockup.html`에 이미 존재한다.
 
 ## Research Brief
 
@@ -44,29 +60,31 @@ Make schedule editing easier by splitting it into the right UI surfaces:
   - Keep current-state controls in the dashboard; the dashboard is an expanded popover, not an automation-only screen.
   - Demote schedule editing in Settings to a summary + open schedule editor, or reuse the same component if schedule remains visible there.
 
-## Operator 결정 필요 사항
+## Operator 결정 사항
 
 ### 결정 1: v1 스케줄 행 개수
 
+- 상태: 결정됨.
 - 맥락: 현재 `SettingsWindowController.Layout.scheduleEntryCount = 3`이고 기본 스케줄도 3개다.
 - 선택지:
   - A. 이번 plan은 3행 값 편집과 저장 흐름만 구현하고, add/remove 실제 구현은 다음 plan으로 넘긴다.
   - B. 이번 plan에서 add/remove까지 실제 구현한다.
   - C. add/remove UI도 목업에서 제거하고 3행 고정만 보여준다.
-- 추천안: A.
-- 기본값: A.
-- 보류 시 영향: A로 가면 이번 구현 범위가 작아지고 안전해진다. 다음 plan에서 `ScheduleEntry` 동적 행 추가/삭제 UX, validation, 테스트를 별도 단위로 다룬다.
+- 적용값: A.
+- 구현 영향: 이번 구현 범위는 기존 row 값 편집, validation, 저장 흐름으로 제한한다. 다음 plan에서 `ScheduleEntry` 동적 행 추가/삭제 UX, validation, 테스트를 별도 단위로 다룬다.
 
 ### 결정 2: Settings 창의 schedule 섹션 처리
 
+- 상태: 결정됨.
 - 맥락: 사용자는 settings에서 schedule을 조절하는 방식보다 별도 schedule 버튼/창을 선호한다고 말했다.
 - 선택지:
   - A. Settings에서 schedule form을 제거하고 `Open schedule editor` 요약만 둔다.
   - B. Settings 안에도 같은 schedule editor를 계속 둔다.
   - C. 이번 구현에서는 Settings는 유지하고 popover/dashboard만 추가한다.
-- 추천안: A.
-- 기본값: A.
-- 보류 시 영향: A가 가장 명확하게 역할을 나누지만, 기존 settings 테스트 일부를 갱신해야 한다.
+- 적용값: A.
+- 구현 영향: Settings는 general preferences 역할로 정리한다. schedule editing은 focused schedule window와 dashboard inline editor가 맡는다.
+
+현재 추가 질문 없음. 후행 구현은 위 적용값으로 진행한다.
 
 ## Design Direction
 
@@ -292,8 +310,18 @@ The actual implementation may choose an `NSView` helper or a small controller, b
   - Check that no view writes `UserDefaults` directly.
   - Check dashboard/window layout under dark and light appearances.
 - Operator 재확인:
-  - Confirm that add/remove schedule rows is handled by the next plan, not this one.
-  - Confirm whether Settings should remove schedule editing immediately or after Schedule window feels right.
+  - Add/remove schedule rows remains next-plan scope.
+  - Settings schedule form demotion proceeds in this plan after Schedule window save flow is working.
+
+## Handoff To 구현커밋
+
+- Source plan: `docs/2026-06-19-schedule-editing-plan-first.md`
+- Review artifact: `docs/design/schedule-editing/mockup.html`
+- Test link: static local file `/Users/moonsoo/projects/InnosDimmer/docs/design/schedule-editing/mockup.html`
+- Execution rule: implement Commit 1 through Commit 5 in order.
+- Scope guard: do not implement dynamic add/remove schedule rows in this plan.
+- UI guard: the dashboard must retain current-state controls while adding inline schedule editing.
+- Settings guard: demote schedule editing to summary/navigation after the schedule window save path is available.
 
 ## Next Plan Backlog
 
