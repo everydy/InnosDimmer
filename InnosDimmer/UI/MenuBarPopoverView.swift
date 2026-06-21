@@ -2862,6 +2862,7 @@ final class UnifiedAppWindowController: NSWindowController {
         renderShortcuts()
         return makeDetailPage([
             makeSection(title: "Shortcut rows", views: [
+                makeSummaryRow(title: "Global shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled"),
                 makeShortcutStack(),
                 makeActionRow([
                     PopoverCommandButton(title: "Save shortcuts", style: .primary, target: self, action: #selector(saveShortcutsPressed)),
@@ -2874,11 +2875,21 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeSettingsPage() -> NSView {
         loginItemCheckbox.state = loginItemStatus == .enabled ? .on : .off
         return makeDetailPage([
-            makeSection(title: "Startup", views: [loginItemCheckbox, makeSummaryRow(title: "Login item", value: loginItemSummary())]),
-            makeSection(title: "Saved state", views: [
-                makeSummaryRow(title: "Display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
+            makeSection(title: "Startup", views: [
+                loginItemCheckbox,
+                makeSummaryRow(title: "Launch at login", value: loginItemSummary()),
+                makeSummaryRow(title: "Approval", value: loginItemApprovalSummary()),
+                makeSummaryRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
+                makeActionRow([
+                    PopoverCommandButton(title: "Apply settings", style: .primary, target: self, action: #selector(loginItemToggled))
+                ])
+            ]),
+            makeSection(title: "Saved settings", views: [
+                makeSummaryRow(title: "Target display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
                 makeSummaryRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
-                makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled")
+                makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled"),
+                makeSummaryRow(title: "Schema", value: "SettingsSnapshot"),
+                makeSummaryRow(title: "Status label", value: statusLabel.stringValue)
             ])
         ])
     }
@@ -2894,7 +2905,11 @@ final class UnifiedAppWindowController: NSWindowController {
         scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
         return makeDetailPage([
             makeSection(title: "Verification matrix", views: [
-                makeSummaryRow(title: "Summary", value: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
+                makeSummaryRow(title: "Summary", value: diagnosticsMatrixSummary()),
+                makeSummaryRow(title: "Overlay", value: modeAppliedSummary(.overlay)),
+                makeSummaryRow(title: "Gamma", value: modeAppliedSummary(.gamma)),
+                makeSummaryRow(title: "Hotkeys", value: "\(shortcuts.filter(\.isEnabled).count) registered"),
+                makeSummaryRow(title: "Login item", value: loginItemSummary())
             ]),
             makeSection(title: "Recent diagnostics", views: [
                 scroll,
@@ -3355,18 +3370,41 @@ final class UnifiedAppWindowController: NSWindowController {
         }.joined(separator: "\n")
     }
 
+    private func diagnosticsMatrixSummary() -> String {
+        let handledSummary = VerificationMatrix.summary(for: VerificationMatrix.defaultRows)
+        let blocked = VerificationMatrix.defaultRows.filter { $0.status == .fail }.count
+        return "\(handledSummary) · handled checks · \(blocked) blocked"
+    }
+
+    private func modeAppliedSummary(_ mode: DimmingMode) -> String {
+        state.activeMode == mode ? "Applied" : "Available"
+    }
+
     private func loginItemSummary() -> String {
         switch loginItemStatus {
         case .enabled:
-            return "enabled"
+            return "Enabled"
         case .disabled:
-            return "disabled"
+            return "Disabled"
         case .requiresApproval:
-            return "requires approval in System Settings"
+            return "Requires approval in System Settings"
         case .notRegistered:
-            return "not registered"
+            return "Not registered"
         case .unsupported(let reason):
-            return "unsupported (\(reason))"
+            return "Unsupported (\(reason))"
+        }
+    }
+
+    private func loginItemApprovalSummary() -> String {
+        switch loginItemStatus {
+        case .requiresApproval:
+            return "Approval required in System Settings"
+        case .enabled:
+            return "Enabled"
+        case .disabled, .notRegistered:
+            return "No approval pending"
+        case .unsupported(let reason):
+            return "Unsupported: \(reason)"
         }
     }
 
