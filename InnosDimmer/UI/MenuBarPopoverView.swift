@@ -40,6 +40,7 @@ struct MenuBarActions {
 
 private enum PopoverButtonStyle {
     case normal
+    case subtle
     case primary
     case warning
 }
@@ -910,6 +911,10 @@ private final class PopoverCommandButton: NSButton {
             foreground = .labelColor
             background = PopoverPalette.buttonBackground(for: effectiveAppearance)
             border = PopoverPalette.buttonBorder(for: effectiveAppearance)
+        case .subtle:
+            foreground = .labelColor
+            background = PopoverPalette.subtleBackground(for: effectiveAppearance)
+            border = PopoverPalette.border(for: effectiveAppearance)
         case .primary:
             foreground = .white
             background = PopoverPalette.primaryButtonBackground(for: effectiveAppearance)
@@ -2692,7 +2697,7 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeNavigationTile(_ page: UnifiedAppWindowPage) -> NSButton {
-        let button = PopoverCommandButton(title: page.title, style: .normal, target: self, action: #selector(pageButtonPressed(_:)))
+        let button = PopoverCommandButton(title: page.title, style: .subtle, target: self, action: #selector(pageButtonPressed(_:)))
         button.identifier = NSUserInterfaceItemIdentifier(page.title)
         button.alignment = .left
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
@@ -2701,7 +2706,7 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeListRow(title: String, value: String, page: UnifiedAppWindowPage) -> NSButton {
-        let button = PopoverCommandButton(title: "\(title)    \(value)", style: .normal, target: self, action: #selector(pageButtonPressed(_:)))
+        let button = PopoverCommandButton(title: "\(title)    \(value)", style: .subtle, target: self, action: #selector(pageButtonPressed(_:)))
         button.identifier = NSUserInterfaceItemIdentifier(page.title)
         button.alignment = .left
         pageButtons[page] = button
