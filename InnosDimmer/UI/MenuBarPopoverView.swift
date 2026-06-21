@@ -2715,7 +2715,7 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func renderActivePage() {
-        titleLabel.stringValue = activePage.title
+        titleLabel.stringValue = activePage == .home ? activePage.title : "InnosDimmer"
         commandButtons.removeAll(keepingCapacity: true)
         pageButtons.removeAll(keepingCapacity: true)
         bodyView.subviews.forEach { $0.removeFromSuperview() }
@@ -2810,9 +2810,6 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeCurrentPage() -> NSView {
         makeDetailPage(
             title: "Current status",
-            trailingActions: [
-                makeChip("Live", tone: .neutral)
-            ],
             content: verticalStack([
                 makeSection(title: "Snapshot lines", trailing: makeChip("Live", tone: .neutral), views: [
                 makeSummaryRow(title: "Display", value: currentDisplaySummary()),
@@ -2895,7 +2892,7 @@ final class UnifiedAppWindowController: NSWindowController {
         return makeDetailPage(
             title: "Schedule",
             trailingActions: [
-                makeChip(nextScheduleText(), tone: .warning)
+                makeChip(nextScheduleBadgeText(), tone: .warning)
             ],
             content: verticalStack([
                 makeSection(title: "Schedule", views: [
@@ -3528,6 +3525,16 @@ final class UnifiedAppWindowController: NSWindowController {
     private func nextScheduleText() -> String {
         guard let entry = SettingsSnapshot.sortedSchedule(schedule).first else { return "not configured" }
         return "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% / blue \(entry.blueReduction)%"
+    }
+
+    private func nextScheduleBadgeText() -> String {
+        if let resumeMinute = state.automationResumeMinuteOfDay {
+            return "Next \(Self.timeLabel(for: resumeMinute))"
+        }
+        guard let entry = SettingsSnapshot.sortedSchedule(schedule).first else {
+            return "No schedule"
+        }
+        return "Next \(Self.timeLabel(for: entry.minuteOfDay))"
     }
 
     private func diagnosticsSummary() -> String {
