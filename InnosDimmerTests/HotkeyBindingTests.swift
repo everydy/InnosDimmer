@@ -224,39 +224,32 @@ final class MenuBarHotkeyRoutingTests: XCTestCase {
     }
 }
 
-final class SettingsWindowShortcutCustomizationTests: XCTestCase {
+final class UnifiedAppWindowShortcutCustomizationTests: XCTestCase {
     @MainActor
-    func testSettingsWindowRoutesScheduleEditorNavigation() {
-        var didOpenScheduleEditor = false
-        let actions = SettingsActions(
-            selectDisplay: { _ in .success(.defaultSnapshot()) },
-            openScheduleEditor: {
-                didOpenScheduleEditor = true
-            },
-            updateShortcuts: { _ in .success(.defaultSnapshot()) },
-            setLaunchAtLogin: { _ in .success(.notRegistered) },
-            exportDiagnostics: { .success(Data()) }
-        )
-        let controller = SettingsWindowController(actions: actions)
-        controller.configure(
-            snapshot: .defaultSnapshot(),
-            displayCandidates: [],
-            loginItemStatus: .notRegistered
+    func testUnifiedAppWindowRoutesSchedulePageNavigation() {
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
         )
 
-        controller.openScheduleEditorForTesting()
+        controller.focus(.schedule)
 
-        XCTAssertTrue(didOpenScheduleEditor)
+        XCTAssertEqual(controller.activePageForTesting(), "Schedule")
     }
 
     @MainActor
-    func testSettingsWindowIncludesOpenPopoverShortcutBinding() {
-        let controller = SettingsWindowController()
-        controller.configure(
-            snapshot: .defaultSnapshot(),
-            displayCandidates: [],
-            loginItemStatus: .notRegistered
+    func testUnifiedAppWindowIncludesOpenPopoverShortcutBinding() {
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
         )
+        controller.focus(.shortcuts)
 
         XCTAssertEqual(
             controller.shortcutForTesting(action: .openPopover),
@@ -270,7 +263,7 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
     }
 
     @MainActor
-    func testSettingsWindowSavesCustomizedShortcutBindings() {
+    func testUnifiedAppWindowSavesCustomizedShortcutBindings() {
         var savedShortcuts: [ShortcutBinding]?
         let actions = SettingsActions(
             selectDisplay: { _ in .success(.defaultSnapshot()) },
@@ -282,12 +275,14 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
             setLaunchAtLogin: { _ in .success(.notRegistered) },
             exportDiagnostics: { .success(Data()) }
         )
-        let controller = SettingsWindowController(actions: actions)
-        controller.configure(
-            snapshot: .defaultSnapshot(),
-            displayCandidates: [],
-            loginItemStatus: .notRegistered
+        let controller = UnifiedAppWindowController(settingsActions: actions)
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
         )
+        controller.focus(.shortcuts)
 
         controller.setShortcutForTesting(
             action: .brightnessUp,
@@ -313,7 +308,7 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
     }
 
     @MainActor
-    func testSettingsWindowSavesHumanReadableShortcutKeyLabels() {
+    func testUnifiedAppWindowSavesHumanReadableShortcutKeyLabels() {
         var savedShortcuts: [ShortcutBinding]?
         let actions = SettingsActions(
             selectDisplay: { _ in .success(.defaultSnapshot()) },
@@ -325,12 +320,14 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
             setLaunchAtLogin: { _ in .success(.notRegistered) },
             exportDiagnostics: { .success(Data()) }
         )
-        let controller = SettingsWindowController(actions: actions)
-        controller.configure(
-            snapshot: .defaultSnapshot(),
-            displayCandidates: [],
-            loginItemStatus: .notRegistered
+        let controller = UnifiedAppWindowController(settingsActions: actions)
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
         )
+        controller.focus(.shortcuts)
         controller.setShortcutForTesting(
             action: .brightnessUp,
             keyCode: 18,
@@ -349,13 +346,15 @@ final class SettingsWindowShortcutCustomizationTests: XCTestCase {
     }
 
     @MainActor
-    func testSettingsWindowReportsInvalidCustomizedShortcutKey() {
-        let controller = SettingsWindowController()
-        controller.configure(
-            snapshot: .defaultSnapshot(),
-            displayCandidates: [],
-            loginItemStatus: .notRegistered
+    func testUnifiedAppWindowReportsInvalidCustomizedShortcutKey() {
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
         )
+        controller.focus(.shortcuts)
         controller.setShortcutForTesting(
             action: .brightnessUp,
             keyCode: 18,
