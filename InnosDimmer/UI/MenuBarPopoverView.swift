@@ -504,8 +504,9 @@ private final class ScheduleSummaryRowsView: NSView {
     ) -> NSStackView {
         let icon = metricIcon(systemSymbolName: systemSymbolName, fallback: fallback, iconColor: iconColor)
         let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .bold)
+        valueLabel.font = InnosDesignTokens.Font.numericValue
         valueLabel.textColor = .labelColor
+        valueLabel.widthAnchor.constraint(equalToConstant: 38).isActive = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
         valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
 
@@ -758,7 +759,7 @@ private final class ShortcutPairRowView: NSView {
 
 private final class ShortcutKeyChipView: NSView {
     private enum Metrics {
-        static let horizontalPadding: CGFloat = 5
+        static let horizontalPadding: CGFloat = 6
         static let topPadding: CGFloat = 2
         static let bottomPadding: CGFloat = 3
         static let tokenSpacing: CGFloat = 3
