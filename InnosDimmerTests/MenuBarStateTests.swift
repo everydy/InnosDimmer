@@ -1096,6 +1096,111 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowSafeVisualSmokeRendersNonblankPages() throws {
+        let snapshotDirectory = "/tmp/InnosDimmerSafeSmoke"
+        let directoryURL = URL(fileURLWithPath: snapshotDirectory, isDirectory: true)
+        try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.targetBrightness = 100
+        state.targetBlueReduction = 0
+        state.activeMode = .unknown
+        state.automationPausedUntilNextBoundary = true
+        state.automationResumeMinuteOfDay = 1_140
+        let events = [
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 0),
+                category: .softwareDimming,
+                message: "Safe visual smoke renders without live dimming.",
+                severity: .info
+            )
+        ]
+
+        let pages: [(String, AppDashboardFocusTarget?)] = [
+            ("home", .home),
+            ("current", .current),
+            ("display", .display),
+            ("schedule", .schedule),
+            ("shortcuts", .shortcuts),
+            ("settings", .settings),
+            ("diagnostics", .diagnostics)
+        ]
+
+        for (name, target) in pages {
+            let controller = UnifiedAppWindowController()
+            controller.update(
+                state: state,
+                schedule: ScheduleEntry.defaultSchedule,
+                shortcuts: ShortcutBinding.defaultBindings,
+                events: events,
+                snapshot: SettingsSnapshot.defaultSnapshot(),
+                displayCandidates: [.menuBarTestDisplay],
+                loginItemStatus: .enabled
+            )
+            controller.window?.appearance = NSAppearance(named: .darkAqua)
+            controller.focus(target)
+
+            let representation = try nonblankBitmapRepresentation(
+                for: try XCTUnwrap(controller.window?.contentView),
+                name: name
+            )
+            guard let data = representation.representation(using: .png, properties: [:]) else {
+                XCTFail("Could not encode safe smoke snapshot for \(name)")
+                continue
+            }
+            try data.write(to: directoryURL.appendingPathComponent("safe-app-window-\(name).png"))
+        }
+    }
+
+    @MainActor
+    private func nonblankBitmapRepresentation(
+        for view: NSView,
+        name: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> NSBitmapImageRep {
+        view.layoutSubtreeIfNeeded()
+        XCTAssertGreaterThan(view.bounds.width, 100, file: file, line: line)
+        XCTAssertGreaterThan(view.bounds.height, 100, file: file, line: line)
+
+        let representation = try XCTUnwrap(
+            view.bitmapImageRepForCachingDisplay(in: view.bounds),
+            "Could not create safe smoke bitmap for \(name)",
+            file: file,
+            line: line
+        )
+        view.cacheDisplay(in: view.bounds, to: representation)
+
+        let width = max(1, representation.pixelsWide)
+        let height = max(1, representation.pixelsHigh)
+        let xStride = max(1, width / 12)
+        let yStride = max(1, height / 12)
+        var hasVisiblePixel = false
+        var buckets: Set<String> = []
+
+        for y in stride(from: 0, to: height, by: yStride) {
+            for x in stride(from: 0, to: width, by: xStride) {
+                guard let color = representation.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else {
+                    continue
+                }
+                let red = color.redComponent
+                let green = color.greenComponent
+                let blue = color.blueComponent
+                let alpha = color.alphaComponent
+                if alpha > 0.01, red + green + blue > 0.04 {
+                    hasVisiblePixel = true
+                }
+                buckets.insert("\(Int(red * 12))-\(Int(green * 12))-\(Int(blue * 12))-\(Int(alpha * 12))")
+            }
+        }
+
+        XCTAssertTrue(hasVisiblePixel, "Safe smoke snapshot for \(name) is black or transparent", file: file, line: line)
+        XCTAssertGreaterThan(buckets.count, 2, "Safe smoke snapshot for \(name) has too little visual variation", file: file, line: line)
+        return representation
+    }
+
+    @MainActor
     func testMenuBarPopoverUpdateRefreshesVisibleStateAndDiagnostics() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay

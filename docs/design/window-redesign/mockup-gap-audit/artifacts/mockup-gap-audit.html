@@ -257,7 +257,7 @@
     </section>
 
     <section class="footer">
-      Smoke note: the full test suite passed, but live app screenshot verification produced a black capture because software dimming can cover the screen. Future visual QA needs a no-dimming/safe-state launch path.
+      Smoke note: the old live screenshot path could produce a black capture because software dimming can cover the screen. The implementation now uses a safe native view-level smoke path with brightness 100 / blue 0 and writes nonblank app-window artifacts without launching live dimming.
     </section>
   </main>
 
