@@ -29,12 +29,31 @@ enum InnosDesignTokens {
     }
 
     enum Font {
-        static var sectionTitle: NSFont { app(ofSize: 12, weight: .bold) }
+        static var appTitle: NSFont { app(ofSize: 17, weight: .bold) }
+        static var windowTitle: NSFont { app(ofSize: 22, weight: .bold) }
+        static var sectionLabel: NSFont { app(ofSize: 12, weight: .semibold) }
         static var body: NSFont { app(ofSize: 13, weight: .regular) }
-        static var bodyEmphasis: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var bodySmall: NSFont { app(ofSize: 12, weight: .regular) }
+        static var bodyStrong: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var bodySmallStrong: NSFont { app(ofSize: 12, weight: .semibold) }
+        static var controlLabel: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var controlValue: NSFont { app(ofSize: 18, weight: .semibold) }
+        static var compactControlValue: NSFont { app(ofSize: 16, weight: .semibold) }
+        static var numericValue: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var buttonLabel: NSFont { app(ofSize: 12, weight: .semibold) }
+        static var badgeLabel: NSFont { app(ofSize: 12, weight: .semibold) }
+        static var badgeCompact: NSFont { app(ofSize: 9, weight: .semibold) }
+        static var shortcutName: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var shortcutDirection: NSFont { app(ofSize: 12, weight: .semibold) }
+        static var shortcutToken: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var shortcutSeparator: NSFont { app(ofSize: 9, weight: .medium) }
+        static var shortcutOff: NSFont { app(ofSize: 12, weight: .semibold) }
+
+        static var sectionTitle: NSFont { sectionLabel }
+        static var bodyEmphasis: NSFont { bodyStrong }
         static var value: NSFont { app(ofSize: 18, weight: .bold) }
-        static var chip: NSFont { app(ofSize: 12, weight: .semibold) }
-        static var button: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var chip: NSFont { badgeLabel }
+        static var button: NSFont { buttonLabel }
 
         static func app(ofSize size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
             if let font = NSFont(name: pretendardPostScriptName(for: weight), size: size)
