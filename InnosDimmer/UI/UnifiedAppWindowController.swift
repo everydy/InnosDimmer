@@ -5,6 +5,31 @@ struct AppWindowPageStructure: Equatable {
     var identifiers: Set<String>
     var visibleText: [String]
 
+    var hasHeaderBackControl: Bool {
+        containsIdentifier("app-window-header-action:Back")
+    }
+
+    var hasBodyBackRow: Bool {
+        containsIdentifier("app-window-body-action:Back")
+    }
+
+    var usesSplitLayout: Bool {
+        containsIdentifier("app-window-detail-split")
+    }
+
+    var diagnosticsLogRowCount: Int {
+        identifiers.filter { $0 == "app-window-log-row" }.count
+    }
+
+    var compactActionLabels: [String] {
+        visibleText.filter {
+            $0 == "Export diagnostics" ||
+            $0 == "Save schedule" ||
+            $0 == "Save shortcuts" ||
+            $0 == "Apply settings"
+        }
+    }
+
     func containsIdentifier(_ identifier: String) -> Bool {
         identifiers.contains(identifier)
     }

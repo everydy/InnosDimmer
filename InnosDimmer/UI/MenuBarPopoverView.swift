@@ -327,7 +327,7 @@ final class DashboardRootView: NSView {
 
 private enum BlueReductionWarning {
     static let threshold = 50
-    static let message = "High warmth may shift colors."
+    static let message = "High blue reduction may shift colors."
 
     static func message(for blueReduction: Int) -> String? {
         Clamped.percent(blueReduction) >= threshold ? message : nil
@@ -585,7 +585,7 @@ private enum ShortcutSummaryFormatter {
                 downKeyLabel: lookup[.brightnessDown] ?? "Off"
             ),
             ShortcutSummaryGroup(
-                title: "Warmth",
+                title: "Blue reduction",
                 upKeyLabel: lookup[.blueReductionUp] ?? "Off",
                 downKeyLabel: lookup[.blueReductionDown] ?? "Off"
             )
@@ -1139,9 +1139,9 @@ struct MenuBarViewModel: Equatable {
         case .brightnessDown:
             return "Brightness down"
         case .blueReductionUp:
-            return "Warmth up"
+            return "Blue reduction up"
         case .blueReductionDown:
-            return "Warmth down"
+            return "Blue reduction down"
         case .quickDisableOverlay:
             return "Quick disable"
         case .restorePreviousDimming:
@@ -1385,14 +1385,14 @@ final class MenuBarPopoverView: NSView {
                 ),
                 makeSeparator(),
                 makeControlGroup(
-                    title: "Warmth",
+                    title: "Blue reduction",
                     iconSystemName: "thermometer.medium",
                     iconFallback: "🌡",
                     iconColor: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1),
                     valueLabel: blueReductionValueLabel,
                     trackView: blueReductionTrackView,
-                    decrement: compactButton("-", accessibilityLabel: "Warmth down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
-                    increment: compactButton("+", accessibilityLabel: "Warmth up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
+                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
                 ),
                 blueReductionWarningLabel,
                 makeActionRow([
@@ -1408,7 +1408,7 @@ final class MenuBarPopoverView: NSView {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Warmth percentage")
+        blueReductionTrackView.setAccessibilityLabel("Blue reduction percentage")
 
         let automationActionButton = button(
             "Pause automation",
@@ -1750,7 +1750,7 @@ struct AppDashboardViewModel: Equatable {
         failureValue = "\(errors) errors, \(warnings) warnings"
         displayLine = "Display: \(displayValue)"
         modeLine = "Mode: \(modeValue)"
-        brightnessLine = "Brightness: \(brightnessValue) / Warmth: \(blueReductionValue)"
+        brightnessLine = "Brightness: \(brightnessValue) / Blue reduction: \(blueReductionValue)"
         automationLine = "Automation: \(automationValue)"
         scheduleLine = "Schedule: \(scheduleValue)"
         shortcutLine = "Shortcuts: \(shortcutValue)"
@@ -1978,7 +1978,7 @@ final class AppDashboardWindowController: NSWindowController {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Dashboard brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Dashboard warmth percentage")
+        blueReductionTrackView.setAccessibilityLabel("Dashboard blue reduction percentage")
 
         let header = makeHeader(title: title)
         let currentState = makeSection(
@@ -2007,7 +2007,7 @@ final class AppDashboardWindowController: NSWindowController {
                     )
                 ),
                 makeControlGroup(
-                    title: "Warmth",
+                    title: "Blue reduction",
                     iconSystemName: "thermometer.medium",
                     iconFallback: "🌡",
                     iconColor: PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance),
@@ -2015,13 +2015,13 @@ final class AppDashboardWindowController: NSWindowController {
                     trackView: blueReductionTrackView,
                     decrement: compactButton(
                         "-",
-                        accessibilityLabel: "Dashboard warmth down",
+                        accessibilityLabel: "Dashboard blue reduction down",
                         command: .blueReductionDown,
                         action: #selector(blueReductionDownPressed)
                     ),
                     increment: compactButton(
                         "+",
-                        accessibilityLabel: "Dashboard warmth up",
+                        accessibilityLabel: "Dashboard blue reduction up",
                         command: .blueReductionUp,
                         action: #selector(blueReductionUpPressed)
                     )

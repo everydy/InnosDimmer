@@ -18,7 +18,7 @@ enum ScheduleEditorError: LocalizedError, Equatable {
 final class ScheduleEditorView: NSView, NSTextFieldDelegate {
     private enum Layout {
         static let timeFieldWidth: CGFloat = 64
-        static let metricCellWidth: CGFloat = 210
+        static let metricCellMinWidth: CGFloat = 210
         static let percentFieldWidth: CGFloat = 38
         static let stepButtonWidth: CGFloat = 24
         static let trackMinWidth: CGFloat = 86
@@ -286,14 +286,15 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
 
         let header = NSStackView(views: [
             fixedLabel("Time", width: Layout.timeFieldWidth),
-            fixedLabel("Bright", width: Layout.metricCellWidth),
-            fixedLabel("Blue", width: Layout.metricCellWidth)
+            metricHeaderLabel("Bright"),
+            metricHeaderLabel("Blue")
         ])
         header.orientation = .horizontal
         header.alignment = .centerY
         header.distribution = .fill
         header.spacing = Layout.columnSpacing
         stack.addArrangedSubview(header)
+        header.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         for index in 0..<rowCount {
             let controls = RowControls(
@@ -305,20 +306,22 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             )
             rows.append(controls)
 
+            let brightnessCell = metricCell(
+                valueField: controls.brightnessValue,
+                track: controls.brightnessTrack,
+                rowIndex: index,
+                metric: .brightness
+            )
+            let blueReductionCell = metricCell(
+                valueField: controls.blueReductionValue,
+                track: controls.blueReductionTrack,
+                rowIndex: index,
+                metric: .blueReduction
+            )
             let row = NSStackView(views: [
                 controls.time,
-                metricCell(
-                    valueField: controls.brightnessValue,
-                    track: controls.brightnessTrack,
-                    rowIndex: index,
-                    metric: .brightness
-                ),
-                metricCell(
-                    valueField: controls.blueReductionValue,
-                    track: controls.blueReductionTrack,
-                    rowIndex: index,
-                    metric: .blueReduction
-                )
+                brightnessCell,
+                blueReductionCell
             ])
             row.orientation = .horizontal
             row.alignment = .centerY
@@ -328,9 +331,8 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             stack.addArrangedSubview(row)
             row.translatesAutoresizingMaskIntoConstraints = false
             row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            brightnessCell.widthAnchor.constraint(equalTo: blueReductionCell.widthAnchor).isActive = true
         }
-        header.translatesAutoresizingMaskIntoConstraints = false
-        header.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -346,6 +348,16 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return label
+    }
+
+    private func metricHeaderLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellMinWidth).isActive = true
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         return label
     }
 
@@ -392,7 +404,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         track: SchedulePercentTrackView,
         rowIndex: Int,
         metric: MetricField
-    ) -> NSView {
+    ) -> NSStackView {
         let decrement = ScheduleStepButton(
             title: "-",
             rowIndex: rowIndex,
@@ -420,7 +432,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         cell.alignment = .centerY
         cell.spacing = Layout.controlSpacing
         cell.translatesAutoresizingMaskIntoConstraints = false
-        cell.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellWidth).isActive = true
+        cell.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellMinWidth).isActive = true
         cell.setContentHuggingPriority(.defaultLow, for: .horizontal)
         cell.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         cell.setAccessibilityLabel("\(metric.accessibilityTitle) row \(rowIndex + 1)")

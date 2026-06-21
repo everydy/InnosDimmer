@@ -46,22 +46,24 @@ final class ScheduleEditorWindowController: NSWindowController {
 
     private func installContent() {
         let title = NSTextField(labelWithString: "InnosDimmer Schedule")
-        title.font = .systemFont(ofSize: 20, weight: .bold)
+        title.font = InnosDesignTokens.Font.app(ofSize: 20, weight: .bold)
         title.textColor = .labelColor
 
         let subtitle = NSTextField(labelWithString: "Focused editor shell for the current automation schedule.")
-        subtitle.font = .systemFont(ofSize: 13)
+        subtitle.font = InnosDesignTokens.Font.body
         subtitle.textColor = .secondaryLabelColor
         subtitle.lineBreakMode = .byWordWrapping
         subtitle.maximumNumberOfLines = 0
 
-        statusLabel.font = .systemFont(ofSize: 12)
+        statusLabel.font = InnosDesignTokens.Font.bodySmall
         statusLabel.textColor = .secondaryLabelColor
 
         let saveButton = NSButton(title: "Save schedule", target: self, action: #selector(saveSchedulePressed))
         saveButton.bezelStyle = .rounded
+        saveButton.font = InnosDesignTokens.Font.buttonLabel
         let closeButton = NSButton(title: "Close", target: self, action: #selector(closePressed))
         closeButton.bezelStyle = .rounded
+        closeButton.font = InnosDesignTokens.Font.buttonLabel
         let buttonRow = NSStackView(views: [saveButton, closeButton])
         buttonRow.orientation = .horizontal
         buttonRow.spacing = 8
@@ -91,7 +93,7 @@ final class ScheduleEditorWindowController: NSWindowController {
 
     private func makeSection(title: String, content: NSView) -> NSView {
         let titleLabel = NSTextField(labelWithString: title.uppercased())
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.font = InnosDesignTokens.Font.sectionLabel
         titleLabel.textColor = .secondaryLabelColor
 
         let stack = NSStackView(views: [titleLabel, content])
@@ -159,7 +161,7 @@ final class ScheduleEditorWindowController: NSWindowController {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% warmth"
+            "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% blue reduction"
         }
         return labels.isEmpty ? "Not configured" : labels.joined(separator: "\n")
     }

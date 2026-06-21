@@ -72,7 +72,7 @@ Adopt a very dark neutral palette:
 | `page` | `#0f0f11` | Documentation canvas / outside app chrome. |
 | `surfaceRoot` | `#161616` | Primary app/popover root. Carbon Gray 100 aligned. |
 | `surfaceSection` | `#1f1f22` | Section shell/card background. |
-| `surfaceSubtle` | `#262626` | Status rows, schedule rows, diagnostics wells. Carbon Gray 90 aligned. |
+| `surfaceSubtle` | `#18181b` | Status rows, schedule rows, diagnostics wells. Production token aligned. |
 | `surfaceControl` | `#303036` | Buttons, chips, shortcut row controls. |
 | `border` | `#3b3b40` | Dividers and component borders. |
 | `text` | `#f3f3f1` | Primary text. |
@@ -89,7 +89,7 @@ Contrast spot checks against dark surfaces:
 | --- | ---: | ---: | ---: | ---: |
 | `surfaceRoot #161616` | 16.29:1 | 7.68:1 | 7.24:1 | 11.03:1 |
 | `surfaceSection #1f1f22` | 14.80:1 | 6.98:1 | 6.58:1 | 10.02:1 |
-| `surfaceSubtle #262626` | 13.62:1 | 6.42:1 | 6.06:1 | 9.23:1 |
+| `surfaceSubtle #18181b` | 16.40:1 | 6.91:1 | 6.97:1 | 11.37:1 |
 | `surfaceControl #303036` | 11.80:1 | 5.56:1 | 5.25:1 | 7.99:1 |
 
 ## Data Flow And Control Flow
