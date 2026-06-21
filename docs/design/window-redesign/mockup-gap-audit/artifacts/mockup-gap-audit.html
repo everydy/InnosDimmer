@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Mockup Gap Audit</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121214;
+      --panel: #202126;
+      --panel-2: #292b31;
+      --line: #41454f;
+      --text: #f3f3f4;
+      --muted: #b5bbc5;
+      --blue: #5aa7ff;
+      --green: #76d99b;
+      --amber: #f1c45f;
+      --red: #ff7777;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: 28px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+    .top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .score {
+      min-width: 170px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      text-align: right;
+    }
+    .score strong {
+      display: block;
+      color: var(--amber);
+      font-size: 34px;
+      line-height: 1;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    button {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+      font-weight: 650;
+    }
+    button.active {
+      border-color: var(--blue);
+      background: rgba(90, 167, 255, .16);
+      color: var(--blue);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .card-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+    .card h2 {
+      font-size: 16px;
+      line-height: 1.2;
+    }
+    .pill {
+      display: inline-flex;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+    .good { color: var(--green); border-color: rgba(118, 217, 155, .35); }
+    .warn { color: var(--amber); border-color: rgba(241, 196, 95, .42); }
+    .bad { color: var(--red); border-color: rgba(255, 119, 119, .38); }
+    .content {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 116px 1fr;
+      gap: 10px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #18191d;
+    }
+    .row span:first-child {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+      text-transform: uppercase;
+    }
+    .row span:last-child {
+      line-height: 1.35;
+      font-size: 13px;
+    }
+    .footer {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid rgba(241, 196, 95, .42);
+      border-radius: 8px;
+      background: rgba(241, 196, 95, .1);
+      color: var(--amber);
+      line-height: 1.45;
+      font-weight: 650;
+    }
+    @media (max-width: 820px) {
+      .top, .grid { grid-template-columns: 1fr; }
+      .score { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="top">
+      <div>
+        <h1>Mockup vs Actual App Window Gap Audit</h1>
+        <p class="subtitle">현재 실제 앱은 홈 화면은 어느 정도 따라왔지만, 세부 페이지와 설정창 삭제 가능성은 아직 목표 목업과 많이 다릅니다.</p>
+      </div>
+      <div class="score">
+        <span>estimated parity</span>
+        <strong>~50%</strong>
+      </div>
+    </section>
+
+    <div class="toolbar" aria-label="Gap filter">
+      <button class="active" type="button" data-filter="all">All</button>
+      <button type="button" data-filter="blocker">Blocker</button>
+      <button type="button" data-filter="important">Important</button>
+      <button type="button" data-filter="minor">Minor</button>
+    </div>
+
+    <section class="grid" aria-label="Gap cards">
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Home</h2><span class="pill warn">70-75%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Quick actions, next actions, and card tiles exist.</span></div>
+          <div class="row"><span>Mockup</span><span>Similar two-column home with tokenized quick controls and destination cards.</span></div>
+          <div class="row"><span>Gap</span><span>Mostly acceptable, but still needs visual QA for spacing/status rhythm.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Current status</h2><span class="pill warn">45-55%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Duplicates Quick actions inside the detail page.</span></div>
+          <div class="row"><span>Mockup</span><span>Read-only snapshot page without duplicated home controls.</span></div>
+          <div class="row"><span>Gap</span><span>Detail page information architecture is not aligned yet.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Display</h2><span class="pill bad">35-45%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Picker, current value, and candidate count.</span></div>
+          <div class="row"><span>Mockup</span><span>Current-state panel, resolved display details, gamma support, save/automatic actions.</span></div>
+          <div class="row"><span>Gap</span><span>Function exists, but page structure is too thin.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="blocker">
+        <div class="card-head"><h2>Schedule</h2><span class="pill bad">25-35%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Text fields: Time, Brightness, Blue.</span></div>
+          <div class="row"><span>Mockup</span><span>Table rows with numeric value, slider, adjacent stepper, remove button, and bottom action row.</span></div>
+          <div class="row"><span>Gap</span><span>Largest mismatch. This blocks claiming the app window follows the mockup.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Shortcuts</h2><span class="pill warn">55-65%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Rows and save/reset behavior are functionally present.</span></div>
+          <div class="row"><span>Mockup</span><span>Tokenized shortcut rows with clearer table rhythm.</span></div>
+          <div class="row"><span>Gap</span><span>Functional but not visually finished.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Settings</h2><span class="pill warn">45-55%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Launch at login and saved-state summary.</span></div>
+          <div class="row"><span>Mockup</span><span>Persistent app settings page with clearer status and apply feedback.</span></div>
+          <div class="row"><span>Gap</span><span>Core actions exist, but the page is still a minimal summary.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="important">
+        <div class="card-head"><h2>Diagnostics</h2><span class="pill warn">45-55%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span>Verification summary, text log, and export.</span></div>
+          <div class="row"><span>Mockup</span><span>Readable matrix overview and log feed.</span></div>
+          <div class="row"><span>Gap</span><span>Works, but visual diagnosis quality is below target.</span></div>
+        </div>
+      </article>
+
+      <article class="card" data-severity="blocker">
+        <div class="card-head"><h2>Settings-window retirement</h2><span class="pill bad">20-30%</span></div>
+        <div class="content">
+          <div class="row"><span>Actual</span><span><code>SettingsWindowController</code> still exists and is directly tested.</span></div>
+          <div class="row"><span>Target</span><span>All settings functionality lives in the unified app window.</span></div>
+          <div class="row"><span>Gap</span><span>Do not delete the old settings window until tests and helper ownership move.</span></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="footer">
+      Smoke note: the full test suite passed, but live app screenshot verification produced a black capture because software dimming can cover the screen. Future visual QA needs a no-dimming/safe-state launch path.
+    </section>
+  </main>
+
+  <script>
+    const buttons = Array.from(document.querySelectorAll("[data-filter]"));
+    const cards = Array.from(document.querySelectorAll("[data-severity]"));
+    for (const button of buttons) {
+      button.addEventListener("click", () => {
+        const filter = button.dataset.filter;
+        buttons.forEach((candidate) => candidate.classList.toggle("active", candidate === button));
+        cards.forEach((card) => {
+          card.hidden = filter !== "all" && card.dataset.severity !== filter;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
