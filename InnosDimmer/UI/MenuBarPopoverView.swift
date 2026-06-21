@@ -2853,7 +2853,7 @@ final class UnifiedAppWindowController: NSWindowController {
                 makeSummaryRow(title: "Status", value: automationSummary()),
                 makeSummaryRow(title: "Current", value: scheduleSummaryText())
             ]),
-            makeSection(title: "Schedule rows", views: [scheduleEditorView, controls, scheduleStatusLabel])
+            makeSection(title: "Schedule rows", views: [scheduleEditorView, scheduleStatusLabel, controls])
         ])
     }
 

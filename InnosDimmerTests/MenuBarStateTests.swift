@@ -288,6 +288,51 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testScheduleEditorViewTableControlsSynchronizeValues() throws {
+        let view = ScheduleEditorView()
+        view.update(schedule: ScheduleEntry.defaultSchedule)
+
+        var values = try XCTUnwrap(view.rowValuesForTesting(index: 0))
+        XCTAssertEqual(values.time, "09:00")
+        XCTAssertEqual(values.brightness, "80")
+        XCTAssertEqual(values.blueReduction, "12")
+
+        view.stepBrightnessForTesting(index: 0, delta: 1)
+        view.stepBlueReductionForTesting(index: 0, delta: -1)
+        values = try XCTUnwrap(view.rowValuesForTesting(index: 0))
+        XCTAssertEqual(values.brightness, "81")
+        XCTAssertEqual(values.blueReduction, "11")
+
+        view.simulateBrightnessTrackChangeForTesting(index: 1, percent: 66)
+        view.simulateBlueReductionTrackChangeForTesting(index: 1, percent: 21)
+        values = try XCTUnwrap(view.rowValuesForTesting(index: 1))
+        XCTAssertEqual(values.brightness, "66")
+        XCTAssertEqual(values.blueReduction, "21")
+
+        let fractions = try XCTUnwrap(view.trackFractionsForTesting(index: 1))
+        XCTAssertEqual(fractions.brightness, 0.66, accuracy: 0.001)
+        XCTAssertEqual(fractions.blueReduction, 0.21, accuracy: 0.001)
+
+        let schedule = try view.editedSchedule()
+        XCTAssertEqual(schedule[0].brightness, 81)
+        XCTAssertEqual(schedule[0].blueReduction, 11)
+        XCTAssertEqual(schedule[1].brightness, 66)
+        XCTAssertEqual(schedule[1].blueReduction, 21)
+    }
+
+    @MainActor
+    func testScheduleEditorViewAcceptsPercentSuffixInTableValueFields() throws {
+        let view = ScheduleEditorView()
+        view.setRowForTesting(index: 0, time: "08:15", brightness: "72%", blueReduction: "18%")
+
+        let schedule = try view.editedSchedule()
+
+        XCTAssertEqual(schedule.first?.minuteOfDay, 495)
+        XCTAssertEqual(schedule.first?.brightness, 72)
+        XCTAssertEqual(schedule.first?.blueReduction, 18)
+    }
+
+    @MainActor
     func testScheduleEditorViewReportsInvalidFields() {
         let invalidTimeView = ScheduleEditorView()
         invalidTimeView.setRowForTesting(index: 0, time: "24:00", brightness: "80", blueReduction: "12")
@@ -326,6 +371,38 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(savedSchedule?.first?.brightness, 72)
         XCTAssertEqual(savedSchedule?.first?.blueReduction, 18)
         XCTAssertEqual(snapshot.schedule.first?.minuteOfDay, 510)
+    }
+
+    @MainActor
+    func testUnifiedAppWindowSavesTableScheduleThroughInjectedAction() {
+        var savedSchedule: [ScheduleEntry]?
+        let controller = UnifiedAppWindowController(
+            scheduleActions: ScheduleEditorActions(
+                updateSchedule: { schedule in
+                    savedSchedule = schedule
+                    return .success(SettingsSnapshot.defaultSnapshot().replacingSchedule(schedule))
+                }
+            )
+        )
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+        controller.focus(.schedule)
+        controller.setScheduleRowForTesting(index: 2, time: "08:15", brightness: "64", blueReduction: "11")
+
+        let result = controller.saveScheduleForTesting()
+
+        guard case .success(let snapshot) = result else {
+            XCTFail("Expected app window schedule save to succeed")
+            return
+        }
+        XCTAssertEqual(savedSchedule?.map(\.minuteOfDay), [495, 540, 1_140])
+        XCTAssertEqual(savedSchedule?.first?.brightness, 64)
+        XCTAssertEqual(savedSchedule?.first?.blueReduction, 11)
+        XCTAssertEqual(snapshot.schedule.map(\.minuteOfDay), [495, 540, 1_140])
     }
 
     @MainActor
@@ -606,7 +683,7 @@ final class MenuBarStateTests: XCTestCase {
             "45",
             "23:00",
             "58",
-            "Pause automation",
+            "Resume automation",
             "Save schedule"
         ])
         assert(text, doesNotContain: ["Warmth"])
