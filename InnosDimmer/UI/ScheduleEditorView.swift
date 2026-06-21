@@ -18,13 +18,13 @@ enum ScheduleEditorError: LocalizedError, Equatable {
 final class ScheduleEditorView: NSView, NSTextFieldDelegate {
     private enum Layout {
         static let timeFieldWidth: CGFloat = 64
-        static let metricCellWidth: CGFloat = 150
+        static let metricCellWidth: CGFloat = 210
         static let percentFieldWidth: CGFloat = 38
         static let stepButtonWidth: CGFloat = 24
-        static let trackMinWidth: CGFloat = 52
+        static let trackMinWidth: CGFloat = 86
         static let rowSpacing: CGFloat = 8
-        static let columnSpacing: CGFloat = 6
-        static let controlSpacing: CGFloat = 4
+        static let columnSpacing: CGFloat = 10
+        static let controlSpacing: CGFloat = 0
         static let fieldHeight: CGFloat = 26
     }
 
@@ -276,7 +276,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
     private func installContent() {
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .leading
+        stack.alignment = .width
         stack.spacing = Layout.rowSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -286,6 +286,8 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             fixedLabel("Blue", width: Layout.metricCellWidth)
         ])
         header.orientation = .horizontal
+        header.alignment = .centerY
+        header.distribution = .fill
         header.spacing = Layout.columnSpacing
         stack.addArrangedSubview(header)
 
@@ -316,15 +318,20 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             ])
             row.orientation = .horizontal
             row.alignment = .centerY
+            row.distribution = .fill
             row.spacing = Layout.columnSpacing
             row.setAccessibilityLabel("Schedule row \(index + 1)")
             stack.addArrangedSubview(row)
+            row.translatesAutoresizingMaskIntoConstraints = false
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
+        header.translatesAutoresizingMaskIntoConstraints = false
+        header.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
@@ -409,7 +416,9 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         cell.alignment = .centerY
         cell.spacing = Layout.controlSpacing
         cell.translatesAutoresizingMaskIntoConstraints = false
-        cell.widthAnchor.constraint(equalToConstant: Layout.metricCellWidth).isActive = true
+        cell.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellWidth).isActive = true
+        cell.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        cell.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         cell.setAccessibilityLabel("\(metric.accessibilityTitle) row \(rowIndex + 1)")
         return cell
     }

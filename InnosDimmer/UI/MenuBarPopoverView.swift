@@ -2331,6 +2331,20 @@ final class AppDashboardWindowController: NSWindowController {
     }
 }
 
+struct AppWindowPageStructure: Equatable {
+    var pageTitle: String
+    var identifiers: Set<String>
+    var visibleText: [String]
+
+    func containsIdentifier(_ identifier: String) -> Bool {
+        identifiers.contains(identifier)
+    }
+
+    func containsText(_ fragment: String) -> Bool {
+        visibleText.contains { $0.localizedCaseInsensitiveContains(fragment) }
+    }
+}
+
 private enum UnifiedAppWindowPage: CaseIterable {
     case home
     case current
@@ -2428,6 +2442,9 @@ final class UnifiedAppWindowController: NSWindowController {
         static let homeNavigationWidth: CGFloat = 348
         static let homeTileWidth: CGFloat = 168
         static let homeTileHeight: CGFloat = 104
+        static let detailSidebarWidth: CGFloat = 256
+        static let detailMinimumPrimaryWidth: CGFloat = 360
+        static let tokenRowHeight: CGFloat = 34
     }
 
     private struct ShortcutControls {
@@ -2541,6 +2558,17 @@ final class UnifiedAppWindowController: NSWindowController {
         activePage.title
     }
 
+    func pageStructureForTesting(focus target: AppDashboardFocusTarget) -> AppWindowPageStructure {
+        focus(target)
+        window?.contentView?.layoutSubtreeIfNeeded()
+        let contentView = window?.contentView
+        return AppWindowPageStructure(
+            pageTitle: activePage.title,
+            identifiers: Set(contentView?.appWindowIdentifiersForTesting() ?? []),
+            visibleText: contentView?.appWindowVisibleTextForTesting() ?? []
+        )
+    }
+
     func homeLayoutMetricsForTesting() -> (quickActionsWidth: CGFloat, nextActionsWidth: CGFloat, firstTileWidth: CGFloat, firstTileHeight: CGFloat)? {
         activePage = .home
         renderActivePage()
@@ -2626,11 +2654,13 @@ final class UnifiedAppWindowController: NSWindowController {
         statusLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.stringValue = "Ready."
+        statusLabel.isHidden = true
         scheduleStatusLabel.font = InnosDesignTokens.Font.body
         scheduleStatusLabel.textColor = .secondaryLabelColor
         displayPicker.target = self
         displayPicker.action = #selector(displaySelectionChanged)
         displayPicker.font = InnosDesignTokens.Font.body
+        scheduleEditorView.identifier = NSUserInterfaceItemIdentifier("app-window-schedule-table")
         loginItemCheckbox.target = self
         loginItemCheckbox.action = #selector(loginItemToggled)
         loginItemCheckbox.font = InnosDesignTokens.Font.body
@@ -2778,8 +2808,13 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeCurrentPage() -> NSView {
-        makeDetailPage([
-            makeSection(title: "Snapshot lines", trailing: makeChip("Live", tone: .neutral), views: [
+        makeDetailPage(
+            title: "Current status",
+            trailingActions: [
+                makeChip("Live", tone: .neutral)
+            ],
+            content: verticalStack([
+                makeSection(title: "Snapshot lines", trailing: makeChip("Live", tone: .neutral), views: [
                 makeSummaryRow(title: "Display", value: currentDisplaySummary()),
                 makeSummaryRow(title: "Mode", value: displayModeSummary()),
                 makeSummaryRow(
@@ -2787,60 +2822,68 @@ final class UnifiedAppWindowController: NSWindowController {
                     value: "Brightness: \(state.targetBrightness)% / Blue reduction: \(state.targetBlueReduction)%"
                 ),
                 makeSummaryRow(title: "Automation", value: automationSummary())
-            ]),
-            makeSection(title: "Commands", views: [
-                makeActionRow([
-                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
-                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
-                    button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
+                ]),
+                makeSection(title: "Commands", views: [
+                    makeActionRow([
+                        button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
+                        button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
+                        button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
+                    ])
                 ])
             ])
-        ])
+        )
     }
 
     private func makeDisplayPage() -> NSView {
         renderDisplayPicker()
         let resolvedDisplay = resolvedTargetDisplay()
-        return makeDetailPage([
-            makeActionRow([
+        let resolvedTone: InnosDesignTokens.Tone = resolvedDisplay == nil ? .warning : .ready
+        let split = makeDetailSplit(
+            sidebar: makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
+                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
+                makeSummaryRow(title: "Mode", value: displayModeSummary()),
+                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
+                makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
+            ]),
+            primary: verticalStack([
+                makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
+                    displayPicker,
+                    makeSummaryRow(title: "Selected", value: selectedDisplaySummary()),
+                    makeSummaryRow(title: "Resolved to", value: resolvedDisplaySummary(resolvedDisplay)),
+                    makeSummaryRow(title: "Main display", value: mainDisplaySummary(resolvedDisplay)),
+                    makeSummaryRow(title: "Gamma table", value: gammaTableSummary(resolvedDisplay))
+                ]),
+                makeSection(title: "Saved selection", views: [
+                    makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
+                    makeActionRow([
+                        PopoverCommandButton(
+                            title: "Save display",
+                            style: .primary,
+                            target: self,
+                            action: #selector(saveDisplayPressed)
+                        ),
+                        PopoverCommandButton(
+                            title: "Use automatic",
+                            style: .normal,
+                            target: self,
+                            action: #selector(useAutomaticDisplayPressed)
+                        )
+                    ])
+                ])
+            ])
+        )
+        return makeDetailPage(
+            title: "Display",
+            trailingActions: [
                 PopoverCommandButton(
                     title: "Refresh displays",
                     style: .primary,
                     target: self,
                     action: #selector(refreshDisplaysPressed)
                 )
-            ]),
-            makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
-                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
-                makeSummaryRow(title: "Mode", value: displayModeSummary()),
-                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
-                makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
-            ]),
-            makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedDisplay == nil ? .warning : .ready), views: [
-                displayPicker,
-                makeSummaryRow(title: "Selected", value: selectedDisplaySummary()),
-                makeSummaryRow(title: "Resolved to", value: resolvedDisplaySummary(resolvedDisplay)),
-                makeSummaryRow(title: "Main display", value: mainDisplaySummary(resolvedDisplay)),
-                makeSummaryRow(title: "Gamma table", value: gammaTableSummary(resolvedDisplay))
-            ]),
-            makeSection(title: "Saved selection", views: [
-                makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
-                makeActionRow([
-                    PopoverCommandButton(
-                        title: "Save display",
-                        style: .primary,
-                        target: self,
-                        action: #selector(saveDisplayPressed)
-                    ),
-                    PopoverCommandButton(
-                        title: "Use automatic",
-                        style: .normal,
-                        target: self,
-                        action: #selector(useAutomaticDisplayPressed)
-                    )
-                ])
-            ])
-        ])
+            ],
+            content: split
+        )
     }
 
     private func makeSchedulePage() -> NSView {
@@ -2848,87 +2891,211 @@ final class UnifiedAppWindowController: NSWindowController {
             button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed)),
             PopoverCommandButton(title: "Save schedule", style: .primary, target: self, action: #selector(saveSchedulePressed))
         ])
-        return makeDetailPage([
-            makeSection(title: "Schedule", views: [
-                makeSummaryRow(title: "Status", value: automationSummary()),
-                makeSummaryRow(title: "Current", value: scheduleSummaryText())
-            ]),
-            makeSection(title: "Schedule rows", views: [scheduleEditorView, scheduleStatusLabel, controls])
-        ])
+        controls.identifier = NSUserInterfaceItemIdentifier("app-window-schedule-actions")
+        return makeDetailPage(
+            title: "Schedule",
+            trailingActions: [
+                makeChip(nextScheduleText(), tone: .warning)
+            ],
+            content: verticalStack([
+                makeSection(title: "Schedule", views: [
+                    makeTokenRow(title: "Status", value: automationSummary()),
+                    makeTokenRow(title: "Current", value: scheduleSummaryText()),
+                    makeTokenRow(title: "Shortcuts", value: "Option + Shift controls")
+                ]),
+                makeSection(title: "Schedule rows", views: [scheduleEditorView, scheduleStatusLabel, controls])
+            ])
+        )
     }
 
     private func makeShortcutsPage() -> NSView {
         ensureShortcutControls()
         renderShortcuts()
-        return makeDetailPage([
-            makeSection(title: "Shortcut rows", views: [
-                makeSummaryRow(title: "Global shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled"),
-                makeShortcutStack(),
-                makeActionRow([
-                    PopoverCommandButton(title: "Save shortcuts", style: .primary, target: self, action: #selector(saveShortcutsPressed)),
-                    PopoverCommandButton(title: "Reset shortcuts", style: .normal, target: self, action: #selector(resetShortcutsPressed))
+        return makeDetailPage(
+            title: "Shortcuts",
+            content: verticalStack([
+                makeSection(title: "Shortcut rows", views: [
+                    makeTokenRow(title: "Global shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled"),
+                    makeShortcutStack(),
+                    makeActionRow([
+                        PopoverCommandButton(title: "Save shortcuts", style: .primary, target: self, action: #selector(saveShortcutsPressed)),
+                        PopoverCommandButton(title: "Reset shortcuts", style: .normal, target: self, action: #selector(resetShortcutsPressed))
+                    ])
                 ])
             ])
-        ])
+        )
     }
 
     private func makeSettingsPage() -> NSView {
         loginItemCheckbox.state = loginItemStatus == .enabled ? .on : .off
-        return makeDetailPage([
-            makeSection(title: "Startup", views: [
+        let split = makeDetailSplit(
+            sidebar: makeSection(title: "Startup", views: [
                 loginItemCheckbox,
-                makeSummaryRow(title: "Launch at login", value: loginItemSummary()),
-                makeSummaryRow(title: "Approval", value: loginItemApprovalSummary()),
-                makeSummaryRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
+                makeTokenRow(title: "Launch at login", value: loginItemSummary()),
+                makeTokenRow(title: "Approval", value: loginItemApprovalSummary()),
+                makeTokenRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
                 makeActionRow([
                     PopoverCommandButton(title: "Apply settings", style: .primary, target: self, action: #selector(loginItemToggled))
                 ])
             ]),
-            makeSection(title: "Saved settings", views: [
-                makeSummaryRow(title: "Target display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
-                makeSummaryRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
-                makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled"),
-                makeSummaryRow(title: "Schema", value: "SettingsSnapshot"),
-                makeSummaryRow(title: "Status label", value: statusLabel.stringValue)
+            primary: makeSection(title: "Saved settings", views: [
+                makeTokenRow(title: "Target display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
+                makeTokenRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
+                makeTokenRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled"),
+                makeTokenRow(title: "Schema", value: "SettingsSnapshot"),
+                makeTokenRow(title: "Status label", value: statusLabel.stringValue)
             ])
-        ])
+        )
+        return makeDetailPage(title: "Settings", content: split)
     }
 
     private func makeDiagnosticsPage() -> NSView {
         diagnosticsTextView.string = diagnosticsLogText()
         diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsTextView.effectiveAppearance)
-        let scroll = NSScrollView()
-        scroll.borderType = .noBorder
-        scroll.hasVerticalScroller = true
-        scroll.documentView = diagnosticsTextView
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
-        return makeDetailPage([
-            makeSection(title: "Verification matrix", views: [
-                makeSummaryRow(title: "Summary", value: diagnosticsMatrixSummary()),
-                makeSummaryRow(title: "Overlay", value: modeAppliedSummary(.overlay)),
-                makeSummaryRow(title: "Gamma", value: modeAppliedSummary(.gamma)),
-                makeSummaryRow(title: "Hotkeys", value: "\(shortcuts.filter(\.isEnabled).count) registered"),
-                makeSummaryRow(title: "Login item", value: loginItemSummary())
+        let logFeed = makeDiagnosticsLogFeed()
+        let split = makeDetailSplit(
+            sidebar: makeSection(title: "Verification matrix", views: [
+                makeTokenRow(title: "Summary", value: diagnosticsMatrixSummary()),
+                makeTokenRow(title: "Overlay", value: modeAppliedSummary(.overlay)),
+                makeTokenRow(title: "Gamma", value: modeAppliedSummary(.gamma)),
+                makeTokenRow(title: "Hotkeys", value: "\(shortcuts.filter(\.isEnabled).count) registered"),
+                makeTokenRow(title: "Login item", value: loginItemSummary())
             ]),
-            makeSection(title: "Recent diagnostics", views: [
-                scroll,
-                PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
+            primary: makeSection(title: "Recent diagnostics", views: [
+                logFeed
             ])
-        ])
+        )
+        return makeDetailPage(
+            title: "Diagnostics",
+            trailingActions: [
+                PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
+            ],
+            content: split
+        )
     }
 
-    private func makeDetailPage(_ views: [NSView]) -> NSView {
+    private func makeDetailPage(
+        title: String,
+        trailingActions: [NSView] = [],
+        content: NSView
+    ) -> NSView {
         let back = PopoverCommandButton(title: "← Back", style: .normal, target: self, action: #selector(backPressed))
-        let stack = NSStackView(views: [back] + views)
+        back.identifier = NSUserInterfaceItemIdentifier("app-window-header-action:Back")
+        back.setContentHuggingPriority(.required, for: .horizontal)
+
+        let pageTitle = NSTextField(labelWithString: title)
+        pageTitle.font = InnosDesignTokens.Font.app(ofSize: 22, weight: .bold)
+        pageTitle.textColor = .labelColor
+        pageTitle.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let header = NSStackView(views: [back, pageTitle, spacer()] + trailingActions)
+        header.identifier = NSUserInterfaceItemIdentifier("app-window-page-header")
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 12
+        trailingActions.forEach { $0.setContentHuggingPriority(.required, for: .horizontal) }
+
+        let stack = NSStackView(views: [header, content])
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 12
-        ([back] + views).forEach { view in
+        [header, content].forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         return stack
+    }
+
+    private func verticalStack(_ views: [NSView], spacing: CGFloat = 12) -> NSStackView {
+        let stack = NSStackView(views: views)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = spacing
+        views.forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return stack
+    }
+
+    private func makeDetailSplit(sidebar: NSView, primary: NSView) -> NSStackView {
+        let split = NSStackView(views: [sidebar, primary])
+        split.identifier = NSUserInterfaceItemIdentifier("app-window-detail-split")
+        split.orientation = .horizontal
+        split.alignment = .top
+        split.distribution = .fill
+        split.spacing = 12
+        sidebar.translatesAutoresizingMaskIntoConstraints = false
+        primary.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.widthAnchor.constraint(equalToConstant: Layout.detailSidebarWidth).isActive = true
+        primary.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.detailMinimumPrimaryWidth).isActive = true
+        return split
+    }
+
+    private func makeTokenRow(title: String, value: String) -> NSView {
+        let titleLabel = sectionLabel(title)
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        valueLabel.textColor = .labelColor
+        valueLabel.lineBreakMode = .byWordWrapping
+        valueLabel.maximumNumberOfLines = 2
+        valueLabel.alignment = .right
+        valueLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let row = NSStackView(views: [titleLabel, spacer(), valueLabel])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        row.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.tokenRowHeight).isActive = true
+
+        let container = PopoverContainerView(style: .subtle, content: row)
+        container.identifier = NSUserInterfaceItemIdentifier("app-window-token-row:\(title)")
+        return container
+    }
+
+    private func makeDiagnosticsLogFeed() -> NSView {
+        let rows: [NSView]
+        if events.isEmpty {
+            rows = [makeDiagnosticsLogRow(time: "--:--:--", severity: "Info", message: "No diagnostics recorded yet.")]
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm:ss"
+            rows = events.reversed().map { event in
+                makeDiagnosticsLogRow(
+                    time: formatter.string(from: event.timestamp),
+                    severity: event.severity.rawValue.capitalized,
+                    message: event.message
+                )
+            }
+        }
+        let stack = verticalStack(rows, spacing: 8)
+        stack.identifier = NSUserInterfaceItemIdentifier("app-window-diagnostics-log-feed")
+        return stack
+    }
+
+    private func makeDiagnosticsLogRow(time: String, severity: String, message: String) -> NSView {
+        let timeLabel = fixedLabel(time, width: 64)
+        timeLabel.textColor = .secondaryLabelColor
+        let severityLabel = fixedLabel(severity, width: 64)
+        severityLabel.textColor = severity.localizedCaseInsensitiveContains("warning")
+            ? PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
+            : .secondaryLabelColor
+        let messageLabel = NSTextField(labelWithString: message)
+        messageLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        messageLabel.textColor = .labelColor
+        messageLabel.lineBreakMode = .byWordWrapping
+        messageLabel.maximumNumberOfLines = 2
+        messageLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let row = NSStackView(views: [timeLabel, severityLabel, messageLabel])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        let container = PopoverContainerView(style: .subtle, content: row)
+        container.identifier = NSUserInterfaceItemIdentifier("app-window-log-row")
+        return container
     }
 
     private func makeQuickActionsSection() -> NSView {
@@ -2980,6 +3147,7 @@ final class UnifiedAppWindowController: NSWindowController {
         titleRow.alignment = .centerY
         titleRow.spacing = 10
         let content = NSStackView(views: [titleRow] + views)
+        content.identifier = NSUserInterfaceItemIdentifier("app-window-section:\(title)")
         content.orientation = .vertical
         content.alignment = .width
         content.spacing = 10
@@ -3011,8 +3179,8 @@ final class UnifiedAppWindowController: NSWindowController {
         ensureShortcutControls()
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 5
+        stack.alignment = .width
+        stack.spacing = 6
         let header = NSStackView(views: [
             fixedLabel("Action", width: Layout.shortcutActionWidth),
             fixedLabel("On", width: Layout.shortcutToggleWidth),
@@ -3023,6 +3191,7 @@ final class UnifiedAppWindowController: NSWindowController {
             fixedLabel("Key", width: Layout.shortcutKeyWidth)
         ])
         header.orientation = .horizontal
+        header.alignment = .centerY
         header.spacing = 6
         stack.addArrangedSubview(header)
         for action in ShortcutAction.allCases {
@@ -3037,9 +3206,15 @@ final class UnifiedAppWindowController: NSWindowController {
                 controls.keyCode
             ])
             row.orientation = .horizontal
+            row.alignment = .centerY
             row.spacing = 6
             stack.addArrangedSubview(row)
+            row.translatesAutoresizingMaskIntoConstraints = false
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
+        header.translatesAutoresizingMaskIntoConstraints = false
+        header.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        stack.identifier = NSUserInterfaceItemIdentifier("app-window-shortcuts-table")
         return stack
     }
 
@@ -3193,6 +3368,7 @@ final class UnifiedAppWindowController: NSWindowController {
     private func report(_ message: String, isError: Bool = false) {
         statusLabel.stringValue = message
         statusLabel.textColor = isError ? .systemRed : .secondaryLabelColor
+        statusLabel.isHidden = false
     }
 
     private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
@@ -3519,5 +3695,44 @@ final class UnifiedAppWindowController: NSWindowController {
         case .failure(let error):
             report(error.localizedDescription, isError: true)
         }
+    }
+}
+
+private extension NSView {
+    @MainActor
+    func appWindowIdentifiersForTesting() -> [String] {
+        var identifiers: [String] = []
+        if let identifier {
+            identifiers.append(identifier.rawValue)
+        }
+        for subview in subviews {
+            identifiers.append(contentsOf: subview.appWindowIdentifiersForTesting())
+        }
+        return identifiers
+    }
+
+    @MainActor
+    func appWindowVisibleTextForTesting() -> [String] {
+        var text: [String] = []
+        if !isHidden {
+            if let label = self as? NSTextField {
+                text.append(label.stringValue)
+            }
+            if let button = self as? NSButton {
+                text.append(button.title)
+            }
+            if let popup = self as? NSPopUpButton {
+                text.append(contentsOf: popup.itemArray.map(\.title))
+            }
+            if let textView = self as? NSTextView {
+                text.append(textView.string)
+            }
+            for subview in subviews {
+                text.append(contentsOf: subview.appWindowVisibleTextForTesting())
+            }
+        }
+        return text
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }

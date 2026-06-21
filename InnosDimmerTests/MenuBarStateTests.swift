@@ -759,6 +759,55 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowDetailPagesExposeMockupStructureIdentifiers() throws {
+        let controller = makeMockupAcceptanceController()
+
+        let current = controller.pageStructureForTesting(focus: .current)
+        XCTAssertEqual(current.pageTitle, "Current status")
+        XCTAssertTrue(current.containsIdentifier("app-window-page-header"))
+        XCTAssertTrue(current.containsIdentifier("app-window-header-action:Back"))
+        XCTAssertTrue(current.containsIdentifier("app-window-section:Snapshot lines"))
+        XCTAssertTrue(current.containsIdentifier("app-window-section:Commands"))
+
+        let display = controller.pageStructureForTesting(focus: .display)
+        XCTAssertTrue(display.containsIdentifier("app-window-detail-split"))
+        XCTAssertTrue(display.containsIdentifier("app-window-section:Target display"))
+        XCTAssertTrue(display.containsIdentifier("app-window-section:Saved selection"))
+
+        let settings = controller.pageStructureForTesting(focus: .settings)
+        XCTAssertTrue(settings.containsIdentifier("app-window-detail-split"))
+        XCTAssertTrue(settings.containsIdentifier("app-window-section:Startup"))
+        XCTAssertTrue(settings.containsIdentifier("app-window-section:Saved settings"))
+    }
+
+    @MainActor
+    func testUnifiedAppWindowSchedulePageUsesMockupTableAndBottomActions() throws {
+        let controller = makeMockupAcceptanceController()
+        let schedule = controller.pageStructureForTesting(focus: .schedule)
+
+        XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule rows"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-table"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-actions"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-token-row:Status"))
+        XCTAssertTrue(schedule.containsText("Resume automation"))
+        XCTAssertTrue(schedule.containsText("Save schedule"))
+    }
+
+    @MainActor
+    func testUnifiedAppWindowDiagnosticsPageUsesReadableLogFeedRows() throws {
+        let controller = makeMockupAcceptanceController()
+        let diagnostics = controller.pageStructureForTesting(focus: .diagnostics)
+
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-detail-split"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Verification matrix"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Recent diagnostics"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-log-feed"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-log-row"))
+        XCTAssertTrue(diagnostics.containsText("Shortcut monitor registered 7 bindings."))
+    }
+
+    @MainActor
     func testMenuBarControllerRoutesOpenPopoverWithoutApplyingDimmingCommand() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
