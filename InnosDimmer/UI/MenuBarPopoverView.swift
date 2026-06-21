@@ -938,6 +938,101 @@ private final class PopoverCommandButton: NSButton {
     }
 }
 
+private final class AppWindowPageTileButton: NSButton {
+    private let page: UnifiedAppWindowPage
+    private let iconBox = NSView()
+    private let iconView = NSImageView()
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let descriptionLabel = NSTextField(labelWithString: "")
+
+    init(page: UnifiedAppWindowPage, target: AnyObject?, action: Selector?) {
+        self.page = page
+        super.init(frame: .zero)
+        self.target = target
+        self.action = action
+        title = ""
+        isBordered = false
+        wantsLayer = true
+        layer?.cornerRadius = 8
+        layer?.borderWidth = 1
+        setButtonType(.momentaryPushIn)
+
+        iconBox.wantsLayer = true
+        iconBox.layer?.cornerRadius = 8
+        iconBox.layer?.borderWidth = 1
+        iconBox.translatesAutoresizingMaskIntoConstraints = false
+
+        if let image = NSImage(systemSymbolName: page.tileSymbolName, accessibilityDescription: nil) {
+            iconView.image = image
+            iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 17, weight: .semibold)
+        }
+        iconView.imageScaling = .scaleProportionallyDown
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconBox.addSubview(iconView)
+
+        titleLabel.stringValue = page.title
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
+        titleLabel.maximumNumberOfLines = 2
+        titleLabel.lineBreakMode = .byWordWrapping
+
+        descriptionLabel.stringValue = page.tileDescription
+        descriptionLabel.font = InnosDesignTokens.Font.app(ofSize: 11, weight: .regular)
+        descriptionLabel.maximumNumberOfLines = 3
+        descriptionLabel.lineBreakMode = .byWordWrapping
+
+        let textStack = NSStackView(views: [titleLabel, descriptionLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 4
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let row = NSStackView(views: [iconBox, textStack])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 10
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+
+        NSLayoutConstraint.activate([
+            iconBox.widthAnchor.constraint(equalToConstant: 34),
+            iconBox.heightAnchor.constraint(equalToConstant: 34),
+            iconView.centerXAnchor.constraint(equalTo: iconBox.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: iconBox.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 19),
+            iconView.heightAnchor.constraint(equalToConstant: 19),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 12),
+            row.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -12)
+        ])
+        setAccessibilityLabel("\(page.title). \(page.tileDescription)")
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        super.hitTest(point) == nil ? nil : self
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.sectionBackground(for: effectiveAppearance).cgColor
+        layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+        iconBox.layer?.backgroundColor = PopoverPalette.buttonBackground(for: effectiveAppearance).cgColor
+        iconBox.layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
+        iconView.contentTintColor = PopoverPalette.trackFill(for: effectiveAppearance)
+        titleLabel.textColor = .labelColor
+        descriptionLabel.textColor = .secondaryLabelColor
+    }
+}
+
 struct MenuBarViewModel: Equatable {
     var modeTitle: String
     var quickControlsBadgeTitle: String
@@ -2282,6 +2377,44 @@ private enum UnifiedAppWindowPage: CaseIterable {
             return "Diagnostics"
         }
     }
+
+    var tileDescription: String {
+        switch self {
+        case .home:
+            return ""
+        case .current:
+            return "Resolved display, mode, automation, and commands."
+        case .display:
+            return "Target display, picker state, and detection summary."
+        case .schedule:
+            return "Schedule summary, editor entry, pause and resume."
+        case .shortcuts:
+            return "All global bindings, including Open popover."
+        case .settings:
+            return "Launch at login, saved state, and persistence status."
+        case .diagnostics:
+            return "Verification matrix, recent failures, and JSON export."
+        }
+    }
+
+    var tileSymbolName: String {
+        switch self {
+        case .home:
+            return "house"
+        case .current:
+            return "slider.horizontal.3"
+        case .display:
+            return "display"
+        case .schedule:
+            return "clock"
+        case .shortcuts:
+            return "keyboard"
+        case .settings:
+            return "gearshape"
+        case .diagnostics:
+            return "waveform.path.ecg"
+        }
+    }
 }
 
 @MainActor
@@ -2291,6 +2424,10 @@ final class UnifiedAppWindowController: NSWindowController {
         static let shortcutToggleWidth: CGFloat = 34
         static let shortcutModifierWidth: CGFloat = 42
         static let shortcutKeyWidth: CGFloat = 70
+        static let homeLeftMinimumWidth: CGFloat = 430
+        static let homeNavigationWidth: CGFloat = 348
+        static let homeTileWidth: CGFloat = 168
+        static let homeTileHeight: CGFloat = 104
     }
 
     private struct ShortcutControls {
@@ -2330,6 +2467,8 @@ final class UnifiedAppWindowController: NSWindowController {
     private let blueReductionTrackView = ProgressTrackView()
     private let brightnessValueLabel = NSTextField(labelWithString: "")
     private let blueReductionValueLabel = NSTextField(labelWithString: "")
+    private weak var homeQuickActionsSection: NSView?
+    private weak var homeNextActionsSection: NSView?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var pageButtons: [UnifiedAppWindowPage: NSButton] = [:]
     private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
@@ -2352,13 +2491,13 @@ final class UnifiedAppWindowController: NSWindowController {
         self.scheduleActions = scheduleActions
         self.settingsActions = settingsActions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 880, height: 650),
+            contentRect: NSRect(x: 0, y: 0, width: 880, height: 560),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
-        window.minSize = NSSize(width: 780, height: 560)
+        window.minSize = NSSize(width: 780, height: 520)
         super.init(window: window)
         installContent()
     }
@@ -2400,6 +2539,23 @@ final class UnifiedAppWindowController: NSWindowController {
 
     func activePageForTesting() -> String {
         activePage.title
+    }
+
+    func homeLayoutMetricsForTesting() -> (quickActionsWidth: CGFloat, nextActionsWidth: CGFloat, firstTileWidth: CGFloat, firstTileHeight: CGFloat)? {
+        activePage = .home
+        renderActivePage()
+        window?.contentView?.layoutSubtreeIfNeeded()
+        guard let quickActions = homeQuickActionsSection,
+              let nextActions = homeNextActionsSection,
+              let firstTile = pageButtons[.current] else {
+            return nil
+        }
+        return (
+            quickActions.frame.width,
+            nextActions.frame.width,
+            firstTile.frame.width,
+            firstTile.frame.height
+        )
     }
 
     func simulateBrightnessTrackChangeForTesting(percent: Int) {
@@ -2491,7 +2647,8 @@ final class UnifiedAppWindowController: NSWindowController {
         brightnessTrackView.setAccessibilityLabel("App window brightness percentage")
         blueReductionTrackView.setAccessibilityLabel("App window blue reduction percentage")
 
-        let rootStack = NSStackView(views: [makeHeader(), statusLabel, bodyView])
+        let header = makeHeader()
+        let rootStack = NSStackView(views: [header, statusLabel, bodyView])
         rootStack.orientation = .vertical
         rootStack.alignment = .width
         rootStack.spacing = 14
@@ -2506,8 +2663,10 @@ final class UnifiedAppWindowController: NSWindowController {
             rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
             rootStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
             rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -18),
+            header.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
             statusLabel.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
-            bodyView.heightAnchor.constraint(greaterThanOrEqualToConstant: 440)
+            bodyView.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
+            bodyView.heightAnchor.constraint(greaterThanOrEqualToConstant: 330)
         ])
         renderActivePage()
     }
@@ -2561,23 +2720,61 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeHomePage() -> NSView {
-        let left = NSStackView(views: [makeQuickActionsSection(), makeNextActionsSection()])
+        let quickActions = makeQuickActionsSection()
+        let nextActions = makeNextActionsSection()
+        homeQuickActionsSection = quickActions
+        homeNextActionsSection = nextActions
+
+        let left = NSStackView(views: [quickActions, nextActions])
         left.orientation = .vertical
         left.alignment = .width
         left.spacing = 12
-        let tiles = NSGridView(views: [
-            [makeNavigationTile(.current), makeNavigationTile(.display)],
-            [makeNavigationTile(.schedule), makeNavigationTile(.shortcuts)],
-            [makeNavigationTile(.settings), makeNavigationTile(.diagnostics)]
-        ])
-        tiles.rowSpacing = 10
-        tiles.columnSpacing = 10
+        left.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        left.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        quickActions.translatesAutoresizingMaskIntoConstraints = false
+        nextActions.translatesAutoresizingMaskIntoConstraints = false
+        quickActions.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
+        nextActions.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
+
+        let tiles = makeNavigationGrid()
+        tiles.setContentHuggingPriority(.required, for: .horizontal)
+        tiles.setContentCompressionResistancePriority(.required, for: .horizontal)
+
         let layout = NSStackView(views: [left, tiles])
         layout.orientation = .horizontal
         layout.alignment = .top
+        layout.distribution = .fill
         layout.spacing = 12
-        left.widthAnchor.constraint(equalTo: layout.widthAnchor, multiplier: 0.56).isActive = true
+        NSLayoutConstraint.activate([
+            left.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.homeLeftMinimumWidth),
+            tiles.widthAnchor.constraint(equalToConstant: Layout.homeNavigationWidth)
+        ])
         return layout
+    }
+
+    private func makeNavigationGrid() -> NSStackView {
+        let rows = [
+            [makeNavigationTile(.current), makeNavigationTile(.display)],
+            [makeNavigationTile(.schedule), makeNavigationTile(.shortcuts)],
+            [makeNavigationTile(.settings), makeNavigationTile(.diagnostics)]
+        ].map { buttons in
+            let row = NSStackView(views: buttons)
+            row.orientation = .horizontal
+            row.alignment = .width
+            row.distribution = .fillEqually
+            row.spacing = 12
+            return row
+        }
+
+        let stack = NSStackView(views: rows)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 12
+        rows.forEach { row in
+            row.translatesAutoresizingMaskIntoConstraints = false
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return stack
     }
 
     private func makeCurrentPage() -> NSView {
@@ -2698,10 +2895,13 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeNavigationTile(_ page: UnifiedAppWindowPage) -> NSButton {
-        let button = PopoverCommandButton(title: page.title, style: .subtle, target: self, action: #selector(pageButtonPressed(_:)))
+        let button = AppWindowPageTileButton(page: page, target: self, action: #selector(pageButtonPressed(_:)))
         button.identifier = NSUserInterfaceItemIdentifier(page.title)
-        button.alignment = .left
-        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.homeTileWidth),
+            button.heightAnchor.constraint(equalToConstant: Layout.homeTileHeight)
+        ])
         pageButtons[page] = button
         return button
     }
@@ -2735,11 +2935,13 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeControlGroup(title: String, valueLabel: NSTextField, trackView: ProgressTrackView, decrement: NSButton, increment: NSButton) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = InnosDesignTokens.Font.bodyEmphasis
-        titleLabel.widthAnchor.constraint(equalToConstant: 118).isActive = true
+        titleLabel.widthAnchor.constraint(equalToConstant: 116).isActive = true
         valueLabel.font = InnosDesignTokens.Font.value
         valueLabel.alignment = .right
-        valueLabel.widthAnchor.constraint(equalToConstant: 54).isActive = true
+        valueLabel.widthAnchor.constraint(equalToConstant: 60).isActive = true
         trackView.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        trackView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        trackView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
         stack.orientation = .horizontal
         stack.alignment = .centerY

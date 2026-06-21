@@ -518,6 +518,24 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowHomeLayoutKeepsControlsAndNavigationReadable() throws {
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+
+        let metrics = try XCTUnwrap(controller.homeLayoutMetricsForTesting())
+
+        XCTAssertGreaterThanOrEqual(metrics.quickActionsWidth, 430)
+        XCTAssertGreaterThanOrEqual(metrics.nextActionsWidth, 430)
+        XCTAssertGreaterThanOrEqual(metrics.firstTileWidth, 168)
+        XCTAssertEqual(metrics.firstTileHeight, 104, accuracy: 1)
+    }
+
+    @MainActor
     func testMenuBarControllerRoutesOpenPopoverWithoutApplyingDimmingCommand() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
