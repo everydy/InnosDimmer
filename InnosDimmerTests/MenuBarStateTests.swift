@@ -597,7 +597,7 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testUnifiedAppWindowHomeLayoutKeepsControlsAndNavigationReadable() throws {
+    func testUnifiedAppWindowSidebarLayoutKeepsControlsAndNavigationReadable() throws {
         let controller = UnifiedAppWindowController()
         controller.update(
             state: .defaultState(),
@@ -608,10 +608,14 @@ final class MenuBarStateTests: XCTestCase {
 
         let metrics = try XCTUnwrap(controller.homeLayoutMetricsForTesting())
 
-        XCTAssertGreaterThanOrEqual(metrics.quickActionsWidth, 430)
-        XCTAssertGreaterThanOrEqual(metrics.nextActionsWidth, 430)
-        XCTAssertGreaterThanOrEqual(metrics.firstTileWidth, 168)
-        XCTAssertEqual(metrics.firstTileHeight, 104, accuracy: 1)
+        XCTAssertGreaterThanOrEqual(metrics.quickActionsWidth, 560)
+        XCTAssertGreaterThanOrEqual(metrics.nextActionsWidth, 560)
+        XCTAssertGreaterThanOrEqual(metrics.firstTileWidth, 190)
+        XCTAssertGreaterThanOrEqual(metrics.firstTileHeight, 58)
+        XCTAssertEqual(
+            controller.sidebarNavigationForTesting(),
+            ["Overview", "Current status", "Display", "Schedule", "Shortcuts", "Settings", "Diagnostics"]
+        )
     }
 
     @MainActor
@@ -669,12 +673,14 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testUnifiedAppWindowDetailPagesUseHeaderBackInsteadOfBodyBack() {
+    func testUnifiedAppWindowDetailPagesUsePersistentSidebarInsteadOfBackControls() {
         let controller = makeMockupAcceptanceController()
 
         for target in [AppDashboardFocusTarget.current, .display, .schedule, .shortcuts, .settings, .diagnostics] {
             let structure = controller.pageStructureForTesting(focus: target)
-            XCTAssertTrue(structure.hasHeaderBackControl, "Expected header Back for \(target).")
+            XCTAssertTrue(structure.containsIdentifier("app-window-sidebar-container"), "Expected persistent sidebar for \(target).")
+            XCTAssertTrue(structure.containsIdentifier("app-window-sidebar"), "Expected sidebar navigation for \(target).")
+            XCTAssertFalse(structure.hasHeaderBackControl, "Header Back should not appear for \(target).")
             XCTAssertFalse(structure.hasBodyBackRow, "Body Back row should not appear for \(target).")
         }
     }
@@ -791,8 +797,12 @@ final class MenuBarStateTests: XCTestCase {
 
         let current = controller.pageStructureForTesting(focus: .current)
         XCTAssertEqual(current.pageTitle, "Current status")
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-container"))
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Overview"))
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Current status"))
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
         XCTAssertTrue(current.containsIdentifier("app-window-page-header"))
-        XCTAssertTrue(current.containsIdentifier("app-window-header-action:Back"))
+        XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
         XCTAssertTrue(current.containsIdentifier("app-window-section:Snapshot lines"))
         XCTAssertTrue(current.containsIdentifier("app-window-section:Commands"))
 

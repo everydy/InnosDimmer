@@ -70,7 +70,7 @@ enum UnifiedAppWindowPage: CaseIterable {
     var title: String {
         switch self {
         case .home:
-            return "InnosDimmer Control Center"
+            return "InnosDimmer"
         case .current:
             return "Current status"
         case .display:
@@ -86,10 +86,19 @@ enum UnifiedAppWindowPage: CaseIterable {
         }
     }
 
+    var navigationTitle: String {
+        switch self {
+        case .home:
+            return "Overview"
+        default:
+            return title
+        }
+    }
+
     var tileDescription: String {
         switch self {
         case .home:
-            return ""
+            return "Quick controls and status."
         case .current:
             return "State and commands."
         case .display:
@@ -132,10 +141,9 @@ final class UnifiedAppWindowController: NSWindowController {
         static let shortcutToggleWidth: CGFloat = 34
         static let shortcutModifierWidth: CGFloat = 42
         static let shortcutKeyWidth: CGFloat = 70
-        static let homeLeftMinimumWidth: CGFloat = 430
-        static let homeNavigationWidth: CGFloat = 348
-        static let homeTileWidth: CGFloat = 168
-        static let homeTileHeight: CGFloat = 104
+        static let sidebarWidth: CGFloat = 244
+        static let sidebarButtonHeight: CGFloat = 58
+        static let contentMinimumWidth: CGFloat = 560
         static let detailSidebarWidth: CGFloat = 256
         static let detailMinimumPrimaryWidth: CGFloat = 360
         static let tokenRowHeight: CGFloat = 34
@@ -165,7 +173,7 @@ final class UnifiedAppWindowController: NSWindowController {
     private let scheduleActions: ScheduleEditorActions
     private let settingsActions: SettingsActions
     private let titleLabel = NSTextField(labelWithString: "")
-    private let bodyView = NSView()
+    private let contentPane = NSView()
     private let statusLabel = NSTextField(labelWithString: "")
     private let modeChip = InnosStatusChipView(title: "Software dimming ready", tone: .neutral)
     private let loginChip = InnosStatusChipView(title: "Login item off", tone: .neutral)
@@ -182,6 +190,7 @@ final class UnifiedAppWindowController: NSWindowController {
     private weak var homeNextActionsSection: NSView?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var pageButtons: [UnifiedAppWindowPage: NSButton] = [:]
+    private var sidebarButtons: [UnifiedAppWindowPage: AppWindowSidebarButton] = [:]
     private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
     private var activePage: UnifiedAppWindowPage = .home
     private var automationActionCommand: MenuBarCommand = .pauseAutomation
@@ -202,13 +211,13 @@ final class UnifiedAppWindowController: NSWindowController {
         self.scheduleActions = scheduleActions
         self.settingsActions = settingsActions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 880, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
-        window.minSize = NSSize(width: 780, height: 520)
+        window.minSize = NSSize(width: 820, height: 560)
         super.init(window: window)
         installContent()
     }
@@ -269,7 +278,7 @@ final class UnifiedAppWindowController: NSWindowController {
         window?.contentView?.layoutSubtreeIfNeeded()
         guard let quickActions = homeQuickActionsSection,
               let nextActions = homeNextActionsSection,
-              let firstTile = pageButtons[.current] else {
+              let firstTile = sidebarButtons[.current] else {
             return nil
         }
         return (
@@ -278,6 +287,12 @@ final class UnifiedAppWindowController: NSWindowController {
             firstTile.frame.width,
             firstTile.frame.height
         )
+    }
+
+    func sidebarNavigationForTesting() -> [String] {
+        UnifiedAppWindowPage.allCases.compactMap { page in
+            sidebarButtons[page]?.navigationTitleForTesting
+        }
     }
 
     func simulateBrightnessTrackChangeForTesting(percent: Int) {
@@ -371,28 +386,78 @@ final class UnifiedAppWindowController: NSWindowController {
         brightnessTrackView.setAccessibilityLabel("App window brightness percentage")
         blueReductionTrackView.setAccessibilityLabel("App window blue reduction percentage")
 
+        let sidebar = makeSidebar()
         let header = makeHeader()
-        let rootStack = NSStackView(views: [header, statusLabel, bodyView])
-        rootStack.orientation = .vertical
-        rootStack.alignment = .width
-        rootStack.spacing = 14
+        let contentStack = NSStackView(views: [header, statusLabel, contentPane])
+        contentStack.orientation = .vertical
+        contentStack.alignment = .width
+        contentStack.spacing = 14
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentPane.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentContainer = NSView()
+        contentContainer.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.addSubview(contentStack)
+
+        let rootStack = NSStackView(views: [sidebar, contentContainer])
+        rootStack.orientation = .horizontal
+        rootStack.alignment = .height
+        rootStack.spacing = 0
         rootStack.translatesAutoresizingMaskIntoConstraints = false
-        bodyView.translatesAutoresizingMaskIntoConstraints = false
 
         let contentView = DashboardRootView()
         window?.contentView = contentView
         contentView.addSubview(rootStack)
         NSLayoutConstraint.activate([
-            rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
-            rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
-            rootStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
-            rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -18),
-            header.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
-            statusLabel.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
-            bodyView.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
-            bodyView.heightAnchor.constraint(greaterThanOrEqualToConstant: 330)
+            rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            rootStack.topAnchor.constraint(equalTo: contentView.topAnchor),
+            rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            sidebar.widthAnchor.constraint(equalToConstant: Layout.sidebarWidth),
+            contentStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: InnosDesignTokens.Spacing.surfacePadding),
+            contentStack.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -InnosDesignTokens.Spacing.surfacePadding),
+            contentStack.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: InnosDesignTokens.Spacing.surfacePadding),
+            contentStack.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor, constant: -InnosDesignTokens.Spacing.surfacePadding),
+            header.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
+            statusLabel.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
+            contentPane.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
+            contentPane.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.contentMinimumWidth),
+            contentPane.heightAnchor.constraint(greaterThanOrEqualToConstant: 420)
         ])
         renderActivePage()
+    }
+
+    private func makeSidebar() -> NSView {
+        let title = NSTextField(labelWithString: "InnosDimmer")
+        title.font = InnosDesignTokens.Font.appTitle
+        title.textColor = .labelColor
+
+        let caption = sectionLabel("Navigation")
+        caption.font = InnosDesignTokens.Font.app(ofSize: 11, weight: .semibold)
+
+        let buttons: [AppWindowSidebarButton] = UnifiedAppWindowPage.allCases.map { page in
+            let button = AppWindowSidebarButton(page: page, target: self, action: #selector(pageButtonPressed(_:)))
+            button.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-page:\(page.navigationTitle)")
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.sidebarButtonHeight).isActive = true
+            sidebarButtons[page] = button
+            return button
+        }
+        let buttonViews: [NSView] = buttons
+
+        let stack = NSStackView(views: [title, caption] + buttonViews + [spacer()])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 8
+        stack.setCustomSpacing(16, after: title)
+        stack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar")
+        ([title, caption] + buttonViews).forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+
+        let container = SidebarContainerView(content: stack)
+        container.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-container")
+        return container
     }
 
     private func makeHeader() -> NSView {
@@ -409,10 +474,10 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func renderActivePage() {
-        titleLabel.stringValue = activePage == .home ? activePage.title : "InnosDimmer"
+        titleLabel.stringValue = "InnosDimmer"
         commandButtons.removeAll(keepingCapacity: true)
         pageButtons.removeAll(keepingCapacity: true)
-        bodyView.subviews.forEach { $0.removeFromSuperview() }
+        contentPane.subviews.forEach { $0.removeFromSuperview() }
 
         let content: NSView
         switch activePage {
@@ -433,13 +498,14 @@ final class UnifiedAppWindowController: NSWindowController {
         }
 
         content.translatesAutoresizingMaskIntoConstraints = false
-        bodyView.addSubview(content)
+        contentPane.addSubview(content)
         NSLayoutConstraint.activate([
-            content.leadingAnchor.constraint(equalTo: bodyView.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: bodyView.trailingAnchor),
-            content.topAnchor.constraint(equalTo: bodyView.topAnchor),
-            content.bottomAnchor.constraint(lessThanOrEqualTo: bodyView.bottomAnchor)
+            content.leadingAnchor.constraint(equalTo: contentPane.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: contentPane.trailingAnchor),
+            content.topAnchor.constraint(equalTo: contentPane.topAnchor),
+            content.bottomAnchor.constraint(lessThanOrEqualTo: contentPane.bottomAnchor)
         ])
+        updateSidebarSelection()
         updateLiveControls()
     }
 
@@ -460,45 +526,7 @@ final class UnifiedAppWindowController: NSWindowController {
         quickActions.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
         nextActions.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
 
-        let tiles = makeNavigationGrid()
-        tiles.setContentHuggingPriority(.required, for: .horizontal)
-        tiles.setContentCompressionResistancePriority(.required, for: .horizontal)
-
-        let layout = NSStackView(views: [left, tiles])
-        layout.orientation = .horizontal
-        layout.alignment = .top
-        layout.distribution = .fill
-        layout.spacing = 12
-        NSLayoutConstraint.activate([
-            left.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.homeLeftMinimumWidth),
-            tiles.widthAnchor.constraint(equalToConstant: Layout.homeNavigationWidth)
-        ])
-        return layout
-    }
-
-    private func makeNavigationGrid() -> NSStackView {
-        let rows = [
-            [makeNavigationTile(.current), makeNavigationTile(.display)],
-            [makeNavigationTile(.schedule), makeNavigationTile(.shortcuts)],
-            [makeNavigationTile(.settings), makeNavigationTile(.diagnostics)]
-        ].map { buttons in
-            let row = NSStackView(views: buttons)
-            row.orientation = .horizontal
-            row.alignment = .width
-            row.distribution = .fillEqually
-            row.spacing = 12
-            return row
-        }
-
-        let stack = NSStackView(views: rows)
-        stack.orientation = .vertical
-        stack.alignment = .width
-        stack.spacing = 12
-        rows.forEach { row in
-            row.translatesAutoresizingMaskIntoConstraints = false
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        }
-        return stack
+        return left
     }
 
     private func makeCurrentPage() -> NSView {
@@ -670,16 +698,12 @@ final class UnifiedAppWindowController: NSWindowController {
         trailingActions: [NSView] = [],
         content: NSView
     ) -> NSView {
-        let back = PopoverCommandButton(title: "← Back", style: .normal, target: self, action: #selector(backPressed))
-        back.identifier = NSUserInterfaceItemIdentifier("app-window-header-action:Back")
-        back.setContentHuggingPriority(.required, for: .horizontal)
-
         let pageTitle = NSTextField(labelWithString: title)
         pageTitle.font = InnosDesignTokens.Font.app(ofSize: 22, weight: .bold)
         pageTitle.textColor = .labelColor
         pageTitle.setContentHuggingPriority(.defaultLow, for: .horizontal)
 
-        let header = NSStackView(views: [back, pageTitle, spacer()] + trailingActions)
+        let header = NSStackView(views: [pageTitle, spacer()] + trailingActions)
         header.identifier = NSUserInterfaceItemIdentifier("app-window-page-header")
         header.orientation = .horizontal
         header.alignment = .centerY
@@ -803,23 +827,11 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeNextActionsSection() -> NSView {
-        makeSection(title: "Next actions", views: [
+        makeSection(title: "Status", views: [
             makeListRow(title: "Schedule", value: nextScheduleText(), page: .schedule),
             makeListRow(title: "Diagnostics", value: diagnosticsSummary(), page: .diagnostics),
             makeListRow(title: "Shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled", page: .shortcuts)
         ])
-    }
-
-    private func makeNavigationTile(_ page: UnifiedAppWindowPage) -> NSButton {
-        let button = AppWindowPageTileButton(page: page, target: self, action: #selector(pageButtonPressed(_:)))
-        button.identifier = NSUserInterfaceItemIdentifier(page.title)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.homeTileWidth),
-            button.heightAnchor.constraint(equalToConstant: Layout.homeTileHeight)
-        ])
-        pageButtons[page] = button
-        return button
     }
 
     private func makeListRow(title: String, value: String, page: UnifiedAppWindowPage) -> NSButton {
@@ -1330,15 +1342,32 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     @objc private func pageButtonPressed(_ sender: NSButton) {
-        guard let identifier = sender.identifier?.rawValue,
-              let page = pageButtons.first(where: { $0.key.title == identifier })?.key else { return }
+        guard let page = page(for: sender) else { return }
         activePage = page
         renderActivePage()
     }
 
-    @objc private func backPressed() {
-        activePage = .home
-        renderActivePage()
+    private func page(for button: NSButton) -> UnifiedAppWindowPage? {
+        if let sidebarPage = sidebarButtons.first(where: { $0.value === button })?.key {
+            return sidebarPage
+        }
+        if let page = pageButtons.first(where: { $0.value === button })?.key {
+            return page
+        }
+        guard let identifier = button.identifier?.rawValue else {
+            return nil
+        }
+        return UnifiedAppWindowPage.allCases.first { page in
+            identifier == page.title ||
+            identifier == page.navigationTitle ||
+            identifier == "app-window-sidebar-page:\(page.navigationTitle)"
+        }
+    }
+
+    private func updateSidebarSelection() {
+        sidebarButtons.forEach { page, button in
+            button.setSelected(page == activePage)
+        }
     }
 
     @objc private func brightnessDownPressed() { actions.perform(.brightnessDown) }
@@ -1397,6 +1426,160 @@ final class UnifiedAppWindowController: NSWindowController {
         case .failure(let error):
             report(error.localizedDescription, isError: true)
         }
+    }
+}
+
+@MainActor
+private final class SidebarContainerView: NSView {
+    private let content: NSView
+
+    init(content: NSView) {
+        self.content = content
+        super.init(frame: .zero)
+        wantsLayer = true
+        addSubview(content)
+        content.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: InnosDesignTokens.Spacing.surfacePadding),
+            content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -InnosDesignTokens.Spacing.surfacePadding),
+            content.topAnchor.constraint(equalTo: topAnchor, constant: InnosDesignTokens.Spacing.surfacePadding),
+            content.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -InnosDesignTokens.Spacing.surfacePadding)
+        ])
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = InnosDesignTokens.surfaceSubtle(for: effectiveAppearance).cgColor
+        layer?.borderColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
+        layer?.borderWidth = 0
+    }
+}
+
+@MainActor
+private final class AppWindowSidebarButton: NSButton {
+    private let page: UnifiedAppWindowPage
+    private let iconBox = NSView()
+    private let iconView = NSImageView()
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let descriptionLabel = NSTextField(labelWithString: "")
+    private var isSelectedPage = false
+    var navigationTitleForTesting: String {
+        page.navigationTitle
+    }
+
+    init(page: UnifiedAppWindowPage, target: AnyObject?, action: Selector?) {
+        self.page = page
+        super.init(frame: .zero)
+        self.target = target
+        self.action = action
+        title = ""
+        isBordered = false
+        wantsLayer = true
+        layer?.cornerRadius = InnosDesignTokens.Radius.section
+        layer?.borderWidth = 1
+        setButtonType(.momentaryPushIn)
+
+        iconBox.wantsLayer = true
+        iconBox.layer?.cornerRadius = 7
+        iconBox.layer?.borderWidth = 1
+        iconBox.translatesAutoresizingMaskIntoConstraints = false
+
+        if let image = NSImage(systemSymbolName: page.tileSymbolName, accessibilityDescription: nil) {
+            iconView.image = image
+            iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+        }
+        iconView.imageScaling = .scaleProportionallyDown
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        iconBox.addSubview(iconView)
+
+        titleLabel.stringValue = page.navigationTitle
+        titleLabel.font = InnosDesignTokens.Font.bodyStrong
+        titleLabel.maximumNumberOfLines = 1
+        titleLabel.lineBreakMode = .byTruncatingTail
+
+        descriptionLabel.stringValue = page.tileDescription
+        descriptionLabel.font = InnosDesignTokens.Font.bodySmall
+        descriptionLabel.maximumNumberOfLines = 2
+        descriptionLabel.lineBreakMode = .byWordWrapping
+
+        let textStack = NSStackView(views: [titleLabel, descriptionLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+        textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let row = NSStackView(views: [iconBox, textStack])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 10
+        row.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(row)
+
+        NSLayoutConstraint.activate([
+            iconBox.widthAnchor.constraint(equalToConstant: 30),
+            iconBox.heightAnchor.constraint(equalToConstant: 30),
+            iconView.centerXAnchor.constraint(equalTo: iconBox.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: iconBox.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 17),
+            iconView.heightAnchor.constraint(equalToConstant: 17),
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
+            row.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            row.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -8)
+        ])
+
+        setAccessibilityLabel("\(page.navigationTitle). \(page.tileDescription)")
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        super.hitTest(point) == nil ? nil : self
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    func setSelected(_ isSelected: Bool) {
+        guard isSelectedPage != isSelected else {
+            return
+        }
+        isSelectedPage = isSelected
+        updateColors()
+    }
+
+    private func updateColors() {
+        let appearance = effectiveAppearance
+        let accent = InnosDesignTokens.accent(for: appearance)
+        if isSelectedPage {
+            layer?.backgroundColor = accent.withAlphaComponent(0.18).cgColor
+            layer?.borderColor = accent.withAlphaComponent(0.50).cgColor
+            iconBox.layer?.backgroundColor = accent.withAlphaComponent(0.22).cgColor
+            iconBox.layer?.borderColor = accent.withAlphaComponent(0.42).cgColor
+            titleLabel.textColor = .labelColor
+        } else {
+            layer?.backgroundColor = InnosDesignTokens.surfaceSection(for: appearance).cgColor
+            layer?.borderColor = InnosDesignTokens.border(for: appearance).cgColor
+            iconBox.layer?.backgroundColor = InnosDesignTokens.surfaceControl(for: appearance).cgColor
+            iconBox.layer?.borderColor = InnosDesignTokens.border(for: appearance).cgColor
+            titleLabel.textColor = .labelColor
+        }
+        iconView.contentTintColor = accent
+        descriptionLabel.textColor = .secondaryLabelColor
     }
 }
 
