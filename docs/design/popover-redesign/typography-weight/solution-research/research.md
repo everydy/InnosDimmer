@@ -304,4 +304,3 @@ Recommended implementation sequence:
 - Apple Design Resources page: SF Symbols have weights/scales and align with San Francisco, which means SF Symbol weight should be reviewed separately when the text family is Pretendard.
 - Pretendard official GitHub: Pretendard is positioned as a cross-platform system-UI alternative and provides 9 weights plus variable fonts.
 - Latest prior verification: `xcodebuild test -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO -only-testing:InnosDimmerTests/MenuBarStateTests` passed `39 tests`, `0 failures` after the previous font change.
-

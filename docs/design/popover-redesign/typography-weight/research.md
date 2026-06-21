@@ -266,4 +266,3 @@ Recommended next implementation direction:
   - Result: only `InnosDesignTokens.swift:44`, the fallback path.
   - `xcodebuild test -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO -only-testing:InnosDimmerTests/MenuBarStateTests`
   - Result from latest font pass: `39 tests`, `0 failures`.
-
