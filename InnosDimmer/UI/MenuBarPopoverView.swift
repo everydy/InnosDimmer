@@ -1787,6 +1787,22 @@ enum AppDashboardFocusTarget {
     case diagnostics
 }
 
+struct AppWindowPageStructure: Equatable {
+    var hasHeaderBackControl: Bool
+    var hasBodyBackRow: Bool
+    var usesSplitLayout: Bool
+    var compactActionLabels: [String]
+    var diagnosticsLogRowCount: Int
+}
+
+private enum AppWindowViewID {
+    static let headerBack = NSUserInterfaceItemIdentifier("app-window-header-back")
+    static let bodyBack = NSUserInterfaceItemIdentifier("app-window-body-back")
+    static let splitLayout = NSUserInterfaceItemIdentifier("app-window-split-layout")
+    static let compactActionRow = NSUserInterfaceItemIdentifier("app-window-compact-action-row")
+    static let diagnosticsLogRow = NSUserInterfaceItemIdentifier("app-window-diagnostics-log-row")
+}
+
 @MainActor
 final class AppDashboardWindowController: NSWindowController {
     private let modeBadge = StatusBadgeView(mode: .unknown)
@@ -2453,6 +2469,12 @@ final class UnifiedAppWindowController: NSWindowController {
     private let actions: MenuBarActions
     private let scheduleActions: ScheduleEditorActions
     private let settingsActions: SettingsActions
+    private lazy var headerBackButton: NSButton = {
+        let button = PopoverCommandButton(title: "← Back", style: .normal, target: self, action: #selector(backPressed))
+        button.identifier = AppWindowViewID.headerBack
+        button.setContentHuggingPriority(.required, for: .horizontal)
+        return button
+    }()
     private let titleLabel = NSTextField(labelWithString: "")
     private let bodyView = NSView()
     private let statusLabel = NSTextField(labelWithString: "")
@@ -2539,6 +2561,18 @@ final class UnifiedAppWindowController: NSWindowController {
 
     func activePageForTesting() -> String {
         activePage.title
+    }
+
+    func pageStructureForTesting(focus target: AppDashboardFocusTarget) -> AppWindowPageStructure {
+        focus(target)
+        window?.contentView?.layoutSubtreeIfNeeded()
+        return AppWindowPageStructure(
+            hasHeaderBackControl: !headerBackButton.isHidden,
+            hasBodyBackRow: bodyView.containsView(with: AppWindowViewID.bodyBack),
+            usesSplitLayout: bodyView.containsView(with: AppWindowViewID.splitLayout),
+            compactActionLabels: bodyView.compactActionLabelsForTesting(),
+            diagnosticsLogRowCount: bodyView.countViews(with: AppWindowViewID.diagnosticsLogRow)
+        )
     }
 
     func homeLayoutMetricsForTesting() -> (quickActionsWidth: CGFloat, nextActionsWidth: CGFloat, firstTileWidth: CGFloat, firstTileHeight: CGFloat)? {
@@ -2673,6 +2707,7 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeHeader() -> NSView {
         let header = NSStackView(views: [
+            headerBackButton,
             titleLabel,
             spacer(),
             modeChip,
@@ -2686,6 +2721,7 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func renderActivePage() {
         titleLabel.stringValue = activePage.title
+        headerBackButton.isHidden = activePage == .home
         commandButtons.removeAll(keepingCapacity: true)
         pageButtons.removeAll(keepingCapacity: true)
         bodyView.subviews.forEach { $0.removeFromSuperview() }
@@ -2801,6 +2837,37 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeDisplayPage() -> NSView {
         renderDisplayPicker()
         let resolvedDisplay = resolvedTargetDisplay()
+        let currentState = makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
+            makeSummaryRow(title: "Display", value: currentDisplaySummary()),
+            makeSummaryRow(title: "Mode", value: displayModeSummary()),
+            makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
+            makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
+        ])
+        let targetSelection = makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedDisplay == nil ? .warning : .ready), views: [
+            displayPicker,
+            makeSummaryRow(title: "Selected", value: selectedDisplaySummary()),
+            makeSummaryRow(title: "Resolved to", value: resolvedDisplaySummary(resolvedDisplay)),
+            makeSummaryRow(title: "Main display", value: mainDisplaySummary(resolvedDisplay)),
+            makeSummaryRow(title: "Gamma table", value: gammaTableSummary(resolvedDisplay))
+        ])
+        let savedSelection = makeSection(title: "Saved selection", views: [
+            makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
+            makeActionRow([
+                PopoverCommandButton(
+                    title: "Save display",
+                    style: .primary,
+                    target: self,
+                    action: #selector(saveDisplayPressed)
+                ),
+                PopoverCommandButton(
+                    title: "Use automatic",
+                    style: .normal,
+                    target: self,
+                    action: #selector(useAutomaticDisplayPressed)
+                )
+            ])
+        ])
+        let secondary = verticalStack([targetSelection, savedSelection], spacing: 12)
         return makeDetailPage([
             makeActionRow([
                 PopoverCommandButton(
@@ -2810,36 +2877,7 @@ final class UnifiedAppWindowController: NSWindowController {
                     action: #selector(refreshDisplaysPressed)
                 )
             ]),
-            makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
-                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
-                makeSummaryRow(title: "Mode", value: displayModeSummary()),
-                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
-                makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
-            ]),
-            makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedDisplay == nil ? .warning : .ready), views: [
-                displayPicker,
-                makeSummaryRow(title: "Selected", value: selectedDisplaySummary()),
-                makeSummaryRow(title: "Resolved to", value: resolvedDisplaySummary(resolvedDisplay)),
-                makeSummaryRow(title: "Main display", value: mainDisplaySummary(resolvedDisplay)),
-                makeSummaryRow(title: "Gamma table", value: gammaTableSummary(resolvedDisplay))
-            ]),
-            makeSection(title: "Saved selection", views: [
-                makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
-                makeActionRow([
-                    PopoverCommandButton(
-                        title: "Save display",
-                        style: .primary,
-                        target: self,
-                        action: #selector(saveDisplayPressed)
-                    ),
-                    PopoverCommandButton(
-                        title: "Use automatic",
-                        style: .normal,
-                        target: self,
-                        action: #selector(useAutomaticDisplayPressed)
-                    )
-                ])
-            ])
+            makeDetailSplit(primary: currentState, secondary: secondary)
         ])
     }
 
@@ -2874,35 +2912,28 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeSettingsPage() -> NSView {
         loginItemCheckbox.state = loginItemStatus == .enabled ? .on : .off
-        return makeDetailPage([
-            makeSection(title: "Startup", views: [
-                loginItemCheckbox,
-                makeSummaryRow(title: "Launch at login", value: loginItemSummary()),
-                makeSummaryRow(title: "Approval", value: loginItemApprovalSummary()),
-                makeSummaryRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
-                makeActionRow([
-                    PopoverCommandButton(title: "Apply settings", style: .primary, target: self, action: #selector(loginItemToggled))
-                ])
-            ]),
-            makeSection(title: "Saved settings", views: [
-                makeSummaryRow(title: "Target display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
-                makeSummaryRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
-                makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled"),
-                makeSummaryRow(title: "Schema", value: "SettingsSnapshot"),
-                makeSummaryRow(title: "Status label", value: statusLabel.stringValue)
+        let startup = makeSection(title: "Startup", views: [
+            loginItemCheckbox,
+            makeSummaryRow(title: "Launch at login", value: loginItemSummary()),
+            makeSummaryRow(title: "Approval", value: loginItemApprovalSummary()),
+            makeSummaryRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
+            makeActionRow([
+                PopoverCommandButton(title: "Apply settings", style: .primary, target: self, action: #selector(loginItemToggled))
             ])
+        ])
+        let saved = makeSection(title: "Saved settings", views: [
+            makeSummaryRow(title: "Target display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
+            makeSummaryRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
+            makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled"),
+            makeSummaryRow(title: "Schema", value: "SettingsSnapshot"),
+            makeSummaryRow(title: "Status label", value: statusLabel.stringValue)
+        ])
+        return makeDetailPage([
+            makeDetailSplit(primary: startup, secondary: saved)
         ])
     }
 
     private func makeDiagnosticsPage() -> NSView {
-        diagnosticsTextView.string = diagnosticsLogText()
-        diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsTextView.effectiveAppearance)
-        let scroll = NSScrollView()
-        scroll.borderType = .noBorder
-        scroll.hasVerticalScroller = true
-        scroll.documentView = diagnosticsTextView
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
         return makeDetailPage([
             makeSection(title: "Verification matrix", views: [
                 makeSummaryRow(title: "Summary", value: diagnosticsMatrixSummary()),
@@ -2912,23 +2943,69 @@ final class UnifiedAppWindowController: NSWindowController {
                 makeSummaryRow(title: "Login item", value: loginItemSummary())
             ]),
             makeSection(title: "Recent diagnostics", views: [
-                scroll,
-                PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
+                verticalStack(makeDiagnosticsLogRows(), spacing: 8),
+                makeActionRow([
+                    PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
+                ])
             ])
         ])
     }
 
     private func makeDetailPage(_ views: [NSView]) -> NSView {
-        let back = PopoverCommandButton(title: "← Back", style: .normal, target: self, action: #selector(backPressed))
-        let stack = NSStackView(views: [back] + views)
+        let stack = NSStackView(views: views)
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 12
-        ([back] + views).forEach { view in
+        views.forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         return stack
+    }
+
+    private func makeDetailSplit(primary: NSView, secondary: NSView) -> NSStackView {
+        let split = NSStackView(views: [primary, secondary])
+        split.identifier = AppWindowViewID.splitLayout
+        split.orientation = .horizontal
+        split.alignment = .top
+        split.distribution = .fillEqually
+        split.spacing = 12
+        return split
+    }
+
+    private func verticalStack(_ views: [NSView], spacing: CGFloat) -> NSStackView {
+        let stack = NSStackView(views: views)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = spacing
+        views.forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return stack
+    }
+
+    private func makeDiagnosticsLogRows() -> [NSView] {
+        let rows = events.reversed().prefix(5).map(makeDiagnosticsLogRow)
+        if rows.isEmpty {
+            return [makeDiagnosticsLogPlaceholder()]
+        }
+        return Array(rows)
+    }
+
+    private func makeDiagnosticsLogPlaceholder() -> NSView {
+        let row = makeSummaryRow(title: "No events", value: "No diagnostics recorded yet.")
+        row.identifier = AppWindowViewID.diagnosticsLogRow
+        return PopoverContainerView(style: .subtle, content: row)
+    }
+
+    private func makeDiagnosticsLogRow(_ event: DiagnosticsEvent) -> NSView {
+        let row = makeSummaryRow(
+            title: event.severity.rawValue.uppercased(),
+            value: "\(event.category.rawValue): \(event.message)"
+        )
+        row.identifier = AppWindowViewID.diagnosticsLogRow
+        return PopoverContainerView(style: .subtle, content: row)
     }
 
     private func makeQuickActionsSection() -> NSView {
@@ -3197,6 +3274,7 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
         let stack = NSStackView(views: buttons)
+        stack.identifier = AppWindowViewID.compactActionRow
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.distribution = .fillEqually
@@ -3519,5 +3597,30 @@ final class UnifiedAppWindowController: NSWindowController {
         case .failure(let error):
             report(error.localizedDescription, isError: true)
         }
+    }
+}
+
+private extension NSView {
+    func containsView(with identifier: NSUserInterfaceItemIdentifier) -> Bool {
+        if self.identifier == identifier {
+            return true
+        }
+        return subviews.contains { $0.containsView(with: identifier) }
+    }
+
+    func countViews(with identifier: NSUserInterfaceItemIdentifier) -> Int {
+        let current = self.identifier == identifier ? 1 : 0
+        return current + subviews.reduce(0) { $0 + $1.countViews(with: identifier) }
+    }
+
+    func compactActionLabelsForTesting() -> [String] {
+        var labels: [String] = []
+        if identifier == AppWindowViewID.compactActionRow {
+            labels.append(contentsOf: subviews.compactMap { ($0 as? NSButton)?.title })
+        }
+        for subview in subviews {
+            labels.append(contentsOf: subview.compactActionLabelsForTesting())
+        }
+        return labels
     }
 }

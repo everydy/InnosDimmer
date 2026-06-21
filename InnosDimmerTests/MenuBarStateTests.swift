@@ -666,6 +666,26 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowDetailPagesUseHeaderBackInsteadOfBodyBack() {
+        let controller = makeMockupAcceptanceController()
+
+        for target in [AppDashboardFocusTarget.current, .display, .schedule, .shortcuts, .settings, .diagnostics] {
+            let structure = controller.pageStructureForTesting(focus: target)
+            XCTAssertTrue(structure.hasHeaderBackControl, "Expected header Back for \(target).")
+            XCTAssertFalse(structure.hasBodyBackRow, "Body Back row should not appear for \(target).")
+        }
+    }
+
+    @MainActor
+    func testUnifiedAppWindowDisplayAndSettingsUseSplitLayout() {
+        let controller = makeMockupAcceptanceController()
+
+        XCTAssertTrue(controller.pageStructureForTesting(focus: .display).usesSplitLayout)
+        XCTAssertTrue(controller.pageStructureForTesting(focus: .settings).usesSplitLayout)
+        XCTAssertFalse(controller.pageStructureForTesting(focus: .schedule).usesSplitLayout)
+    }
+
+    @MainActor
     func testUnifiedAppWindowSchedulePageDefinesTableEditorContract() throws {
         let controller = makeMockupAcceptanceController()
         let text = try renderedAppWindowText(controller, focus: .schedule)
@@ -742,6 +762,7 @@ final class MenuBarStateTests: XCTestCase {
     func testUnifiedAppWindowDiagnosticsPageDefinesMatrixAndLogContract() throws {
         let controller = makeMockupAcceptanceController()
         let text = try renderedAppWindowText(controller, focus: .diagnostics)
+        let structure = controller.pageStructureForTesting(focus: .diagnostics)
 
         assert(text, contains: [
             "Diagnostics",
@@ -756,6 +777,8 @@ final class MenuBarStateTests: XCTestCase {
             "Recent diagnostics",
             "Shortcut monitor registered"
         ])
+        XCTAssertGreaterThanOrEqual(structure.diagnosticsLogRowCount, 1)
+        XCTAssertTrue(structure.compactActionLabels.contains("Export diagnostics"))
     }
 
     @MainActor
