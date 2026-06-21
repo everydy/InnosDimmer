@@ -2779,23 +2779,66 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeCurrentPage() -> NSView {
         makeDetailPage([
-            makeQuickActionsSection(),
-            makeSection(title: "Snapshot lines", views: [
-                makeSummaryRow(title: "Display", value: state.display?.localizedName ?? "Automatic external display"),
-                makeSummaryRow(title: "Mode", value: ModeStatusLabel.title(for: state.activeMode)),
-                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)% / Blue reduction \(state.targetBlueReduction)%"),
+            makeSection(title: "Snapshot lines", trailing: makeChip("Live", tone: .neutral), views: [
+                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
+                makeSummaryRow(title: "Mode", value: displayModeSummary()),
+                makeSummaryRow(
+                    title: "Brightness",
+                    value: "Brightness: \(state.targetBrightness)% / Blue reduction: \(state.targetBlueReduction)%"
+                ),
                 makeSummaryRow(title: "Automation", value: automationSummary())
+            ]),
+            makeSection(title: "Commands", views: [
+                makeActionRow([
+                    button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
+                    button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
+                    button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
+                ])
             ])
         ])
     }
 
     private func makeDisplayPage() -> NSView {
         renderDisplayPicker()
+        let resolvedDisplay = resolvedTargetDisplay()
         return makeDetailPage([
-            makeSection(title: "Target display", views: [
+            makeActionRow([
+                PopoverCommandButton(
+                    title: "Refresh displays",
+                    style: .primary,
+                    target: self,
+                    action: #selector(refreshDisplaysPressed)
+                )
+            ]),
+            makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
+                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
+                makeSummaryRow(title: "Mode", value: displayModeSummary()),
+                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
+                makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
+            ]),
+            makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedDisplay == nil ? .warning : .ready), views: [
                 displayPicker,
-                makeSummaryRow(title: "Current", value: state.display?.localizedName ?? "Automatic external display"),
-                makeSummaryRow(title: "Candidates", value: "\(displayCandidates.count) active display(s)")
+                makeSummaryRow(title: "Selected", value: selectedDisplaySummary()),
+                makeSummaryRow(title: "Resolved to", value: resolvedDisplaySummary(resolvedDisplay)),
+                makeSummaryRow(title: "Main display", value: mainDisplaySummary(resolvedDisplay)),
+                makeSummaryRow(title: "Gamma table", value: gammaTableSummary(resolvedDisplay))
+            ]),
+            makeSection(title: "Saved selection", views: [
+                makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
+                makeActionRow([
+                    PopoverCommandButton(
+                        title: "Save display",
+                        style: .primary,
+                        target: self,
+                        action: #selector(saveDisplayPressed)
+                    ),
+                    PopoverCommandButton(
+                        title: "Use automatic",
+                        style: .normal,
+                        target: self,
+                        action: #selector(useAutomaticDisplayPressed)
+                    )
+                ])
             ])
         ])
     }
@@ -3213,6 +3256,64 @@ final class UnifiedAppWindowController: NSWindowController {
         return view
     }
 
+    private func currentDisplaySummary() -> String {
+        state.display?.localizedName ?? "Automatic external display"
+    }
+
+    private func displayModeSummary() -> String {
+        let modeTitle = ModeStatusLabel.title(for: state.activeMode)
+        guard state.targetBlueReduction > 0 else {
+            return modeTitle
+        }
+
+        switch state.activeMode {
+        case .overlay:
+            return "\(modeTitle) + gamma blue reduction"
+        case .gamma:
+            return "\(modeTitle) blue reduction"
+        case .platformBlocked, .unknown:
+            return modeTitle
+        }
+    }
+
+    private func selectedDisplaySummary() -> String {
+        snapshot.selectedDisplay?.localizedName ?? "Automatic external display"
+    }
+
+    private func resolvedTargetDisplay() -> DisplayIdentity? {
+        DisplayTargetResolver.resolve(saved: snapshot.selectedDisplay, candidates: displayCandidates)
+            ?? state.display
+    }
+
+    private func resolvedDisplaySummary(_ display: DisplayIdentity?) -> String {
+        guard let display else {
+            return "No active display"
+        }
+        return "\(display.localizedName) - Display \(display.cgDisplayID)"
+    }
+
+    private func mainDisplaySummary(_ display: DisplayIdentity?) -> String {
+        guard let display else {
+            return "Unavailable"
+        }
+        return CGDisplayIsMain(display.cgDisplayID) == 1 ? "Yes" : "No"
+    }
+
+    private func gammaTableSummary(_ display: DisplayIdentity?) -> String {
+        guard display != nil else {
+            return "Unavailable until a display resolves"
+        }
+
+        switch state.activeMode {
+        case .overlay, .gamma:
+            return "Supported for blue reduction"
+        case .platformBlocked:
+            return "Blocked by platform"
+        case .unknown:
+            return "Available when software dimming starts"
+        }
+    }
+
     private func automationActionTitle() -> String {
         state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
     }
@@ -3292,6 +3393,22 @@ final class UnifiedAppWindowController: NSWindowController {
         Clamped.percent(Int((fraction * 100).rounded()))
     }
 
+    private func selectedDisplayFromPicker() -> DisplayIdentity? {
+        let selectedIndex = displayPicker.indexOfSelectedItem - 1
+        return displayCandidates.indices.contains(selectedIndex) ? displayCandidates[selectedIndex] : nil
+    }
+
+    private func saveSelectedDisplaySelection(_ display: DisplayIdentity?, successMessage: String) {
+        switch settingsActions.selectDisplay(display) {
+        case .success(let updatedSnapshot):
+            snapshot = updatedSnapshot
+            report(successMessage)
+            renderActivePage()
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+        }
+    }
+
     private static func timeLabel(for minuteOfDay: Int) -> String {
         let minute = max(0, min(1_439, minuteOfDay))
         return String(format: "%02d:%02d", minute / 60, minute % 60)
@@ -3316,6 +3433,12 @@ final class UnifiedAppWindowController: NSWindowController {
     @objc private func quickDisablePressed() { actions.perform(.quickDisable) }
     @objc private func restorePreviousPressed() { actions.perform(.restorePrevious) }
     @objc private func automationActionPressed() { actions.perform(automationActionCommand) }
+    @objc private func openAppWindowPressed() { actions.perform(.openAppWindow) }
+    @objc private func openSettingsPressed() { actions.perform(.openSettings) }
+    @objc private func refreshDisplaysPressed() {
+        renderActivePage()
+        report("Display list refreshed.")
+    }
     @objc private func saveSchedulePressed() { _ = saveScheduleFromEditor(reportsStatus: true) }
     @objc private func shortcutControlChanged() { report("Shortcut changes are ready to save.") }
     @objc private func saveShortcutsPressed() { _ = saveShortcutsFromControls(reportsStatus: true) }
@@ -3330,17 +3453,15 @@ final class UnifiedAppWindowController: NSWindowController {
             report(error.localizedDescription, isError: true)
         }
     }
+    @objc private func saveDisplayPressed() {
+        saveSelectedDisplaySelection(selectedDisplayFromPicker(), successMessage: "Display saved.")
+    }
+    @objc private func useAutomaticDisplayPressed() {
+        displayPicker.selectItem(at: 0)
+        saveSelectedDisplaySelection(nil, successMessage: "Automatic display selection saved.")
+    }
     @objc private func displaySelectionChanged() {
-        let selectedIndex = displayPicker.indexOfSelectedItem - 1
-        let selectedDisplay = displayCandidates.indices.contains(selectedIndex) ? displayCandidates[selectedIndex] : nil
-        switch settingsActions.selectDisplay(selectedDisplay) {
-        case .success(let updatedSnapshot):
-            snapshot = updatedSnapshot
-            report("Settings saved.")
-            renderActivePage()
-        case .failure(let error):
-            report(error.localizedDescription, isError: true)
-        }
+        saveSelectedDisplaySelection(selectedDisplayFromPicker(), successMessage: "Settings saved.")
     }
     @objc private func loginItemToggled() {
         switch settingsActions.setLaunchAtLogin(loginItemCheckbox.state == .on) {
