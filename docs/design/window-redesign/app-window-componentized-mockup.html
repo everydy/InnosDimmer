@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>InnosDimmer App Window Componentized Mockup</title>
+  <title>InnosDimmer Compact Settings Window Mockup</title>
   <style>
     /*
       Component mapping:
@@ -74,8 +74,8 @@
     }
 
     .window {
-      width: min(860px, 100%);
-      height: 620px;
+      width: min(900px, 100%);
+      height: 640px;
       display: grid;
       grid-template-rows: 50px 1fr;
       overflow: hidden;
@@ -154,14 +154,15 @@
       display: none;
       min-width: 0;
       min-height: 0;
-      padding: 18px;
+      padding: 16px;
       overflow: auto;
+      height: 100%;
     }
 
     .page.active {
       display: grid;
       grid-template-rows: auto 1fr;
-      gap: 14px;
+      gap: 12px;
     }
 
     h1,
@@ -174,14 +175,14 @@
     }
 
     h1 {
-      font-size: 22px;
+      font-size: 21px;
       line-height: 1.16;
       font-weight: 760;
       letter-spacing: 0;
     }
 
     h2 {
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1.2;
       font-weight: 760;
       letter-spacing: 0;
@@ -214,6 +215,50 @@
       grid-template-columns: 1fr auto;
     }
 
+    .app-body {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      min-width: 0;
+      min-height: 0;
+      padding: 12px;
+      border-right: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel-2) 58%, var(--window));
+      overflow: auto;
+    }
+
+    .sidebar-title {
+      margin: 2px 6px 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .content-pane {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .content-pane .page-head {
+      grid-template-columns: 1fr auto;
+      align-items: center;
+    }
+
+    .page[data-page="home"] .layout {
+      grid-template-columns: 1fr;
+    }
+
+    .page[data-page="home"] .layout > .nav-grid {
+      display: none;
+    }
+
     .status-cluster,
     .action-row {
       display: flex;
@@ -226,7 +271,9 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
-      margin-top: 4px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      margin-top: 0;
     }
 
     .quick-command-row .button {
@@ -237,7 +284,9 @@
 
     .section-actions {
       justify-content: end;
-      margin-top: 10px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      margin-top: 0;
     }
 
     .status-cluster {
@@ -276,16 +325,17 @@
 
     .layout {
       display: grid;
-      grid-template-columns: 1.12fr 0.88fr;
+      grid-template-columns: minmax(0, 1fr) 260px;
       gap: 12px;
       min-height: 0;
     }
 
     .detail-layout {
       display: grid;
-      grid-template-columns: 258px 1fr;
-      gap: 12px;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
       min-height: 0;
+      align-content: start;
     }
 
     .automation-layout {
@@ -300,22 +350,26 @@
     .section {
       min-width: 0;
       min-height: 0;
-      padding: 12px;
+      padding: 0;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
+      overflow: hidden;
     }
 
     .section + .section {
-      margin-top: 12px;
+      margin-top: 10px;
     }
 
     .section-head {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 12px;
-      align-items: start;
-      margin-bottom: 10px;
+      align-items: center;
+      min-height: 38px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 0;
     }
 
     .quick-actions-head {
@@ -331,7 +385,7 @@
 
     .snapshot {
       display: grid;
-      gap: 10px;
+      gap: 0;
     }
 
     .control {
@@ -339,11 +393,11 @@
       grid-template-columns: 112px 52px 1fr 34px 34px;
       gap: 8px;
       align-items: center;
-      min-height: 40px;
+      min-height: 52px;
+      padding: 8px 12px;
     }
 
     .control + .control {
-      padding-top: 10px;
       border-top: 1px solid var(--line);
     }
 
@@ -469,8 +523,8 @@
 
     .summary-grid {
       display: grid;
-      grid-template-columns: 112px 1fr;
-      gap: 8px 12px;
+      grid-template-columns: 144px minmax(0, 1fr);
+      gap: 0;
       align-items: start;
       font-size: 13px;
       line-height: 1.35;
@@ -479,17 +533,26 @@
     .summary-grid dt {
       color: var(--muted);
       font-weight: 650;
+      padding: 9px 12px;
+      border-top: 1px solid var(--line);
     }
 
     .summary-grid dd {
       min-width: 0;
       color: var(--text);
       font-weight: 620;
+      padding: 9px 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .summary-grid dt:first-of-type,
+    .summary-grid dt:first-of-type + dd {
+      border-top: 0;
     }
 
     .ops-strip {
       display: grid;
-      gap: 7px;
+      gap: 0;
     }
 
     .ops-item {
@@ -497,16 +560,19 @@
       grid-template-columns: minmax(96px, auto) 1fr;
       gap: 10px;
       align-items: center;
-      min-height: 36px;
-      padding: 8px 10px;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      background: var(--panel-2);
+      min-height: 38px;
+      padding: 8px 12px;
+      border-top: 1px solid var(--line);
+      background: transparent;
+    }
+
+    .ops-item:first-child {
+      border-top: 0;
     }
 
     .ops-kicker {
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 700;
       letter-spacing: 0;
       text-transform: uppercase;
@@ -522,23 +588,38 @@
 
     .nav-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: 1fr;
+      gap: 0;
+      align-content: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .sidebar .nav-grid {
+      background: transparent;
+      border-color: color-mix(in srgb, var(--line) 78%, transparent);
     }
 
     .tile {
       display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 10px;
-      align-items: start;
-      min-height: 88px;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
+      grid-template-columns: 28px 1fr;
+      gap: 9px;
+      align-items: center;
+      min-height: 52px;
+      padding: 9px 12px;
+      border: 0;
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
       color: var(--text);
       text-align: left;
       cursor: pointer;
+    }
+
+    .tile:first-child {
+      border-top: 0;
     }
 
     .tile:hover {
@@ -546,18 +627,28 @@
       background: color-mix(in srgb, var(--panel) 88%, var(--blue) 12%);
     }
 
+    .tile.active {
+      background: color-mix(in srgb, var(--panel) 82%, var(--blue) 18%);
+      color: var(--text);
+    }
+
+    .tile.active h3,
+    .tile.active .meta {
+      color: var(--text);
+    }
+
     .tile h3 {
       color: var(--text);
       text-transform: none;
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.2;
     }
 
     .tile .meta {
       display: block;
-      margin-top: 4px;
+      margin-top: 2px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.3;
     }
 
@@ -565,11 +656,11 @@
       position: relative;
       display: grid;
       place-items: center;
-      width: 34px;
-      height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--control);
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--control) 70%, transparent);
       color: var(--blue);
     }
 
@@ -703,13 +794,20 @@
 
     .detail-main {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       min-height: 0;
     }
 
     .list {
       display: grid;
       gap: 8px;
+    }
+
+    .section > .action-row:not(.section-actions),
+    .section > .list,
+    .section > .box,
+    .section > .matrix-overview {
+      margin: 12px;
     }
 
     .schedule-table {
@@ -722,7 +820,7 @@
 
     .schedule-row {
       display: grid;
-      grid-template-columns: 66px 1fr 1fr auto;
+      grid-template-columns: 66px 1fr 1fr;
       gap: 0;
       align-items: stretch;
       min-height: 54px;
@@ -1012,14 +1110,40 @@
         overflow: auto;
       }
 
+      .app-body {
+        grid-template-columns: 1fr;
+        overflow: auto;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .content-pane {
+        overflow: visible;
+      }
+
+      .content-pane .page-head {
+        grid-template-columns: 1fr;
+      }
+
       .layout,
       .detail-layout,
       .page-head,
       .home-head,
       .control,
-      .schedule-row,
       .shortcut-row {
         grid-template-columns: 1fr;
+      }
+
+      .schedule-table {
+        overflow-x: auto;
+      }
+
+      .schedule-row {
+        grid-template-columns: 66px minmax(210px, 1fr) minmax(210px, 1fr);
+        min-width: 520px;
       }
 
       .nav-grid {
@@ -1043,7 +1167,6 @@
 <body data-theme="dark">
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
     <symbol id="icon-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
-    <symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
     <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
     <symbol id="icon-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
     <symbol id="icon-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v11h14V10"/></symbol>
@@ -1078,10 +1201,46 @@
       </div>
     </header>
 
+    <div class="app-body">
+      <aside class="sidebar" aria-label="Settings navigation">
+        <div class="sidebar-title">Settings</div>
+        <nav class="nav-grid sidebar-nav" aria-label="Settings pages">
+          <button class="tile active" type="button" data-go="home">
+            <span class="glyph home" aria-hidden="true"><svg class="icon-svg"><use href="#icon-house"></use></svg></span>
+            <span><h3>Overview</h3><span class="meta">Controls and status.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="current">
+            <span class="glyph current" aria-hidden="true"><svg class="icon-svg"><use href="#icon-sliders-horizontal"></use></svg></span>
+            <span><h3>Current status</h3><span class="meta">State and commands.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="display">
+            <span class="glyph display" aria-hidden="true"><svg class="icon-svg"><use href="#icon-monitor"></use></svg></span>
+            <span><h3>Display</h3><span class="meta">Target monitor.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="automation">
+            <span class="glyph automation" aria-hidden="true"><svg class="icon-svg"><use href="#icon-clock"></use></svg></span>
+            <span><h3>Schedule</h3><span class="meta">Rows and pause state.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="shortcuts">
+            <span class="glyph shortcuts" aria-hidden="true"><svg class="icon-svg"><use href="#icon-keyboard"></use></svg></span>
+            <span><h3>Shortcuts</h3><span class="meta">Global hotkeys.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="settings">
+            <span class="glyph settings" aria-hidden="true"><svg class="icon-svg"><use href="#icon-settings"></use></svg></span>
+            <span><h3>Settings</h3><span class="meta">Startup and persistence.</span></span>
+          </button>
+          <button class="tile" type="button" data-go="diagnostics">
+            <span class="glyph diagnostics" aria-hidden="true"><svg class="icon-svg"><use href="#icon-activity"></use></svg></span>
+            <span><h3>Diagnostics</h3><span class="meta">Failures and export.</span></span>
+          </button>
+        </nav>
+      </aside>
+
+      <div class="content-pane">
     <section class="page active" data-page="home" aria-label="Home">
       <header class="page-head home-head">
         <div>
-          <h1>InnosDimmer Control Center</h1>
+          <h1>InnosDimmer</h1>
         </div>
         <div class="status-cluster">
           <span class="badge status-chip ready">Overlay active</span>
@@ -1123,7 +1282,7 @@
           <section class="section section-shell" aria-labelledby="home-ops">
             <div class="section-head">
               <div>
-                <div class="section-title" id="home-ops">Next actions</div>
+                <div class="section-title" id="home-ops">Status</div>
               </div>
             </div>
             <div class="ops-strip">
@@ -1146,27 +1305,27 @@
         <nav class="nav-grid" aria-label="Settings pages">
           <button class="tile" type="button" data-go="current">
             <span class="glyph current" aria-hidden="true"><svg class="icon-svg"><use href="#icon-sliders-horizontal"></use></svg></span>
-            <span><h3>Current status</h3><span class="meta">Resolved display, mode, automation, and available commands.</span></span>
+            <span><h3>Current status</h3><span class="meta">State and commands.</span></span>
           </button>
           <button class="tile" type="button" data-go="display">
             <span class="glyph display" aria-hidden="true"><svg class="icon-svg"><use href="#icon-monitor"></use></svg></span>
-            <span><h3>Display</h3><span class="meta">Target display, picker state, and detection summary.</span></span>
+            <span><h3>Display</h3><span class="meta">Target monitor.</span></span>
           </button>
           <button class="tile" type="button" data-go="automation">
             <span class="glyph automation" aria-hidden="true"><svg class="icon-svg"><use href="#icon-clock"></use></svg></span>
-            <span><h3>Schedule</h3><span class="meta">Schedule summary, editor entry, pause and resume.</span></span>
+            <span><h3>Schedule</h3><span class="meta">Rows and pause state.</span></span>
           </button>
           <button class="tile" type="button" data-go="shortcuts">
             <span class="glyph shortcuts" aria-hidden="true"><svg class="icon-svg"><use href="#icon-keyboard"></use></svg></span>
-            <span><h3>Shortcuts</h3><span class="meta">All global bindings, including Open popover.</span></span>
+            <span><h3>Shortcuts</h3><span class="meta">Global hotkeys.</span></span>
           </button>
           <button class="tile" type="button" data-go="settings">
             <span class="glyph settings" aria-hidden="true"><svg class="icon-svg"><use href="#icon-settings"></use></svg></span>
-            <span><h3>Settings</h3><span class="meta">Launch at login, saved state, and persistence status.</span></span>
+            <span><h3>Settings</h3><span class="meta">Startup and persistence.</span></span>
           </button>
           <button class="tile" type="button" data-go="diagnostics">
             <span class="glyph diagnostics" aria-hidden="true"><svg class="icon-svg"><use href="#icon-activity"></use></svg></span>
-            <span><h3>Diagnostics</h3><span class="meta">Verification matrix, recent failures, and JSON export.</span></span>
+            <span><h3>Diagnostics</h3><span class="meta">Failures and export.</span></span>
           </button>
         </nav>
       </div>
@@ -1174,10 +1333,8 @@
 
     <section class="page" data-page="current" aria-label="Current status page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
           <h2>Current status</h2>
-          <p class="subtitle">A read-only status page for the current dimming state, without duplicating the home quick controls.</p>
         </div>
         <span class="badge status-chip ready">Overlay active</span>
       </header>
@@ -1186,7 +1343,6 @@
           <div class="section-head">
             <div>
               <div class="section-title">Snapshot lines</div>
-              <p class="caption">Matches the dashboard view model strings.</p>
             </div>
             <span class="chip status-chip">Live</span>
           </div>
@@ -1205,11 +1361,10 @@
           <div class="section-head">
             <div>
               <div class="section-title">Commands</div>
-              <p class="caption">Commands visible in the popover remain visible here.</p>
             </div>
           </div>
           <div class="action-row component-action-row">
-            <button class="button command-button primary" type="button">Open app window</button>
+            <button class="button command-button primary" type="button">Open popover</button>
             <button class="button command-button" type="button">Settings</button>
             <button class="button command-button" type="button">Resume automation</button>
           </div>
@@ -1219,16 +1374,14 @@
 
     <section class="page" data-page="display" aria-label="Display page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
           <h2>Display</h2>
-          <p class="subtitle">The target display setting, with the popover current-state summary kept visible.</p>
         </div>
         <button class="button command-button primary" type="button">Refresh displays</button>
       </header>
       <div class="detail-layout">
         <section class="section section-shell snapshot">
-          <div class="section-head"><div><div class="section-title">Current state</div><p class="caption">27QA100M - overlay active</p></div><span class="chip status-chip ready">Ready</span></div>
+          <div class="section-head"><div><div class="section-title">Current state</div></div><span class="chip status-chip ready">Ready</span></div>
           <dl class="summary-grid summary-row-list">
             <dt>Display</dt><dd>27QA100M</dd>
             <dt>Mode</dt><dd>Software overlay + gamma</dd>
@@ -1239,7 +1392,7 @@
         <div class="detail-main">
           <section class="section section-shell">
             <div class="section-head">
-              <div><div class="section-title">Target display</div><p class="caption">Equivalent to the existing settings display picker.</p></div>
+              <div><div class="section-title">Target display</div></div>
               <span class="chip status-chip ready">Resolved</span>
             </div>
             <dl class="summary-grid summary-row-list">
@@ -1250,7 +1403,7 @@
             </dl>
           </section>
           <section class="section section-shell">
-            <div class="section-head"><div><div class="section-title">Saved selection</div><p class="caption">Persists through `DisplayTargetStore.saveSelectedDisplay`.</p></div></div>
+            <div class="section-head"><div><div class="section-title">Saved selection</div></div></div>
             <div class="action-row component-action-row">
               <button class="button command-button primary" type="button">Save display</button>
               <button class="button command-button" type="button">Use automatic</button>
@@ -1260,19 +1413,17 @@
       </div>
     </section>
 
-    <section class="page" data-page="automation" aria-label="Automation page">
+    <section class="page" data-page="automation" aria-label="Schedule page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
-          <h2>Automation</h2>
-          <p class="subtitle">Reuse the popover Schedule section, then expose the full schedule rows.</p>
+          <h2>Schedule</h2>
         </div>
         <button class="button command-button warning" type="button">Resume automation</button>
       </header>
       <div class="detail-layout automation-layout">
         <section class="section section-shell automation-summary">
           <div class="section-head">
-            <div><div class="section-title">Schedule</div><p class="caption">Compact schedule state and primary actions.</p></div>
+            <div><div class="section-title">Schedule</div></div>
             <span class="chip status-chip warn">Next 19:00</span>
           </div>
           <dl class="summary-grid summary-row-list">
@@ -1283,14 +1434,13 @@
         </section>
         <section class="section section-shell">
           <div class="section-head">
-            <div><div class="section-title">Schedule rows</div><p class="caption">Same values as `SettingsWindowController.scheduleSummary`.</p></div>
+            <div><div class="section-title">Schedule rows</div></div>
           </div>
           <div class="list token-list schedule-table">
             <div class="schedule-row schedule-header">
               <div>Time</div>
               <div>Bright</div>
               <div>Blue</div>
-              <div></div>
             </div>
             <div class="schedule-row token-schedule-row">
               <input class="schedule-input token-box" type="text" value="09:00" aria-label="Schedule time 09:00">
@@ -1310,7 +1460,6 @@
                   <button class="button command-button icon schedule-step" type="button" aria-label="Blue reduction 09:00 up">+</button>
                 </div>
               </div>
-              <button class="button command-button icon" type="button" aria-label="Remove 09:00 schedule row">-</button>
             </div>
             <div class="schedule-row token-schedule-row">
               <input class="schedule-input token-box" type="text" value="19:00" aria-label="Schedule time 19:00">
@@ -1330,7 +1479,6 @@
                   <button class="button command-button icon schedule-step" type="button" aria-label="Blue reduction 19:00 up">+</button>
                 </div>
               </div>
-              <button class="button command-button icon" type="button" aria-label="Remove 19:00 schedule row">-</button>
             </div>
             <div class="schedule-row token-schedule-row">
               <input class="schedule-input token-box" type="text" value="23:00" aria-label="Schedule time 23:00">
@@ -1350,7 +1498,6 @@
                   <button class="button command-button icon schedule-step" type="button" aria-label="Blue reduction 23:00 up">+</button>
                 </div>
               </div>
-              <button class="button command-button icon" type="button" aria-label="Remove 23:00 schedule row">-</button>
             </div>
           </div>
           <div class="action-row component-action-row section-actions">
@@ -1363,10 +1510,8 @@
 
     <section class="page" data-page="shortcuts" aria-label="Shortcuts page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
           <h2>Shortcuts</h2>
-          <p class="subtitle">All `ShortcutAction.allCases`, including the newly present Open popover action.</p>
         </div>
         <div class="action-row component-action-row">
           <button class="button command-button primary" type="button">Save shortcuts</button>
@@ -1375,7 +1520,7 @@
       </header>
       <div class="detail-layout shortcuts-layout">
         <section class="section section-shell">
-          <div class="section-head"><div><div class="section-title">Global shortcuts</div><p class="caption">Matches the current settings table model.</p></div></div>
+          <div class="section-head"><div><div class="section-title">Global shortcuts</div></div></div>
           <div class="list token-list">
             <div class="shortcut-row token-shortcut-row header"><div>Action</div><div>On</div><div>Opt</div><div>Shift</div><div>Ctrl</div><div>Cmd</div><div>Key</div></div>
             <div class="shortcut-row token-shortcut-row"><div>Brightness up</div><div class="toggle"></div><div class="check">✓</div><div class="check">✓</div><div class="check"></div><div class="check"></div><div class="key">Up</div></div>
@@ -1392,16 +1537,14 @@
 
     <section class="page" data-page="settings" aria-label="Settings page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
           <h2>Settings</h2>
-          <p class="subtitle">Renamed from Startup so this page can hold persistent app settings, including launch at login.</p>
         </div>
         <button class="button command-button primary" type="button">Apply settings</button>
       </header>
       <div class="detail-layout">
         <section class="section section-shell">
-          <div class="section-head"><div><div class="section-title">Launch at login</div><p class="caption">Current `LoginItemController` state.</p></div><span class="chip status-chip ready">Enabled</span></div>
+          <div class="section-head"><div><div class="section-title">Launch at login</div></div><span class="chip status-chip ready">Enabled</span></div>
           <dl class="summary-grid summary-row-list">
             <dt>State</dt><dd><div class="box token-box">Launch at login: enabled</div></dd>
             <dt>Approval</dt><dd><div class="box token-box">No System Settings approval needed</div></dd>
@@ -1410,7 +1553,7 @@
         </section>
         <div class="detail-main">
           <section class="section section-shell">
-            <div class="section-head"><div><div class="section-title">Saved settings</div><p class="caption">All durable settings represented somewhere in this window.</p></div></div>
+            <div class="section-head"><div><div class="section-title">Saved settings</div></div></div>
             <dl class="summary-grid summary-row-list">
               <dt>Target display</dt><dd>Automatic external display</dd>
               <dt>Schedule</dt><dd>3 rows saved</dd>
@@ -1419,7 +1562,7 @@
             </dl>
           </section>
           <section class="section section-shell">
-            <div class="section-head"><div><div class="section-title">Status label</div><p class="caption">Existing transient feedback remains visible.</p></div></div>
+            <div class="section-head"><div><div class="section-title">Status label</div></div></div>
             <div class="box token-box">Launch at login updated.</div>
           </section>
         </div>
@@ -1428,10 +1571,8 @@
 
     <section class="page" data-page="diagnostics" aria-label="Diagnostics page">
       <header class="page-head">
-        <button class="back command-button" type="button" data-go="home">&larr; Back</button>
         <div>
           <h2>Diagnostics</h2>
-          <p class="subtitle">Readable failures and the existing diagnostics export in one focused page.</p>
         </div>
         <button class="button command-button primary" type="button">Export diagnostics</button>
       </header>
@@ -1440,7 +1581,6 @@
           <div class="section-head">
             <div>
               <div class="section-title">Verification matrix</div>
-              <p class="caption">Current capability checks.</p>
             </div>
             <span class="chip status-chip ready">Handled</span>
           </div>
@@ -1470,14 +1610,14 @@
       </div>
     </section>
 
+      </div>
+    </div>
   </main>
 
   <script>
     const commandIconRules = [
-      { match: /^Back$/, icon: "arrow-left" },
       { match: /^\+$/, icon: "plus" },
       { match: /^-$/, icon: "minus" },
-      { match: /^Remove .* schedule row$/, icon: "minus" },
       { match: /down$/i, icon: "minus" },
       { match: /up$/i, icon: "plus" },
       { match: /^Disable$|^Quick disable$/, icon: "power" },
@@ -1490,7 +1630,7 @@
       { match: /^Export diagnostics$/, icon: "download" },
       { match: /^Settings$/, icon: "settings" },
       { match: /^Diagnostics$/, icon: "activity" },
-      { match: /^Use automatic|^Open app window$/, icon: "monitor" }
+      { match: /^Use automatic|^Open popover$/, icon: "monitor" }
     ];
 
     function makeIcon(name) {
@@ -1527,6 +1667,10 @@
       for (const page of document.querySelectorAll("[data-page]")) {
         page.classList.toggle("active", page.dataset.page === pageName);
       }
+
+      for (const tile of document.querySelectorAll(".sidebar [data-go]")) {
+        tile.classList.toggle("active", tile.dataset.go === pageName);
+      }
     }
 
     for (const trigger of document.querySelectorAll("[data-go]")) {
@@ -1540,6 +1684,7 @@
     }
 
     applyCommandIcons();
+    showPage(document.querySelector("[data-page].active")?.dataset.page || "home");
   </script>
 </body>
 </html>
