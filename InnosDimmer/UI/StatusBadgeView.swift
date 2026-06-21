@@ -21,7 +21,7 @@ final class StatusBadgeView: NSTextField {
         isEditable = false
         isBordered = false
         drawsBackground = false
-        font = .systemFont(ofSize: 12, weight: .semibold)
+        font = InnosDesignTokens.Font.badgeLabel
         stringValue = ModeStatusLabel.title(for: mode)
     }
 

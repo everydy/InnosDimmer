@@ -119,8 +119,8 @@ private final class BadgePillView: NSView {
 
         label.stringValue = title
         label.font = compact
-            ? InnosDesignTokens.Font.app(ofSize: 9, weight: .semibold)
-            : InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+            ? InnosDesignTokens.Font.badgeCompact
+            : InnosDesignTokens.Font.badgeLabel
         label.alignment = .center
         label.drawsBackground = false
         label.isBezeled = false
@@ -735,7 +735,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func titleLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
+        label.font = InnosDesignTokens.Font.shortcutName
         label.textColor = .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -745,7 +745,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func directionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        label.font = InnosDesignTokens.Font.shortcutDirection
         label.textColor = .secondaryLabelColor
         label.alignment = .right
         label.widthAnchor.constraint(equalToConstant: Metrics.directionWidth).isActive = true
@@ -829,7 +829,7 @@ private final class ShortcutKeyChipView: NSView {
             if index > 0 {
                 let plus = Self.label(
                     "+",
-                    font: InnosDesignTokens.Font.app(ofSize: 9, weight: .semibold)
+                    font: InnosDesignTokens.Font.shortcutSeparator
                 )
                 plusLabels.append(plus)
                 stack.addArrangedSubview(plus)
@@ -839,8 +839,8 @@ private final class ShortcutKeyChipView: NSView {
             let tokenLabel = Self.label(
                 token,
                 font: isOff
-                    ? InnosDesignTokens.Font.app(ofSize: 12, weight: .bold)
-                    : InnosDesignTokens.Font.app(ofSize: 13, weight: .bold)
+                    ? InnosDesignTokens.Font.shortcutOff
+                    : InnosDesignTokens.Font.shortcutToken
             )
             tokenLabels.append(tokenLabel)
             stack.addArrangedSubview(tokenLabel)
@@ -882,7 +882,7 @@ private final class PopoverCommandButton: NSButton {
         layer?.cornerRadius = 7
         layer?.borderWidth = 1
         controlSize = .regular
-        font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        font = InnosDesignTokens.Font.buttonLabel
         setButtonType(.momentaryPushIn)
         updateColors()
     }
@@ -931,7 +931,7 @@ private final class PopoverCommandButton: NSButton {
             string: title,
             attributes: [
                 .foregroundColor: foreground,
-                .font: font ?? InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+                .font: font ?? InnosDesignTokens.Font.buttonLabel
             ]
         )
     }
@@ -1266,7 +1266,7 @@ final class MenuBarPopoverView: NSView {
             scheduleStatusDetailLabel,
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
-        automationLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        automationLabel.font = InnosDesignTokens.Font.bodySmallStrong
         automationLabel.textColor = .labelColor
         scheduleStatusDetailLabel.textColor = .secondaryLabelColor
         blueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: effectiveAppearance)
@@ -1384,7 +1384,7 @@ final class MenuBarPopoverView: NSView {
 
     private func makeHeader() -> NSView {
         let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = InnosDesignTokens.Font.app(ofSize: 17, weight: .bold)
+        title.font = InnosDesignTokens.Font.appTitle
         title.textColor = .labelColor
 
         let topRow = NSStackView(views: [title, modeBadge])
@@ -1443,12 +1443,12 @@ final class MenuBarPopoverView: NSView {
             systemSymbolName: iconSystemName,
             fallback: iconFallback,
             iconColor: iconColor,
-            font: InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold),
+            font: InnosDesignTokens.Font.controlLabel,
             textColor: .labelColor
         )
         titleView.setContentHuggingPriority(.required, for: .horizontal)
 
-        valueLabel.font = InnosDesignTokens.Font.app(ofSize: 18, weight: .semibold)
+        valueLabel.font = InnosDesignTokens.Font.controlValue
         valueLabel.alignment = .right
         valueLabel.textColor = .labelColor
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -1467,7 +1467,7 @@ final class MenuBarPopoverView: NSView {
 
     private func makeSummaryRow(title: String, value: NSView) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        titleLabel.font = InnosDesignTokens.Font.sectionLabel
         titleLabel.textColor = .secondaryLabelColor
         titleLabel.widthAnchor.constraint(equalToConstant: 100).isActive = true
         titleLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -1500,13 +1500,13 @@ final class MenuBarPopoverView: NSView {
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        label.font = InnosDesignTokens.Font.app(ofSize: 12)
+        label.font = InnosDesignTokens.Font.bodySmall
         label.textColor = .secondaryLabelColor
     }
 
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
-        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        label.font = InnosDesignTokens.Font.sectionLabel
         label.textColor = .secondaryLabelColor
         return label
     }
