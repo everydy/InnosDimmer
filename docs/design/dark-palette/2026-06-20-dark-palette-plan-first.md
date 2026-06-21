@@ -39,7 +39,7 @@ flowchart LR
 | `page` | `#0f0f11` | n/a, docs canvas only | `--page` |
 | `surfaceRoot` | `#161616` | `InnosDesignTokens.surfaceRoot` | `--surface` / `--surface-root` |
 | `surfaceSection` | `#1f1f22` | `InnosDesignTokens.surfaceSection` | `--panel` / `--surface-section` |
-| `surfaceSubtle` | `#262626` | `InnosDesignTokens.surfaceSubtle` | `--panel-2` / `--surface-subtle` |
+| `surfaceSubtle` | `#18181b` | `InnosDesignTokens.surfaceSubtle` | `--panel-2` / `--surface-subtle` |
 | `surfaceControl` | `#303036` | `InnosDesignTokens.surfaceControl` | `--control` / `--surface-control` |
 | `border` | `#3b3b40` | `InnosDesignTokens.border` | `--line` / `--border` |
 | `accent` | `#5aa7ff` | `InnosDesignTokens.accent` | `--blue` / `--accent` |
@@ -126,7 +126,7 @@ body[data-theme="dark"] {
   --page: #0f0f11;
   --surface: #161616;
   --panel: #1f1f22;
-  --panel-2: #262626;
+  --panel-2: #18181b;
   --control: #303036;
   --line: #3b3b40;
 }
@@ -168,7 +168,7 @@ private enum PopoverPalette {
 
 - Alternative considered: 기존 mockup blue-surface palette를 그대로 Swift에 맞추는 방식. 사용자가 문제 삼은 지점이 바로 이 방향이라 제외한다.
 - Why this plan: 로컬 최신 목업과 mature dark-mode design-system 근거가 모두 neutral dark surface layering을 지지한다.
-- Tradeoff: 아주 어두운 팔레트는 표면 간 차이가 작아질 수 있다. 대신 `#161616`, `#1f1f22`, `#262626`, `#303036` 네 단계로 충분한 위계를 확보한다.
+- Tradeoff: 아주 어두운 팔레트는 표면 간 차이가 작아질 수 있다. 대신 `#161616`, `#1f1f22`, `#18181b`, `#303036` 네 단계로 충분한 위계를 확보한다.
 - What this plan may still miss: 전체 앱 창의 모든 custom AppKit surface가 `InnosDesignTokens`를 쓰지 않을 수 있다. 이번 패스는 popover/shared-token 중심으로 제한한다.
 - When to stop and revise: focused tests가 실패하거나 실제 screenshot에서 텍스트/버튼 대비가 떨어지면 팔레트가 아니라 component mapping을 조정한다.
 

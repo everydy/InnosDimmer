@@ -105,7 +105,7 @@
 - New/changed primitives:
   - `surface.root.dark = #161616`
   - `surface.section.dark = #1f1f22`
-  - `surface.subtle.dark = #262626`
+  - `surface.subtle.dark = #18181b`
   - `surface.control.dark = #303036`
   - `border.default.dark = #3b3b40`
 - New/changed semantics:
