@@ -59,3 +59,15 @@ Reason: The operator moves between the popover and the app window during the sam
 Supersedes: ad hoc app-window cards that restyle popover commands as unrelated dashboard widgets.
 
 Source: user request on 2026-06-20, `docs/design/shared-control-system/contract.md`, `docs/design/shared-control-system/specimen.html`.
+
+## INNOS-DES-2026-06-21-001
+
+Status: Active
+
+Decision: InnosDimmer uses Pretendard as the app UI typography target, with AppKit system font fallback only when Pretendard is unavailable.
+
+Reason: The operator selected Pretendard for the app's visual language, and the current implementation already loads Pretendard before falling back to AppKit. Future weight tuning and shortcut-chip readability depend on Pretendard metrics rather than San Francisco metrics.
+
+Supersedes: `DESIGN.md` foundation rule "Use San Francisco via AppKit system fonts."
+
+Source: user request on 2026-06-21, `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`, `docs/design/popover-redesign/typography-weight/2026-06-21-pretendard-typography-plan-first.md`.

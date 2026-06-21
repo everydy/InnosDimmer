@@ -10,9 +10,9 @@
   - Put the current display, mode, and automation status before secondary logs.
   - Make brightness and blue reduction feel like adjustable controls, not pairs of unrelated text buttons.
   - Keep dangerous or disruptive actions visually separate from routine adjustments.
-  - Prefer native macOS control patterns and system typography over decorative styling.
+  - Prefer native macOS control patterns and Pretendard-first app typography over decorative styling.
 - Foundations:
-  - Use San Francisco via AppKit system fonts.
+  - Use Pretendard as the app UI typography target, with AppKit system fonts only as fallback when Pretendard is unavailable.
   - Use neutral system backgrounds and separators; avoid decorative gradients, glows, and marketing-style cards.
   - Prefer a dark popover treatment for this personal dimming utility so the control surface does not brighten the external display at night.
   - Keep corner radius at 8px or less for framed groups and repeated rows.
