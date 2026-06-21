@@ -292,6 +292,8 @@ final class MenuBarStateTests: XCTestCase {
         let view = ScheduleEditorView()
         view.update(schedule: ScheduleEntry.defaultSchedule)
 
+        XCTAssertEqual(view.rowCountForTesting(), 3)
+
         var values = try XCTUnwrap(view.rowValuesForTesting(index: 0))
         XCTAssertEqual(values.time, "09:00")
         XCTAssertEqual(values.brightness, "80")
@@ -629,14 +631,15 @@ final class MenuBarStateTests: XCTestCase {
             "Automation",
             "Paused until 19:00",
             "Commands",
-            "Open app window",
+            "Open popover",
             "Settings",
             "Resume automation"
         ])
         assert(text, doesNotContain: [
             "Quick actions",
             "Disable",
-            "Restore"
+            "Restore",
+            "Open app window"
         ])
     }
 
@@ -726,6 +729,7 @@ final class MenuBarStateTests: XCTestCase {
             "Settings",
             "Apply settings",
             "Launch at login",
+            "State",
             "Enabled",
             "Approval",
             "Behavior",
@@ -776,7 +780,7 @@ final class MenuBarStateTests: XCTestCase {
 
         let settings = controller.pageStructureForTesting(focus: .settings)
         XCTAssertTrue(settings.containsIdentifier("app-window-detail-split"))
-        XCTAssertTrue(settings.containsIdentifier("app-window-section:Startup"))
+        XCTAssertTrue(settings.containsIdentifier("app-window-section:Launch at login"))
         XCTAssertTrue(settings.containsIdentifier("app-window-section:Saved settings"))
     }
 
@@ -792,6 +796,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(schedule.containsIdentifier("app-window-token-row:Status"))
         XCTAssertTrue(schedule.containsText("Resume automation"))
         XCTAssertTrue(schedule.containsText("Save schedule"))
+        XCTAssertFalse(schedule.containsText("Remove"))
     }
 
     @MainActor

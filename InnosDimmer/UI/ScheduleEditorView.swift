@@ -273,6 +273,10 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         )
     }
 
+    func rowCountForTesting() -> Int {
+        rows.count
+    }
+
     private func installContent() {
         let stack = NSStackView()
         stack.orientation = .vertical

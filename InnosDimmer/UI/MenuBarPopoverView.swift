@@ -2397,17 +2397,17 @@ private enum UnifiedAppWindowPage: CaseIterable {
         case .home:
             return ""
         case .current:
-            return "Resolved display, mode, automation, and commands."
+            return "State and commands."
         case .display:
-            return "Target display, picker state, and detection summary."
+            return "Target monitor."
         case .schedule:
-            return "Schedule summary, editor entry, pause and resume."
+            return "Rows and pause state."
         case .shortcuts:
-            return "All global bindings, including Open popover."
+            return "Global hotkeys."
         case .settings:
-            return "Launch at login, saved state, and persistence status."
+            return "Startup and persistence."
         case .diagnostics:
-            return "Verification matrix, recent failures, and JSON export."
+            return "Failures and export."
         }
     }
 
@@ -2822,7 +2822,7 @@ final class UnifiedAppWindowController: NSWindowController {
                 ]),
                 makeSection(title: "Commands", views: [
                     makeActionRow([
-                        button("Open app window", command: .openAppWindow, action: #selector(openAppWindowPressed), style: .primary),
+                        button("Open popover", command: .openPopover, action: #selector(openPopoverPressed), style: .primary),
                         button("Settings", command: .openSettings, action: #selector(openSettingsPressed)),
                         button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
                     ])
@@ -2926,11 +2926,11 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeSettingsPage() -> NSView {
         loginItemCheckbox.state = loginItemStatus == .enabled ? .on : .off
         let split = makeDetailSplit(
-            sidebar: makeSection(title: "Startup", views: [
+            sidebar: makeSection(title: "Launch at login", views: [
                 loginItemCheckbox,
-                makeTokenRow(title: "Launch at login", value: loginItemSummary()),
+                makeTokenRow(title: "State", value: loginItemSummary()),
                 makeTokenRow(title: "Approval", value: loginItemApprovalSummary()),
-                makeTokenRow(title: "Behavior", value: "Apply at launch and keep saved state persistent"),
+                makeTokenRow(title: "Behavior", value: "App reappears in the menu bar after macOS login"),
                 makeActionRow([
                     PopoverCommandButton(title: "Apply settings", style: .primary, target: self, action: #selector(loginItemToggled))
                 ])
@@ -3655,6 +3655,7 @@ final class UnifiedAppWindowController: NSWindowController {
     @objc private func restorePreviousPressed() { actions.perform(.restorePrevious) }
     @objc private func automationActionPressed() { actions.perform(automationActionCommand) }
     @objc private func openAppWindowPressed() { actions.perform(.openAppWindow) }
+    @objc private func openPopoverPressed() { actions.perform(.openPopover) }
     @objc private func openSettingsPressed() { actions.perform(.openSettings) }
     @objc private func refreshDisplaysPressed() {
         renderActivePage()
