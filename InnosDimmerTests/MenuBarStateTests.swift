@@ -1197,8 +1197,8 @@ final class MenuBarStateTests: XCTestCase {
 
         let width = max(1, representation.pixelsWide)
         let height = max(1, representation.pixelsHigh)
-        let xStride = max(1, width / 12)
-        let yStride = max(1, height / 12)
+        let xStride = max(1, width / 32)
+        let yStride = max(1, height / 32)
         var hasVisiblePixel = false
         var buckets: Set<String> = []
 
@@ -1214,7 +1214,7 @@ final class MenuBarStateTests: XCTestCase {
                 if alpha > 0.01, red + green + blue > 0.04 {
                     hasVisiblePixel = true
                 }
-                buckets.insert("\(Int(red * 12))-\(Int(green * 12))-\(Int(blue * 12))-\(Int(alpha * 12))")
+                buckets.insert("\(Int(red * 24))-\(Int(green * 24))-\(Int(blue * 24))-\(Int(alpha * 24))")
             }
         }
 
