@@ -608,7 +608,7 @@ final class MenuBarController: NSObject {
 
         let updatedState = ScheduleEngine.stateAfterApplying(decision, to: brightnessController.state)
         brightnessController.applyPreviewState(updatedState)
-        record(.schedule, "Applied scheduled brightness \(entry.brightness)% warmth \(entry.blueReduction)%")
+        record(.schedule, "Applied scheduled brightness \(entry.brightness)% blue reduction \(entry.blueReduction)%")
         refreshPopover()
         return true
     }
@@ -806,7 +806,7 @@ final class MenuBarController: NSObject {
         let state = brightnessController.state
         record(
             Self.diagnosticsCategory(for: state.activeMode),
-            "Applied brightness \(state.targetBrightness)% warmth \(state.targetBlueReduction)% on \(command.display.localizedName)",
+            "Applied brightness \(state.targetBrightness)% blue reduction \(state.targetBlueReduction)% on \(command.display.localizedName)",
             Self.diagnosticsSeverity(for: state.activeMode)
         )
 
