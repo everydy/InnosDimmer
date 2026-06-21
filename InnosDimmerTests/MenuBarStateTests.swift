@@ -536,6 +536,152 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowCurrentStatusPageDefinesReadOnlyDetailContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .current)
+
+        assert(text, contains: [
+            "Current status",
+            "Snapshot lines",
+            "Display",
+            "INNOS 27QA100M",
+            "Mode",
+            "Overlay active",
+            "Brightness",
+            "Blue reduction",
+            "Automation",
+            "Paused until 19:00",
+            "Commands",
+            "Open app window",
+            "Settings",
+            "Resume automation"
+        ])
+        assert(text, doesNotContain: [
+            "Quick actions",
+            "Disable",
+            "Restore"
+        ])
+    }
+
+    @MainActor
+    func testUnifiedAppWindowDisplayPageDefinesTargetSelectionContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .display)
+
+        assert(text, contains: [
+            "Display",
+            "Refresh displays",
+            "Current state",
+            "INNOS 27QA100M",
+            "Overlay active",
+            "Brightness",
+            "Blue",
+            "Target display",
+            "Selected",
+            "Automatic external display",
+            "Resolved to",
+            "Main display",
+            "Gamma table",
+            "Saved selection",
+            "Save display",
+            "Use automatic"
+        ])
+    }
+
+    @MainActor
+    func testUnifiedAppWindowSchedulePageDefinesTableEditorContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .schedule)
+
+        assert(text, contains: [
+            "Schedule",
+            "Paused until 19:00",
+            "Schedule rows",
+            "Time",
+            "Bright",
+            "Blue",
+            "09:00",
+            "80",
+            "19:00",
+            "45",
+            "23:00",
+            "58",
+            "Pause automation",
+            "Save schedule"
+        ])
+        assert(text, doesNotContain: ["Warmth"])
+    }
+
+    @MainActor
+    func testUnifiedAppWindowShortcutsPageDefinesGlobalShortcutTableContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .shortcuts)
+
+        assert(text, contains: [
+            "Shortcuts",
+            "Global shortcuts",
+            "Action",
+            "On",
+            "Opt",
+            "Shift",
+            "Ctrl",
+            "Cmd",
+            "Key",
+            "Brightness up",
+            "Brightness down",
+            "Blue reduction up",
+            "Blue reduction down",
+            "Quick disable overlay",
+            "Restore previous dimming",
+            "Open popover",
+            "Save shortcuts",
+            "Reset"
+        ])
+        assert(text, doesNotContain: ["Warmth"])
+    }
+
+    @MainActor
+    func testUnifiedAppWindowSettingsPageDefinesPersistentSettingsContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .settings)
+
+        assert(text, contains: [
+            "Settings",
+            "Apply settings",
+            "Launch at login",
+            "Enabled",
+            "Approval",
+            "Behavior",
+            "Saved settings",
+            "Target display",
+            "Schedule",
+            "Shortcuts",
+            "Schema",
+            "Status label"
+        ])
+    }
+
+    @MainActor
+    func testUnifiedAppWindowDiagnosticsPageDefinesMatrixAndLogContract() throws {
+        let controller = makeMockupAcceptanceController()
+        let text = try renderedAppWindowText(controller, focus: .diagnostics)
+
+        assert(text, contains: [
+            "Diagnostics",
+            "Export diagnostics",
+            "Verification matrix",
+            "handled checks",
+            "0 blocked",
+            "Overlay",
+            "Gamma",
+            "Hotkeys",
+            "Login item",
+            "Recent diagnostics",
+            "Shortcut monitor registered"
+        ])
+    }
+
+    @MainActor
     func testMenuBarControllerRoutesOpenPopoverWithoutApplyingDimmingCommand() throws {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
@@ -1168,6 +1314,105 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(brightnessController.state.activeMode, .unknown)
     }
 
+    @MainActor
+    private func makeMockupAcceptanceController() -> UnifiedAppWindowController {
+        var state = BrightnessState.defaultState()
+        state.display = .menuBarTestDisplay
+        state.targetBrightness = 45
+        state.targetBlueReduction = 32
+        state.activeMode = .overlay
+        state.automationPausedUntilNextBoundary = true
+        state.automationResumeMinuteOfDay = 1_140
+
+        let events = [
+            DiagnosticsEvent(
+                timestamp: Date(timeIntervalSince1970: 0),
+                category: .softwareDimming,
+                message: "Shortcut monitor registered 7 bindings.",
+                severity: .info
+            )
+        ]
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: state,
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: events,
+            snapshot: SettingsSnapshot.defaultSnapshot(),
+            displayCandidates: [.menuBarTestDisplay],
+            loginItemStatus: .enabled
+        )
+        return controller
+    }
+
+    @MainActor
+    private func renderedAppWindowText(
+        _ controller: UnifiedAppWindowController,
+        focus target: AppDashboardFocusTarget
+    ) throws -> String {
+        controller.focus(target)
+        controller.window?.contentView?.layoutSubtreeIfNeeded()
+        let contentView = try XCTUnwrap(controller.window?.contentView)
+        return contentView.flattenedVisibleTextForTesting().joined(separator: "\n")
+    }
+
+    private func assert(
+        _ text: String,
+        contains expectedFragments: [String],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        for fragment in expectedFragments {
+            XCTAssertTrue(
+                text.localizedCaseInsensitiveContains(fragment),
+                "Missing expected fragment: \(fragment)\n\nVisible text:\n\(text)",
+                file: file,
+                line: line
+            )
+        }
+    }
+
+    private func assert(
+        _ text: String,
+        doesNotContain unexpectedFragments: [String],
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        for fragment in unexpectedFragments {
+            XCTAssertFalse(
+                text.localizedCaseInsensitiveContains(fragment),
+                "Unexpected fragment: \(fragment)\n\nVisible text:\n\(text)",
+                file: file,
+                line: line
+            )
+        }
+    }
+
+}
+
+private extension NSView {
+    @MainActor
+    func flattenedVisibleTextForTesting() -> [String] {
+        var text: [String] = []
+        if let label = self as? NSTextField {
+            text.append(label.stringValue)
+        }
+        if let button = self as? NSButton {
+            text.append(button.title)
+        }
+        if let popup = self as? NSPopUpButton {
+            text.append(contentsOf: popup.itemArray.map(\.title))
+        }
+        if let textView = self as? NSTextView {
+            text.append(textView.string)
+        }
+        for subview in subviews {
+            text.append(contentsOf: subview.flattenedVisibleTextForTesting())
+        }
+        return text
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
 }
 
 @MainActor
