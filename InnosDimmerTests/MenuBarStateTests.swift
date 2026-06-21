@@ -298,7 +298,7 @@ final class MenuBarStateTests: XCTestCase {
         let invalidPercentView = ScheduleEditorView()
         invalidPercentView.setRowForTesting(index: 2, time: "23:00", brightness: "25", blueReduction: "101")
         XCTAssertThrowsError(try invalidPercentView.editedSchedule()) { error in
-            XCTAssertEqual(error.localizedDescription, "Schedule row 3 needs warmth from 0 to 100.")
+            XCTAssertEqual(error.localizedDescription, "Schedule row 3 needs blue reduction from 0 to 100.")
         }
     }
 
@@ -344,6 +344,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(software.appliedCommands, [])
         XCTAssertTrue(menuBarController.appWindowIsShownForTesting())
+        XCTAssertEqual(menuBarController.appWindowActivePageForTesting(), "Schedule")
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
         XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
     }
@@ -361,12 +362,159 @@ final class MenuBarStateTests: XCTestCase {
         )
 
         menuBarController.perform(.openSettings)
+        XCTAssertEqual(menuBarController.appWindowActivePageForTesting(), "Settings")
         menuBarController.perform(.openShortcuts)
+        XCTAssertEqual(menuBarController.appWindowActivePageForTesting(), "Shortcuts")
+        menuBarController.perform(.openDiagnostics)
+        XCTAssertEqual(menuBarController.appWindowActivePageForTesting(), "Diagnostics")
 
         XCTAssertEqual(software.appliedCommands, [])
         XCTAssertTrue(menuBarController.appWindowIsShownForTesting())
         XCTAssertEqual(brightnessController.state.targetBrightness, 80)
         XCTAssertEqual(brightnessController.state.targetBlueReduction, 12)
+    }
+
+    @MainActor
+    func testUnifiedAppWindowRoutesDisplaySelectionThroughSettingsAction() {
+        var selectedDisplay: DisplayIdentity?
+        let controller = UnifiedAppWindowController(
+            settingsActions: SettingsActions(
+                selectDisplay: { display in
+                    selectedDisplay = display
+                    return .success(SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay(display))
+                },
+                openScheduleEditor: {},
+                updateShortcuts: { .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts($0)) },
+                setLaunchAtLogin: { .success($0 ? .enabled : .disabled) },
+                exportDiagnostics: { .success(Data()) }
+            )
+        )
+
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: [],
+            displayCandidates: [.menuBarTestDisplay],
+            loginItemStatus: .notRegistered
+        )
+        controller.selectDisplayIndexForTesting(1)
+
+        XCTAssertEqual(selectedDisplay, .menuBarTestDisplay)
+    }
+
+    @MainActor
+    func testUnifiedAppWindowSavesShortcutsThroughSettingsAction() {
+        var savedShortcuts: [ShortcutBinding] = []
+        let controller = UnifiedAppWindowController(
+            settingsActions: SettingsActions(
+                selectDisplay: { .success(SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay($0)) },
+                openScheduleEditor: {},
+                updateShortcuts: { shortcuts in
+                    savedShortcuts = shortcuts
+                    return .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts(shortcuts))
+                },
+                setLaunchAtLogin: { .success($0 ? .enabled : .disabled) },
+                exportDiagnostics: { .success(Data()) }
+            )
+        )
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+        controller.focus(.shortcuts)
+        controller.setShortcutForTesting(
+            action: .blueReductionUp,
+            keyCode: 18,
+            modifiers: [.control, .shift],
+            isEnabled: true
+        )
+
+        let result = controller.saveShortcutsForTesting()
+
+        guard case .success = result else {
+            XCTFail("Expected shortcut save to succeed")
+            return
+        }
+        XCTAssertTrue(savedShortcuts.contains { binding in
+            binding.action == .blueReductionUp
+                && binding.keyCode == 18
+                && binding.modifiers == [.control, .shift]
+                && binding.isEnabled
+        })
+    }
+
+    @MainActor
+    func testUnifiedAppWindowReportsBlueReductionShortcutValidation() {
+        let controller = UnifiedAppWindowController()
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+        controller.focus(.shortcuts)
+        controller.setShortcutKeyStringForTesting(action: .blueReductionDown, keyCode: "not-a-key")
+
+        let result = controller.saveShortcutsForTesting()
+
+        guard case .failure(let error) = result else {
+            XCTFail("Expected shortcut validation to fail")
+            return
+        }
+        XCTAssertEqual(error.localizedDescription, "Blue reduction down needs a key code from 0 to 65535.")
+    }
+
+    @MainActor
+    func testUnifiedAppWindowTogglesLaunchAtLoginThroughSettingsAction() {
+        var toggledValue: Bool?
+        let controller = UnifiedAppWindowController(
+            settingsActions: SettingsActions(
+                selectDisplay: { .success(SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay($0)) },
+                openScheduleEditor: {},
+                updateShortcuts: { .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts($0)) },
+                setLaunchAtLogin: { enabled in
+                    toggledValue = enabled
+                    return .success(enabled ? .enabled : .disabled)
+                },
+                exportDiagnostics: { .success(Data()) }
+            )
+        )
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: [],
+            loginItemStatus: .disabled
+        )
+
+        controller.toggleLaunchAtLoginForTesting(true)
+
+        XCTAssertEqual(toggledValue, true)
+    }
+
+    @MainActor
+    func testUnifiedAppWindowExportsDiagnosticsThroughSettingsAction() {
+        let expectedData = Data(#"{"ok":true}"#.utf8)
+        let controller = UnifiedAppWindowController(
+            settingsActions: SettingsActions(
+                selectDisplay: { .success(SettingsSnapshot.defaultSnapshot().replacingSelectedDisplay($0)) },
+                openScheduleEditor: {},
+                updateShortcuts: { .success(SettingsSnapshot.defaultSnapshot().replacingShortcuts($0)) },
+                setLaunchAtLogin: { .success($0 ? .enabled : .disabled) },
+                exportDiagnostics: { .success(expectedData) }
+            )
+        )
+
+        let result = controller.exportDiagnosticsForTesting()
+
+        guard case .success(let data) = result else {
+            XCTFail("Expected diagnostics export to succeed")
+            return
+        }
+        XCTAssertEqual(data, expectedData)
     }
 
     @MainActor

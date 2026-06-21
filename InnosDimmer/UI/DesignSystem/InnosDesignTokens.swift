@@ -29,12 +29,48 @@ enum InnosDesignTokens {
     }
 
     enum Font {
-        static var sectionTitle: NSFont { NSFont.systemFont(ofSize: 12, weight: .bold) }
-        static var body: NSFont { NSFont.systemFont(ofSize: 13, weight: .regular) }
-        static var bodyEmphasis: NSFont { NSFont.systemFont(ofSize: 13, weight: .semibold) }
-        static var value: NSFont { NSFont.monospacedDigitSystemFont(ofSize: 18, weight: .bold) }
-        static var chip: NSFont { NSFont.systemFont(ofSize: 12, weight: .semibold) }
-        static var button: NSFont { NSFont.systemFont(ofSize: 13, weight: .semibold) }
+        static var sectionTitle: NSFont { app(ofSize: 12, weight: .bold) }
+        static var body: NSFont { app(ofSize: 13, weight: .regular) }
+        static var bodyEmphasis: NSFont { app(ofSize: 13, weight: .semibold) }
+        static var value: NSFont { app(ofSize: 18, weight: .bold) }
+        static var chip: NSFont { app(ofSize: 12, weight: .semibold) }
+        static var button: NSFont { app(ofSize: 13, weight: .semibold) }
+
+        static func app(ofSize size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+            if let font = NSFont(name: pretendardPostScriptName(for: weight), size: size)
+                ?? NSFont(name: "Pretendard", size: size) {
+                return font
+            }
+            return NSFont.systemFont(ofSize: size, weight: weight)
+        }
+
+        private static func pretendardPostScriptName(for weight: NSFont.Weight) -> String {
+            if weight == .ultraLight {
+                return "Pretendard-ExtraLight"
+            }
+            if weight == .thin {
+                return "Pretendard-Thin"
+            }
+            if weight == .light {
+                return "Pretendard-Light"
+            }
+            if weight == .medium {
+                return "Pretendard-Medium"
+            }
+            if weight == .semibold {
+                return "Pretendard-SemiBold"
+            }
+            if weight == .bold {
+                return "Pretendard-Bold"
+            }
+            if weight == .heavy {
+                return "Pretendard-ExtraBold"
+            }
+            if weight == .black {
+                return "Pretendard-Black"
+            }
+            return "Pretendard-Regular"
+        }
     }
 
     enum Tone {
@@ -54,7 +90,7 @@ enum InnosDesignTokens {
     }
 
     static func surfaceSubtle(for appearance: NSAppearance) -> NSColor {
-        token(dark: 0x262626, light: 0xf1f2f4, appearance: appearance)
+        token(dark: 0x18181b, light: 0xf1f2f4, appearance: appearance)
     }
 
     static func surfaceControl(for appearance: NSAppearance) -> NSColor {

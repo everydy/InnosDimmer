@@ -30,9 +30,8 @@ final class MenuBarController: NSObject {
     private let popover = NSPopover()
     private var popoverDismissMonitor: Any?
     private var popoverResignActiveObserver: NSObjectProtocol?
-    private var dashboardWindowController: AppDashboardWindowController?
+    private var dashboardWindowController: UnifiedAppWindowController?
     private var scheduleEditorWindowController: ScheduleEditorWindowController?
-    private lazy var settingsWindowController = SettingsWindowController(actions: makeSettingsActions())
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
     private var scheduleReconciliationObservers: [(NotificationCenter, NSObjectProtocol)] = []
@@ -289,12 +288,17 @@ final class MenuBarController: NSObject {
         dashboardWindowController?.window?.isVisible == true
     }
 
+    func appWindowActivePageForTesting() -> String? {
+        dashboardWindowController?.activePageForTesting()
+    }
+
     private func showAppWindow(focus: AppDashboardFocusTarget? = nil) {
-        let controller = dashboardWindowController ?? AppDashboardWindowController(
+        let controller = dashboardWindowController ?? UnifiedAppWindowController(
             actions: MenuBarActions { [weak self] command in
                 self?.perform(command)
             },
-            scheduleActions: makeScheduleEditorActions()
+            scheduleActions: makeScheduleEditorActions(),
+            settingsActions: makeSettingsActions()
         )
         dashboardWindowController = controller
         refreshAppWindow()
@@ -554,7 +558,10 @@ final class MenuBarController: NSObject {
             state: brightnessController.state,
             schedule: scheduleEntries,
             shortcuts: shortcutBindings,
-            events: diagnosticsStore.events
+            events: diagnosticsStore.events,
+            snapshot: displayTargetStore.load(),
+            displayCandidates: displayInventory.activeDisplays(),
+            loginItemStatus: loginItemController.status()
         )
     }
 

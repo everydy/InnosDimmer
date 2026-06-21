@@ -63,7 +63,7 @@ final class ScheduleEditorView: NSView {
                 throw ScheduleEditorError.invalidPercent(row: index + 1, field: "brightness")
             }
             guard let blueReduction = Int(row.blueReduction.stringValue), (0...100).contains(blueReduction) else {
-                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "warmth")
+                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "blue reduction")
             }
 
             return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, blueReduction: blueReduction)
@@ -96,10 +96,10 @@ final class ScheduleEditorView: NSView {
                 color: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1)
             ),
             metricLabel(
-                "Warmth",
-                systemSymbolName: "thermometer.medium",
-                fallback: "🌡",
-                color: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1)
+                "Blue",
+                systemSymbolName: "circle.lefthalf.filled",
+                fallback: "B",
+                color: NSColor(calibratedRed: 0.28, green: 0.62, blue: 0.96, alpha: 1)
             )
         ])
         header.orientation = .horizontal
@@ -131,6 +131,7 @@ final class ScheduleEditorView: NSView {
 
     private func fixedLabel(_ title: String, width: CGFloat) -> NSTextField {
         let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.widthAnchor.constraint(equalToConstant: width).isActive = true
         return label
@@ -151,7 +152,7 @@ final class ScheduleEditorView: NSView {
             icon = imageView
         } else {
             let label = NSTextField(labelWithString: fallback)
-            label.font = .systemFont(ofSize: 11, weight: .semibold)
+            label.font = InnosDesignTokens.Font.app(ofSize: 11, weight: .semibold)
             label.textColor = color
             label.alignment = .center
             label.translatesAutoresizingMaskIntoConstraints = false
@@ -161,6 +162,7 @@ final class ScheduleEditorView: NSView {
         icon.heightAnchor.constraint(equalToConstant: 14).isActive = true
 
         let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.lineBreakMode = .byTruncatingTail
 
         let stack = NSStackView(views: [icon, label])
@@ -175,6 +177,7 @@ final class ScheduleEditorView: NSView {
 
     private func editableField(width: CGFloat) -> NSTextField {
         let field = NSTextField(string: "")
+        field.font = InnosDesignTokens.Font.app(ofSize: 13)
         field.translatesAutoresizingMaskIntoConstraints = false
         field.widthAnchor.constraint(equalToConstant: width).isActive = true
         return field

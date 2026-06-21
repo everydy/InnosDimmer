@@ -101,24 +101,35 @@ final class SettingsWindowController: NSWindowController {
     private func installContent() {
         displayPicker.target = self
         displayPicker.action = #selector(displaySelectionChanged)
+        displayPicker.font = InnosDesignTokens.Font.app(ofSize: 13)
 
         let openScheduleButton = NSButton(title: "Open app window", target: self, action: #selector(openScheduleEditorPressed))
         openScheduleButton.bezelStyle = .rounded
+        openScheduleButton.font = InnosDesignTokens.Font.button
 
         let resetShortcutsButton = NSButton(title: "Reset shortcuts", target: self, action: #selector(resetShortcutsPressed))
         resetShortcutsButton.bezelStyle = .rounded
+        resetShortcutsButton.font = InnosDesignTokens.Font.button
         let saveShortcutsButton = NSButton(title: "Save shortcuts", target: self, action: #selector(saveShortcutsPressed))
         saveShortcutsButton.bezelStyle = .rounded
+        saveShortcutsButton.font = InnosDesignTokens.Font.button
         let shortcutButtons = NSStackView(views: [saveShortcutsButton, resetShortcutsButton])
         shortcutButtons.orientation = .horizontal
         shortcutButtons.spacing = 8
 
         loginItemCheckbox.target = self
         loginItemCheckbox.action = #selector(loginItemToggled)
+        loginItemCheckbox.font = InnosDesignTokens.Font.body
 
         let exportDiagnosticsButton = NSButton(title: "Export diagnostics", target: self, action: #selector(exportDiagnosticsPressed))
         exportDiagnosticsButton.bezelStyle = .rounded
+        exportDiagnosticsButton.font = InnosDesignTokens.Font.button
 
+        [scheduleSummary, shortcutSummary, loginItemSummary, diagnosticsSummary, matrixSummary].forEach { label in
+            label.font = InnosDesignTokens.Font.body
+        }
+
+        statusLabel.font = InnosDesignTokens.Font.app(ofSize: 12)
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byWordWrapping
         statusLabel.maximumNumberOfLines = 2
@@ -467,12 +478,13 @@ final class SettingsWindowController: NSWindowController {
 
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
         return label
     }
 
     private func fixedLabel(_ title: String, width: CGFloat) -> NSTextField {
         let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.widthAnchor.constraint(equalToConstant: width).isActive = true
         return label
@@ -480,6 +492,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func editableKeyField(width: CGFloat) -> ShortcutKeyField {
         let field = ShortcutKeyField()
+        field.font = InnosDesignTokens.Font.app(ofSize: 13)
         field.translatesAutoresizingMaskIntoConstraints = false
         field.widthAnchor.constraint(equalToConstant: width).isActive = true
         field.target = self
@@ -489,6 +502,7 @@ final class SettingsWindowController: NSWindowController {
 
     private func checkbox(title: String, action: Selector, width: CGFloat = Layout.shortcutModifierWidth) -> NSButton {
         let button = NSButton(checkboxWithTitle: title, target: self, action: action)
+        button.font = InnosDesignTokens.Font.app(ofSize: 12)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: width).isActive = true
         return button
@@ -545,7 +559,7 @@ final class SettingsWindowController: NSWindowController {
     }
 }
 
-private final class ShortcutKeyField: NSTextField {
+final class ShortcutKeyField: NSTextField {
     private(set) var capturedKeyCode: UInt16?
 
     override func keyDown(with event: NSEvent) {

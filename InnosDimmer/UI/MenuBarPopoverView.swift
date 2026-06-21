@@ -117,7 +117,9 @@ private final class BadgePillView: NSView {
         layer?.borderWidth = 1
 
         label.stringValue = title
-        label.font = compact ? .systemFont(ofSize: 9, weight: .semibold) : .systemFont(ofSize: 12, weight: .semibold)
+        label.font = compact
+            ? InnosDesignTokens.Font.app(ofSize: 9, weight: .semibold)
+            : InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.alignment = .center
         label.drawsBackground = false
         label.isBezeled = false
@@ -501,7 +503,7 @@ private final class ScheduleSummaryRowsView: NSView {
     ) -> NSStackView {
         let icon = metricIcon(systemSymbolName: systemSymbolName, fallback: fallback, iconColor: iconColor)
         let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = .systemFont(ofSize: 13, weight: .bold)
+        valueLabel.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .bold)
         valueLabel.textColor = .labelColor
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
         valueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -529,7 +531,7 @@ private final class ScheduleSummaryRowsView: NSView {
             iconView = imageView
         } else {
             let label = NSTextField(labelWithString: fallback)
-            label.font = .systemFont(ofSize: 11, weight: .semibold)
+            label.font = InnosDesignTokens.Font.app(ofSize: 11, weight: .semibold)
             label.textColor = iconColor
             label.alignment = .center
             label.translatesAutoresizingMaskIntoConstraints = false
@@ -681,10 +683,10 @@ private final class ShortcutSeparatorView: NSView {
 
 private final class ShortcutPairRowView: NSView {
     private enum Metrics {
-        static let titleWidth: CGFloat = 84
-        static let directionWidth: CGFloat = 30
+        static let titleWidth: CGFloat = 76
+        static let directionWidth: CGFloat = 28
         static let rowHeight: CGFloat = 34
-        static let horizontalPadding: CGFloat = 10
+        static let horizontalPadding: CGFloat = 8
     }
 
     init(group: ShortcutSummaryGroup) {
@@ -711,7 +713,7 @@ private final class ShortcutPairRowView: NSView {
             title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.horizontalPadding),
             title.centerYAnchor.constraint(equalTo: centerYAnchor),
             title.widthAnchor.constraint(equalToConstant: Metrics.titleWidth),
-            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: 10),
+            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: 8),
             actionGrid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Metrics.horizontalPadding),
             actionGrid.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
@@ -732,7 +734,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func titleLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
         label.textColor = .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -742,7 +744,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func directionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.textColor = .secondaryLabelColor
         label.alignment = .right
         label.widthAnchor.constraint(equalToConstant: Metrics.directionWidth).isActive = true
@@ -755,9 +757,10 @@ private final class ShortcutPairRowView: NSView {
 
 private final class ShortcutKeyChipView: NSView {
     private enum Metrics {
-        static let horizontalPadding: CGFloat = 8
+        static let horizontalPadding: CGFloat = 5
         static let topPadding: CGFloat = 2
         static let bottomPadding: CGFloat = 3
+        static let tokenSpacing: CGFloat = 3
     }
 
     private let stack = NSStackView()
@@ -825,23 +828,23 @@ private final class ShortcutKeyChipView: NSView {
             if index > 0 {
                 let plus = Self.label(
                     "+",
-                    font: .monospacedSystemFont(ofSize: 9, weight: .semibold)
+                    font: InnosDesignTokens.Font.app(ofSize: 9, weight: .semibold)
                 )
                 plusLabels.append(plus)
                 stack.addArrangedSubview(plus)
-                stack.setCustomSpacing(4, after: plus)
+                stack.setCustomSpacing(Metrics.tokenSpacing, after: plus)
             }
 
             let tokenLabel = Self.label(
                 token,
                 font: isOff
-                    ? .monospacedSystemFont(ofSize: 12, weight: .bold)
-                    : .monospacedSystemFont(ofSize: 13, weight: .heavy)
+                    ? InnosDesignTokens.Font.app(ofSize: 12, weight: .bold)
+                    : InnosDesignTokens.Font.app(ofSize: 13, weight: .bold)
             )
             tokenLabels.append(tokenLabel)
             stack.addArrangedSubview(tokenLabel)
             if !isOff {
-                stack.setCustomSpacing(4, after: tokenLabel)
+                stack.setCustomSpacing(Metrics.tokenSpacing, after: tokenLabel)
             }
         }
     }
@@ -878,7 +881,7 @@ private final class PopoverCommandButton: NSButton {
         layer?.cornerRadius = 7
         layer?.borderWidth = 1
         controlSize = .regular
-        font = .systemFont(ofSize: 12, weight: .semibold)
+        font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         setButtonType(.momentaryPushIn)
         updateColors()
     }
@@ -923,7 +926,7 @@ private final class PopoverCommandButton: NSButton {
             string: title,
             attributes: [
                 .foregroundColor: foreground,
-                .font: font ?? NSFont.systemFont(ofSize: 12, weight: .semibold)
+                .font: font ?? InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
             ]
         )
     }
@@ -1258,7 +1261,7 @@ final class MenuBarPopoverView: NSView {
             scheduleStatusDetailLabel,
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
-        automationLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        automationLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         automationLabel.textColor = .labelColor
         scheduleStatusDetailLabel.textColor = .secondaryLabelColor
         blueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: effectiveAppearance)
@@ -1376,7 +1379,7 @@ final class MenuBarPopoverView: NSView {
 
     private func makeHeader() -> NSView {
         let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = .systemFont(ofSize: 17, weight: .bold)
+        title.font = InnosDesignTokens.Font.app(ofSize: 17, weight: .bold)
         title.textColor = .labelColor
 
         let topRow = NSStackView(views: [title, modeBadge])
@@ -1435,12 +1438,12 @@ final class MenuBarPopoverView: NSView {
             systemSymbolName: iconSystemName,
             fallback: iconFallback,
             iconColor: iconColor,
-            font: .systemFont(ofSize: 13, weight: .semibold),
+            font: InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold),
             textColor: .labelColor
         )
         titleView.setContentHuggingPriority(.required, for: .horizontal)
 
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 18, weight: .semibold)
+        valueLabel.font = InnosDesignTokens.Font.app(ofSize: 18, weight: .semibold)
         valueLabel.alignment = .right
         valueLabel.textColor = .labelColor
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -1459,7 +1462,7 @@ final class MenuBarPopoverView: NSView {
 
     private func makeSummaryRow(title: String, value: NSView) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         titleLabel.textColor = .secondaryLabelColor
         titleLabel.widthAnchor.constraint(equalToConstant: 100).isActive = true
         titleLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -1492,13 +1495,13 @@ final class MenuBarPopoverView: NSView {
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        label.font = .systemFont(ofSize: 12)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12)
         label.textColor = .secondaryLabelColor
     }
 
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.textColor = .secondaryLabelColor
         return label
     }
@@ -1527,6 +1530,7 @@ final class MenuBarPopoverView: NSView {
     ) -> NSButton {
         let button = PopoverCommandButton(title: title, style: style, target: self, action: action)
         button.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         commandButtons[command] = button
         return button
     }
@@ -1825,7 +1829,7 @@ final class AppDashboardWindowController: NSWindowController {
 
     private func installContent() {
         let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = .systemFont(ofSize: 22, weight: .bold)
+        title.font = InnosDesignTokens.Font.app(ofSize: 22, weight: .bold)
         title.textColor = .labelColor
         title.setContentHuggingPriority(.defaultLow, for: .horizontal)
         configureBadge(modeBadge)
@@ -1845,11 +1849,11 @@ final class AppDashboardWindowController: NSWindowController {
         dashboardBlueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
         dashboardBlueReductionWarningLabel.isHidden = true
         scheduleStatusLabel.textColor = .secondaryLabelColor
-        failureLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        failureLabel.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
 
         diagnosticsTextView.isEditable = false
         diagnosticsTextView.isSelectable = true
-        diagnosticsTextView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        diagnosticsTextView.font = InnosDesignTokens.Font.app(ofSize: 12)
         diagnosticsTextView.textColor = .labelColor
         diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsTextView.effectiveAppearance)
         diagnosticsTextView.drawsBackground = true
@@ -2033,7 +2037,7 @@ final class AppDashboardWindowController: NSWindowController {
 
     private func makeSummaryRow(title: String, value: NSTextField) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
-        titleLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         titleLabel.textColor = .secondaryLabelColor
         titleLabel.widthAnchor.constraint(equalToConstant: 116).isActive = true
         titleLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -2060,13 +2064,13 @@ final class AppDashboardWindowController: NSWindowController {
             systemSymbolName: iconSystemName,
             fallback: iconFallback,
             iconColor: iconColor,
-            font: .systemFont(ofSize: 12, weight: .semibold),
+            font: InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold),
             textColor: .secondaryLabelColor
         )
         titleView.widthAnchor.constraint(equalToConstant: 116).isActive = true
         titleView.setContentHuggingPriority(.required, for: .horizontal)
 
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 16, weight: .semibold)
+        valueLabel.font = InnosDesignTokens.Font.app(ofSize: 16, weight: .semibold)
         valueLabel.alignment = .right
         valueLabel.widthAnchor.constraint(equalToConstant: 52).isActive = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -2119,7 +2123,7 @@ final class AppDashboardWindowController: NSWindowController {
 
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
-        label.font = .systemFont(ofSize: 12, weight: .semibold)
+        label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.textColor = .secondaryLabelColor
         return label
     }
@@ -2127,13 +2131,13 @@ final class AppDashboardWindowController: NSWindowController {
     private static func configureWrappingLabel(_ label: NSTextField) {
         label.lineBreakMode = .byWordWrapping
         label.maximumNumberOfLines = 0
-        label.font = .systemFont(ofSize: 13)
+        label.font = InnosDesignTokens.Font.app(ofSize: 13)
         label.textColor = .labelColor
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     private func configureBadge(_ badge: StatusBadgeView) {
-        badge.font = .systemFont(ofSize: 12, weight: .semibold)
+        badge.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         badge.textColor = PopoverPalette.statusColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance)
         badge.alignment = .right
     }
@@ -2223,5 +2227,930 @@ final class AppDashboardWindowController: NSWindowController {
             schedule: schedule,
             shortcuts: []
         ).scheduleSummary
+    }
+}
+
+private enum UnifiedAppWindowPage: CaseIterable {
+    case home
+    case current
+    case display
+    case schedule
+    case shortcuts
+    case settings
+    case diagnostics
+
+    init(_ target: AppDashboardFocusTarget?) {
+        switch target {
+        case .none, .home:
+            self = .home
+        case .current:
+            self = .current
+        case .display:
+            self = .display
+        case .schedule:
+            self = .schedule
+        case .shortcuts:
+            self = .shortcuts
+        case .settings:
+            self = .settings
+        case .diagnostics:
+            self = .diagnostics
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .home:
+            return "InnosDimmer Control Center"
+        case .current:
+            return "Current status"
+        case .display:
+            return "Display"
+        case .schedule:
+            return "Schedule"
+        case .shortcuts:
+            return "Shortcuts"
+        case .settings:
+            return "Settings"
+        case .diagnostics:
+            return "Diagnostics"
+        }
+    }
+}
+
+@MainActor
+final class UnifiedAppWindowController: NSWindowController {
+    private enum Layout {
+        static let shortcutActionWidth: CGFloat = 150
+        static let shortcutToggleWidth: CGFloat = 34
+        static let shortcutModifierWidth: CGFloat = 42
+        static let shortcutKeyWidth: CGFloat = 70
+    }
+
+    private struct ShortcutControls {
+        var enabled: NSButton
+        var option: NSButton
+        var shift: NSButton
+        var control: NSButton
+        var command: NSButton
+        var keyCode: ShortcutKeyField
+    }
+
+    private enum AppWindowFormError: LocalizedError {
+        case invalidShortcutKey(action: String)
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidShortcutKey(let action):
+                return "\(action) needs a key code from 0 to 65535."
+            }
+        }
+    }
+
+    private let actions: MenuBarActions
+    private let scheduleActions: ScheduleEditorActions
+    private let settingsActions: SettingsActions
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let bodyView = NSView()
+    private let statusLabel = NSTextField(labelWithString: "")
+    private let modeChip = InnosStatusChipView(title: "Software dimming ready", tone: .neutral)
+    private let loginChip = InnosStatusChipView(title: "Login item off", tone: .neutral)
+    private let displayPicker = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let scheduleEditorView = ScheduleEditorView()
+    private let scheduleStatusLabel = NSTextField(labelWithString: "")
+    private let loginItemCheckbox = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    private let diagnosticsTextView = NSTextView()
+    private let brightnessTrackView = ProgressTrackView()
+    private let blueReductionTrackView = ProgressTrackView()
+    private let brightnessValueLabel = NSTextField(labelWithString: "")
+    private let blueReductionValueLabel = NSTextField(labelWithString: "")
+    private var commandButtons: [MenuBarCommand: NSButton] = [:]
+    private var pageButtons: [UnifiedAppWindowPage: NSButton] = [:]
+    private var shortcutControls: [ShortcutAction: ShortcutControls] = [:]
+    private var activePage: UnifiedAppWindowPage = .home
+    private var automationActionCommand: MenuBarCommand = .pauseAutomation
+    private var state = BrightnessState.defaultState()
+    private var schedule = ScheduleEntry.defaultSchedule
+    private var shortcuts = ShortcutBinding.defaultBindings
+    private var events: [DiagnosticsEvent] = []
+    private var snapshot = SettingsSnapshot.defaultSnapshot()
+    private var displayCandidates: [DisplayIdentity] = []
+    private var loginItemStatus: LoginItemStatus = .notRegistered
+
+    init(
+        actions: MenuBarActions = .noop,
+        scheduleActions: ScheduleEditorActions = .noop,
+        settingsActions: SettingsActions = .noop
+    ) {
+        self.actions = actions
+        self.scheduleActions = scheduleActions
+        self.settingsActions = settingsActions
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 880, height: 650),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "InnosDimmer"
+        window.minSize = NSSize(width: 780, height: 560)
+        super.init(window: window)
+        installContent()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    func update(
+        state: BrightnessState,
+        schedule: [ScheduleEntry],
+        shortcuts: [ShortcutBinding],
+        events: [DiagnosticsEvent],
+        snapshot: SettingsSnapshot = .defaultSnapshot(),
+        displayCandidates: [DisplayIdentity] = [],
+        loginItemStatus: LoginItemStatus = .notRegistered
+    ) {
+        self.state = state
+        self.schedule = schedule
+        self.shortcuts = shortcuts
+        self.events = events
+        self.snapshot = snapshot
+        self.displayCandidates = displayCandidates
+        self.loginItemStatus = loginItemStatus
+        scheduleEditorView.update(schedule: schedule)
+        updateLiveControls()
+        renderActivePage()
+    }
+
+    func focus(_ target: AppDashboardFocusTarget?) {
+        activePage = UnifiedAppWindowPage(target)
+        renderActivePage()
+        window?.makeKeyAndOrderFront(nil)
+    }
+
+    func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
+        commandButtons[command]
+    }
+
+    func activePageForTesting() -> String {
+        activePage.title
+    }
+
+    func simulateBrightnessTrackChangeForTesting(percent: Int) {
+        brightnessTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    }
+
+    func simulateBlueReductionTrackChangeForTesting(percent: Int) {
+        blueReductionTrackView.simulateUserFractionChangeForTesting(CGFloat(Clamped.percent(percent)) / 100)
+    }
+
+    func setScheduleRowForTesting(index: Int, time: String, brightness: String, blueReduction: String) {
+        scheduleEditorView.setRowForTesting(index: index, time: time, brightness: brightness, blueReduction: blueReduction)
+    }
+
+    @discardableResult
+    func saveScheduleForTesting() -> Result<SettingsSnapshot, Error> {
+        saveScheduleFromEditor(reportsStatus: false)
+    }
+
+    @discardableResult
+    func saveShortcutsForTesting() -> Result<SettingsSnapshot, Error> {
+        saveShortcutsFromControls(reportsStatus: false)
+    }
+
+    func setShortcutForTesting(action: ShortcutAction, keyCode: UInt16, modifiers: ShortcutModifiers, isEnabled: Bool) {
+        ensureShortcutControls()
+        guard let controls = shortcutControls[action] else {
+            return
+        }
+        controls.enabled.state = isEnabled ? .on : .off
+        controls.option.state = modifiers.contains(.option) ? .on : .off
+        controls.shift.state = modifiers.contains(.shift) ? .on : .off
+        controls.control.state = modifiers.contains(.control) ? .on : .off
+        controls.command.state = modifiers.contains(.command) ? .on : .off
+        controls.keyCode.setKeyCode(keyCode)
+    }
+
+    func setShortcutKeyStringForTesting(action: ShortcutAction, keyCode: String) {
+        ensureShortcutControls()
+        shortcutControls[action]?.keyCode.setRawString(keyCode)
+    }
+
+    func shortcutForTesting(action: ShortcutAction) -> ShortcutBinding? {
+        ensureShortcutControls()
+        return try? shortcutBindingsFromControls().first { $0.action == action }
+    }
+
+    func selectDisplayIndexForTesting(_ selectedIndex: Int) {
+        activePage = .display
+        renderActivePage()
+        displayPicker.selectItem(at: selectedIndex)
+        displaySelectionChanged()
+    }
+
+    func toggleLaunchAtLoginForTesting(_ enabled: Bool) {
+        loginItemCheckbox.state = enabled ? .on : .off
+        loginItemToggled()
+    }
+
+    func exportDiagnosticsForTesting() -> Result<Data, Error> {
+        settingsActions.exportDiagnostics()
+    }
+
+    private func installContent() {
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 22, weight: .bold)
+        titleLabel.textColor = .labelColor
+        titleLabel.stringValue = activePage.title
+        statusLabel.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.stringValue = "Ready."
+        scheduleStatusLabel.font = InnosDesignTokens.Font.body
+        scheduleStatusLabel.textColor = .secondaryLabelColor
+        displayPicker.target = self
+        displayPicker.action = #selector(displaySelectionChanged)
+        displayPicker.font = InnosDesignTokens.Font.body
+        loginItemCheckbox.target = self
+        loginItemCheckbox.action = #selector(loginItemToggled)
+        loginItemCheckbox.font = InnosDesignTokens.Font.body
+        diagnosticsTextView.isEditable = false
+        diagnosticsTextView.isSelectable = true
+        diagnosticsTextView.font = InnosDesignTokens.Font.app(ofSize: 12)
+        diagnosticsTextView.drawsBackground = true
+        brightnessTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
+        }
+        blueReductionTrackView.onUserFractionChange = { [weak self] fraction in
+            self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
+        }
+        brightnessTrackView.setAccessibilityLabel("App window brightness percentage")
+        blueReductionTrackView.setAccessibilityLabel("App window blue reduction percentage")
+
+        let rootStack = NSStackView(views: [makeHeader(), statusLabel, bodyView])
+        rootStack.orientation = .vertical
+        rootStack.alignment = .width
+        rootStack.spacing = 14
+        rootStack.translatesAutoresizingMaskIntoConstraints = false
+        bodyView.translatesAutoresizingMaskIntoConstraints = false
+
+        let contentView = DashboardRootView()
+        window?.contentView = contentView
+        contentView.addSubview(rootStack)
+        NSLayoutConstraint.activate([
+            rootStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18),
+            rootStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18),
+            rootStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 18),
+            rootStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -18),
+            statusLabel.widthAnchor.constraint(equalTo: rootStack.widthAnchor),
+            bodyView.heightAnchor.constraint(greaterThanOrEqualToConstant: 440)
+        ])
+        renderActivePage()
+    }
+
+    private func makeHeader() -> NSView {
+        let header = NSStackView(views: [
+            titleLabel,
+            spacer(),
+            modeChip,
+            loginChip
+        ])
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 10
+        return header
+    }
+
+    private func renderActivePage() {
+        titleLabel.stringValue = activePage.title
+        commandButtons.removeAll(keepingCapacity: true)
+        pageButtons.removeAll(keepingCapacity: true)
+        bodyView.subviews.forEach { $0.removeFromSuperview() }
+
+        let content: NSView
+        switch activePage {
+        case .home:
+            content = makeHomePage()
+        case .current:
+            content = makeCurrentPage()
+        case .display:
+            content = makeDisplayPage()
+        case .schedule:
+            content = makeSchedulePage()
+        case .shortcuts:
+            content = makeShortcutsPage()
+        case .settings:
+            content = makeSettingsPage()
+        case .diagnostics:
+            content = makeDiagnosticsPage()
+        }
+
+        content.translatesAutoresizingMaskIntoConstraints = false
+        bodyView.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: bodyView.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: bodyView.trailingAnchor),
+            content.topAnchor.constraint(equalTo: bodyView.topAnchor),
+            content.bottomAnchor.constraint(lessThanOrEqualTo: bodyView.bottomAnchor)
+        ])
+        updateLiveControls()
+    }
+
+    private func makeHomePage() -> NSView {
+        let left = NSStackView(views: [makeQuickActionsSection(), makeNextActionsSection()])
+        left.orientation = .vertical
+        left.alignment = .width
+        left.spacing = 12
+        let tiles = NSGridView(views: [
+            [makeNavigationTile(.current), makeNavigationTile(.display)],
+            [makeNavigationTile(.schedule), makeNavigationTile(.shortcuts)],
+            [makeNavigationTile(.settings), makeNavigationTile(.diagnostics)]
+        ])
+        tiles.rowSpacing = 10
+        tiles.columnSpacing = 10
+        let layout = NSStackView(views: [left, tiles])
+        layout.orientation = .horizontal
+        layout.alignment = .top
+        layout.spacing = 12
+        left.widthAnchor.constraint(equalTo: layout.widthAnchor, multiplier: 0.56).isActive = true
+        return layout
+    }
+
+    private func makeCurrentPage() -> NSView {
+        makeDetailPage([
+            makeQuickActionsSection(),
+            makeSection(title: "Snapshot lines", views: [
+                makeSummaryRow(title: "Display", value: state.display?.localizedName ?? "Automatic external display"),
+                makeSummaryRow(title: "Mode", value: ModeStatusLabel.title(for: state.activeMode)),
+                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)% / Blue reduction \(state.targetBlueReduction)%"),
+                makeSummaryRow(title: "Automation", value: automationSummary())
+            ])
+        ])
+    }
+
+    private func makeDisplayPage() -> NSView {
+        renderDisplayPicker()
+        return makeDetailPage([
+            makeSection(title: "Target display", views: [
+                displayPicker,
+                makeSummaryRow(title: "Current", value: state.display?.localizedName ?? "Automatic external display"),
+                makeSummaryRow(title: "Candidates", value: "\(displayCandidates.count) active display(s)")
+            ])
+        ])
+    }
+
+    private func makeSchedulePage() -> NSView {
+        let controls = makeActionRow([
+            button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed)),
+            PopoverCommandButton(title: "Save schedule", style: .primary, target: self, action: #selector(saveSchedulePressed))
+        ])
+        return makeDetailPage([
+            makeSection(title: "Schedule", views: [
+                makeSummaryRow(title: "Status", value: automationSummary()),
+                makeSummaryRow(title: "Current", value: scheduleSummaryText())
+            ]),
+            makeSection(title: "Schedule rows", views: [scheduleEditorView, controls, scheduleStatusLabel])
+        ])
+    }
+
+    private func makeShortcutsPage() -> NSView {
+        ensureShortcutControls()
+        renderShortcuts()
+        return makeDetailPage([
+            makeSection(title: "Shortcut rows", views: [
+                makeShortcutStack(),
+                makeActionRow([
+                    PopoverCommandButton(title: "Save shortcuts", style: .primary, target: self, action: #selector(saveShortcutsPressed)),
+                    PopoverCommandButton(title: "Reset shortcuts", style: .normal, target: self, action: #selector(resetShortcutsPressed))
+                ])
+            ])
+        ])
+    }
+
+    private func makeSettingsPage() -> NSView {
+        loginItemCheckbox.state = loginItemStatus == .enabled ? .on : .off
+        return makeDetailPage([
+            makeSection(title: "Startup", views: [loginItemCheckbox, makeSummaryRow(title: "Login item", value: loginItemSummary())]),
+            makeSection(title: "Saved state", views: [
+                makeSummaryRow(title: "Display", value: snapshot.selectedDisplay?.localizedName ?? "Automatic"),
+                makeSummaryRow(title: "Schedule", value: "\(snapshot.schedule.count) row(s)"),
+                makeSummaryRow(title: "Shortcuts", value: "\(snapshot.shortcuts.filter(\.isEnabled).count) enabled")
+            ])
+        ])
+    }
+
+    private func makeDiagnosticsPage() -> NSView {
+        diagnosticsTextView.string = diagnosticsLogText()
+        diagnosticsTextView.backgroundColor = PopoverPalette.subtleBackground(for: diagnosticsTextView.effectiveAppearance)
+        let scroll = NSScrollView()
+        scroll.borderType = .noBorder
+        scroll.hasVerticalScroller = true
+        scroll.documentView = diagnosticsTextView
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
+        return makeDetailPage([
+            makeSection(title: "Verification matrix", views: [
+                makeSummaryRow(title: "Summary", value: VerificationMatrix.summary(for: VerificationMatrix.defaultRows))
+            ]),
+            makeSection(title: "Recent diagnostics", views: [
+                scroll,
+                PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
+            ])
+        ])
+    }
+
+    private func makeDetailPage(_ views: [NSView]) -> NSView {
+        let back = PopoverCommandButton(title: "← Back", style: .normal, target: self, action: #selector(backPressed))
+        let stack = NSStackView(views: [back] + views)
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 12
+        ([back] + views).forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        return stack
+    }
+
+    private func makeQuickActionsSection() -> NSView {
+        makeSection(title: "Quick actions", trailing: makeChip(state.automationPausedUntilNextBoundary ? "Manual" : "Automation active", tone: state.automationPausedUntilNextBoundary ? .warning : .ready), views: [
+            makeControlGroup(title: "Brightness", valueLabel: brightnessValueLabel, trackView: brightnessTrackView, decrement: compactButton("-", accessibilityLabel: "Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed)), increment: compactButton("+", accessibilityLabel: "Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))),
+            makeSeparator(),
+            makeControlGroup(title: "Blue reduction", valueLabel: blueReductionValueLabel, trackView: blueReductionTrackView, decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)), increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))),
+            makeActionRow([
+                button("Disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
+                button("Restore", command: .restorePrevious, action: #selector(restorePreviousPressed)),
+                button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
+            ])
+        ])
+    }
+
+    private func makeNextActionsSection() -> NSView {
+        makeSection(title: "Next actions", views: [
+            makeListRow(title: "Schedule", value: nextScheduleText(), page: .schedule),
+            makeListRow(title: "Diagnostics", value: diagnosticsSummary(), page: .diagnostics),
+            makeListRow(title: "Shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled", page: .shortcuts)
+        ])
+    }
+
+    private func makeNavigationTile(_ page: UnifiedAppWindowPage) -> NSButton {
+        let button = PopoverCommandButton(title: page.title, style: .normal, target: self, action: #selector(pageButtonPressed(_:)))
+        button.identifier = NSUserInterfaceItemIdentifier(page.title)
+        button.alignment = .left
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
+        pageButtons[page] = button
+        return button
+    }
+
+    private func makeListRow(title: String, value: String, page: UnifiedAppWindowPage) -> NSButton {
+        let button = PopoverCommandButton(title: "\(title)    \(value)", style: .normal, target: self, action: #selector(pageButtonPressed(_:)))
+        button.identifier = NSUserInterfaceItemIdentifier(page.title)
+        button.alignment = .left
+        pageButtons[page] = button
+        return button
+    }
+
+    private func makeSection(title: String, trailing: NSView? = nil, views: [NSView]) -> NSView {
+        let titleLabel = sectionLabel(title)
+        let titleViews = trailing.map { [titleLabel, spacer(), $0] } ?? [titleLabel]
+        let titleRow = NSStackView(views: titleViews)
+        titleRow.orientation = .horizontal
+        titleRow.alignment = .centerY
+        titleRow.spacing = 10
+        let content = NSStackView(views: [titleRow] + views)
+        content.orientation = .vertical
+        content.alignment = .width
+        content.spacing = 10
+        ([titleRow] + views).forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        }
+        return PopoverContainerView(style: .section, content: content)
+    }
+
+    private func makeControlGroup(title: String, valueLabel: NSTextField, trackView: ProgressTrackView, decrement: NSButton, increment: NSButton) -> NSStackView {
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        titleLabel.widthAnchor.constraint(equalToConstant: 118).isActive = true
+        valueLabel.font = InnosDesignTokens.Font.value
+        valueLabel.alignment = .right
+        valueLabel.widthAnchor.constraint(equalToConstant: 54).isActive = true
+        trackView.heightAnchor.constraint(equalToConstant: 18).isActive = true
+        let stack = NSStackView(views: [titleLabel, valueLabel, trackView, decrement, increment])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 8
+        return stack
+    }
+
+    private func makeShortcutStack() -> NSStackView {
+        ensureShortcutControls()
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 5
+        let header = NSStackView(views: [
+            fixedLabel("Action", width: Layout.shortcutActionWidth),
+            fixedLabel("On", width: Layout.shortcutToggleWidth),
+            fixedLabel("Opt", width: Layout.shortcutModifierWidth),
+            fixedLabel("Shift", width: Layout.shortcutModifierWidth),
+            fixedLabel("Ctrl", width: Layout.shortcutModifierWidth),
+            fixedLabel("Cmd", width: Layout.shortcutModifierWidth),
+            fixedLabel("Key", width: Layout.shortcutKeyWidth)
+        ])
+        header.orientation = .horizontal
+        header.spacing = 6
+        stack.addArrangedSubview(header)
+        for action in ShortcutAction.allCases {
+            guard let controls = shortcutControls[action] else { continue }
+            let row = NSStackView(views: [
+                fixedLabel(Self.shortcutActionLabel(for: action), width: Layout.shortcutActionWidth),
+                controls.enabled,
+                controls.option,
+                controls.shift,
+                controls.control,
+                controls.command,
+                controls.keyCode
+            ])
+            row.orientation = .horizontal
+            row.spacing = 6
+            stack.addArrangedSubview(row)
+        }
+        return stack
+    }
+
+    private func ensureShortcutControls() {
+        guard shortcutControls.isEmpty else { return }
+        for action in ShortcutAction.allCases {
+            let keyField = ShortcutKeyField()
+            keyField.font = InnosDesignTokens.Font.body
+            keyField.target = self
+            keyField.action = #selector(shortcutControlChanged)
+            keyField.translatesAutoresizingMaskIntoConstraints = false
+            keyField.widthAnchor.constraint(equalToConstant: Layout.shortcutKeyWidth).isActive = true
+            shortcutControls[action] = ShortcutControls(
+                enabled: checkbox(width: Layout.shortcutToggleWidth),
+                option: checkbox(width: Layout.shortcutModifierWidth),
+                shift: checkbox(width: Layout.shortcutModifierWidth),
+                control: checkbox(width: Layout.shortcutModifierWidth),
+                command: checkbox(width: Layout.shortcutModifierWidth),
+                keyCode: keyField
+            )
+        }
+    }
+
+    private func renderShortcuts() {
+        ensureShortcutControls()
+        for action in ShortcutAction.allCases {
+            let binding = shortcuts.first { $0.action == action }
+            guard let controls = shortcutControls[action] else { continue }
+            controls.enabled.state = binding?.isEnabled == true ? .on : .off
+            controls.option.state = binding?.modifiers.contains(.option) == true ? .on : .off
+            controls.shift.state = binding?.modifiers.contains(.shift) == true ? .on : .off
+            controls.control.state = binding?.modifiers.contains(.control) == true ? .on : .off
+            controls.command.state = binding?.modifiers.contains(.command) == true ? .on : .off
+            controls.keyCode.setKeyCode(binding?.keyCode)
+        }
+    }
+
+    private func renderDisplayPicker() {
+        displayPicker.removeAllItems()
+        displayPicker.addItem(withTitle: "Automatic external display")
+        for candidate in displayCandidates {
+            displayPicker.addItem(withTitle: candidate.localizedName)
+        }
+        guard let savedDisplay = snapshot.selectedDisplay,
+              let resolved = DisplayTargetResolver.resolve(saved: savedDisplay, candidates: displayCandidates),
+              let selectedIndex = displayCandidates.firstIndex(of: resolved) else {
+            displayPicker.selectItem(at: 0)
+            return
+        }
+        displayPicker.selectItem(at: selectedIndex + 1)
+    }
+
+    private func updateLiveControls() {
+        brightnessValueLabel.stringValue = "\(state.targetBrightness)%"
+        blueReductionValueLabel.stringValue = "\(state.targetBlueReduction)%"
+        brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
+        blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
+        automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation
+        modeChip.update(
+            title: state.automationPausedUntilNextBoundary ? "Paused" : ModeStatusLabel.title(for: state.activeMode),
+            tone: state.automationPausedUntilNextBoundary ? .warning : .ready
+        )
+        loginChip.update(
+            title: "Login item \(loginItemStatus == .enabled ? "on" : "off")",
+            tone: loginItemStatus == .enabled ? .ready : .neutral
+        )
+    }
+
+    private func saveScheduleFromEditor(reportsStatus: Bool) -> Result<SettingsSnapshot, Error> {
+        do {
+            let editedSchedule = try scheduleEditorView.editedSchedule()
+            switch scheduleActions.updateSchedule(editedSchedule) {
+            case .success(let updatedSnapshot):
+                snapshot = updatedSnapshot
+                schedule = updatedSnapshot.schedule
+                scheduleEditorView.update(schedule: updatedSnapshot.schedule)
+                if reportsStatus { report("Schedule saved.") }
+                return .success(updatedSnapshot)
+            case .failure(let error):
+                if reportsStatus { report(error.localizedDescription, isError: true) }
+                return .failure(error)
+            }
+        } catch {
+            if reportsStatus { report(error.localizedDescription, isError: true) }
+            return .failure(error)
+        }
+    }
+
+    private func saveShortcutsFromControls(reportsStatus: Bool) -> Result<SettingsSnapshot, Error> {
+        do {
+            let editedShortcuts = try shortcutBindingsFromControls()
+            switch settingsActions.updateShortcuts(editedShortcuts) {
+            case .success(let updatedSnapshot):
+                snapshot = updatedSnapshot
+                shortcuts = updatedSnapshot.shortcuts
+                renderShortcuts()
+                if reportsStatus { report("Shortcuts saved.") }
+                return .success(updatedSnapshot)
+            case .failure(let error):
+                if reportsStatus { report(error.localizedDescription, isError: true) }
+                return .failure(error)
+            }
+        } catch {
+            if reportsStatus { report(error.localizedDescription, isError: true) }
+            return .failure(error)
+        }
+    }
+
+    private func shortcutBindingsFromControls() throws -> [ShortcutBinding] {
+        try ShortcutAction.allCases.map { action in
+            guard let controls = shortcutControls[action],
+                  let keyCode = controls.keyCode.parsedKeyCode() else {
+                throw AppWindowFormError.invalidShortcutKey(action: Self.shortcutActionLabel(for: action))
+            }
+            return ShortcutBinding(
+                action: action,
+                keyCode: keyCode,
+                modifiers: modifiers(from: controls),
+                isEnabled: controls.enabled.state == .on
+            )
+        }
+    }
+
+    private func modifiers(from controls: ShortcutControls) -> ShortcutModifiers {
+        var modifiers: ShortcutModifiers = []
+        if controls.option.state == .on { modifiers.insert(.option) }
+        if controls.shift.state == .on { modifiers.insert(.shift) }
+        if controls.control.state == .on { modifiers.insert(.control) }
+        if controls.command.state == .on { modifiers.insert(.command) }
+        return modifiers
+    }
+
+    private func presentDiagnosticsSavePanel(data: Data) {
+        guard let window else {
+            report("App window is unavailable.", isError: true)
+            return
+        }
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "innos-diagnostics.json"
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                try data.write(to: url, options: .atomic)
+                self?.report("Diagnostics exported.")
+            } catch {
+                self?.report(error.localizedDescription, isError: true)
+            }
+        }
+    }
+
+    private func report(_ message: String, isError: Bool = false) {
+        statusLabel.stringValue = message
+        statusLabel.textColor = isError ? .systemRed : .secondaryLabelColor
+    }
+
+    private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
+        let stack = NSStackView(views: buttons)
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.distribution = .fillEqually
+        stack.spacing = 8
+        return stack
+    }
+
+    private func makeSummaryRow(title: String, value: String) -> NSStackView {
+        let titleLabel = fixedLabel(title, width: 112)
+        titleLabel.textColor = .secondaryLabelColor
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        valueLabel.lineBreakMode = .byWordWrapping
+        valueLabel.maximumNumberOfLines = 0
+        let row = NSStackView(views: [titleLabel, valueLabel])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 10
+        return row
+    }
+
+    private func makeChip(_ title: String, tone: InnosDesignTokens.Tone) -> InnosStatusChipView {
+        InnosStatusChipView(title: title, tone: tone)
+    }
+
+    private func sectionLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title.uppercased())
+        label.font = InnosDesignTokens.Font.sectionTitle
+        label.textColor = .secondaryLabelColor
+        return label
+    }
+
+    private func fixedLabel(_ title: String, width: CGFloat) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.body
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return label
+    }
+
+    private func checkbox(width: CGFloat) -> NSButton {
+        let button = NSButton(checkboxWithTitle: "", target: self, action: #selector(shortcutControlChanged))
+        button.font = InnosDesignTokens.Font.body
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.widthAnchor.constraint(equalToConstant: width).isActive = true
+        return button
+    }
+
+    private func button(_ title: String, command: MenuBarCommand, action: Selector, style: PopoverButtonStyle = .normal) -> NSButton {
+        let button = PopoverCommandButton(title: title, style: style, target: self, action: action)
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        commandButtons[command] = button
+        return button
+    }
+
+    private func compactButton(_ title: String, accessibilityLabel: String, command: MenuBarCommand, action: Selector) -> NSButton {
+        let button = button(title, command: command, action: action)
+        button.setAccessibilityLabel(accessibilityLabel)
+        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        return button
+    }
+
+    private func makeSeparator() -> NSView {
+        let separator = NSBox()
+        separator.boxType = .separator
+        return separator
+    }
+
+    private func spacer() -> NSView {
+        let view = NSView()
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return view
+    }
+
+    private func automationActionTitle() -> String {
+        state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
+    }
+
+    private func automationSummary() -> String {
+        if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
+            return "Paused until \(Self.timeLabel(for: resumeMinute))"
+        }
+        if state.automationPausedUntilNextBoundary {
+            return "Paused until next schedule boundary"
+        }
+        return "Active"
+    }
+
+    private func scheduleSummaryText() -> String {
+        SettingsSnapshot.sortedSchedule(schedule)
+            .map { "\(Self.timeLabel(for: $0.minuteOfDay)) · \($0.brightness)% / blue \($0.blueReduction)%" }
+            .joined(separator: ", ")
+    }
+
+    private func nextScheduleText() -> String {
+        guard let entry = SettingsSnapshot.sortedSchedule(schedule).first else { return "not configured" }
+        return "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% / blue \(entry.blueReduction)%"
+    }
+
+    private func diagnosticsSummary() -> String {
+        let warnings = events.filter { $0.severity == .warning }.count
+        let errors = events.filter { $0.severity == .error }.count
+        if errors == 0, warnings == 0 { return "clear" }
+        return errors > 0 ? "\(errors) error(s)" : "\(warnings) warning(s)"
+    }
+
+    private func diagnosticsLogText() -> String {
+        guard !events.isEmpty else { return "No diagnostics recorded yet." }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return events.reversed().map { event in
+            "[\(formatter.string(from: event.timestamp))] \(event.severity.rawValue.uppercased()) \(event.category.rawValue): \(event.message)"
+        }.joined(separator: "\n")
+    }
+
+    private func loginItemSummary() -> String {
+        switch loginItemStatus {
+        case .enabled:
+            return "enabled"
+        case .disabled:
+            return "disabled"
+        case .requiresApproval:
+            return "requires approval in System Settings"
+        case .notRegistered:
+            return "not registered"
+        case .unsupported(let reason):
+            return "unsupported (\(reason))"
+        }
+    }
+
+    private static func shortcutActionLabel(for action: ShortcutAction) -> String {
+        switch action {
+        case .brightnessUp:
+            return "Brightness up"
+        case .brightnessDown:
+            return "Brightness down"
+        case .blueReductionUp:
+            return "Blue reduction up"
+        case .blueReductionDown:
+            return "Blue reduction down"
+        case .quickDisableOverlay:
+            return "Quick disable overlay"
+        case .restorePreviousDimming:
+            return "Restore previous dimming"
+        case .openPopover:
+            return "Open popover"
+        }
+    }
+
+    private static func percent(from fraction: CGFloat) -> Int {
+        Clamped.percent(Int((fraction * 100).rounded()))
+    }
+
+    private static func timeLabel(for minuteOfDay: Int) -> String {
+        let minute = max(0, min(1_439, minuteOfDay))
+        return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+
+    @objc private func pageButtonPressed(_ sender: NSButton) {
+        guard let identifier = sender.identifier?.rawValue,
+              let page = pageButtons.first(where: { $0.key.title == identifier })?.key else { return }
+        activePage = page
+        renderActivePage()
+    }
+
+    @objc private func backPressed() {
+        activePage = .home
+        renderActivePage()
+    }
+
+    @objc private func brightnessDownPressed() { actions.perform(.brightnessDown) }
+    @objc private func brightnessUpPressed() { actions.perform(.brightnessUp) }
+    @objc private func blueReductionDownPressed() { actions.perform(.blueReductionDown) }
+    @objc private func blueReductionUpPressed() { actions.perform(.blueReductionUp) }
+    @objc private func quickDisablePressed() { actions.perform(.quickDisable) }
+    @objc private func restorePreviousPressed() { actions.perform(.restorePrevious) }
+    @objc private func automationActionPressed() { actions.perform(automationActionCommand) }
+    @objc private func saveSchedulePressed() { _ = saveScheduleFromEditor(reportsStatus: true) }
+    @objc private func shortcutControlChanged() { report("Shortcut changes are ready to save.") }
+    @objc private func saveShortcutsPressed() { _ = saveShortcutsFromControls(reportsStatus: true) }
+    @objc private func resetShortcutsPressed() {
+        switch settingsActions.updateShortcuts(ShortcutBinding.defaultBindings) {
+        case .success(let updatedSnapshot):
+            snapshot = updatedSnapshot
+            shortcuts = updatedSnapshot.shortcuts
+            renderShortcuts()
+            report("Shortcuts reset.")
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+        }
+    }
+    @objc private func displaySelectionChanged() {
+        let selectedIndex = displayPicker.indexOfSelectedItem - 1
+        let selectedDisplay = displayCandidates.indices.contains(selectedIndex) ? displayCandidates[selectedIndex] : nil
+        switch settingsActions.selectDisplay(selectedDisplay) {
+        case .success(let updatedSnapshot):
+            snapshot = updatedSnapshot
+            report("Settings saved.")
+            renderActivePage()
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+        }
+    }
+    @objc private func loginItemToggled() {
+        switch settingsActions.setLaunchAtLogin(loginItemCheckbox.state == .on) {
+        case .success(let updatedStatus):
+            loginItemStatus = updatedStatus
+            report("Launch at login updated.")
+            renderActivePage()
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+            renderActivePage()
+        }
+    }
+    @objc private func exportDiagnosticsPressed() {
+        switch settingsActions.exportDiagnostics() {
+        case .success(let data):
+            presentDiagnosticsSavePanel(data: data)
+        case .failure(let error):
+            report(error.localizedDescription, isError: true)
+        }
     }
 }

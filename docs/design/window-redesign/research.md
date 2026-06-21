@@ -643,3 +643,128 @@ Insufficient evidence:
 Recommended next step:
 
 - Use this research as the evidence basis for a `plan-first-implementation` document focused on replacing the split settings/dashboard windows with one componentized app window.
+
+## 2026-06-21 Actual App Window Gap Research
+
+### Goal
+
+Implement the reviewed `app-window-componentized-mockup.html` in the actual macOS app window. The user verified that the current native full window does not reflect the target mockup or the required settings-window integration.
+
+### Mode
+
+Pre-Plan Research Gate.
+
+### Confirmed Facts
+
+- `MenuBarController.showAppWindow(focus:)` still instantiates `AppDashboardWindowController` from `InnosDimmer/UI/MenuBarPopoverView.swift`.
+- `AppDashboardWindowController.installContent()` still builds a tall vertical scroll dashboard with sections:
+  - `Current state`
+  - `Automation schedule`
+  - `Configuration`
+  - `Diagnostics`
+- `AppDashboardWindowController.focus(_:)` only scrolls to existing sections. It does not switch real pages.
+- `AppDashboardFocusTarget.shortcuts` and `.settings` both map to `configurationSectionView`, so Shortcuts and Settings are not distinct surfaces.
+- `SettingsWindowController` still owns the working implementations for display picker, shortcut controls/validation, shortcut save/reset, launch-at-login toggle, and diagnostics export.
+- `MenuBarController.openSettings()` currently routes to `showAppWindow(focus: .settings)`, but the target app window does not expose the old settings functions yet.
+- `ScheduleEditorView` still uses visible `Warmth` copy and reports invalid blue-reduction values with `field: "warmth"`.
+- Existing tests verify that the app window opens, buttons route, tracks send commands, and schedule can save, but they do not yet prove all old settings features are reachable in the unified window.
+
+### Repeated Observations
+
+- The HTML mockup and native window have drifted:
+  - mockup has page tiles and detail pages;
+  - native app window has a single scroll stack.
+- The current native implementation uses the old dashboard name and test surface:
+  - `AppDashboardWindowController`
+  - `testAppDashboard...`
+- The product vocabulary drift remains:
+  - target: `Blue reduction`
+  - old surfaces: `Warmth`
+
+### Inference
+
+The actual implementation stopped after partial routing and dashboard polish. The real window shell was not replaced with the page-based mockup architecture. The safest implementation is not to add a second app window. It is to turn the currently routed `AppDashboardWindowController` into the unified app window, because that is already what `Open Control Window`, app launch, and schedule/shortcuts/settings commands reach.
+
+### Recommendation
+
+Implement a single native app-window controller in the current route:
+
+1. Keep `MenuBarController.showAppWindow(focus:)` as the runtime entry point.
+2. Convert `AppDashboardWindowController` into a page-based window with Home, Current status, Display, Schedule, Shortcuts, Settings, and Diagnostics.
+3. Inject `SettingsActions` into the app window so display, shortcut, login item, and diagnostics export side effects stay behind `MenuBarController`.
+4. Pass `SettingsSnapshot`, active display candidates, and `LoginItemStatus` from `MenuBarController.refreshAppWindow()`.
+5. Add test hooks for page navigation and settings reachability.
+6. Only after the app window has feature parity, stop using the old `SettingsWindowController`. Physical file deletion can be a final cleanup once tests no longer instantiate it.
+
+### First-Priority Implementation Hypothesis
+
+Use the existing `AppDashboardWindowController` route and replace its content builder with a native page shell.
+
+Why this is first priority:
+
+- It directly changes the real app window that opens from the app.
+- It avoids a second hidden window/controller path.
+- It preserves existing quick-control behavior and tests.
+- It keeps side effects behind `MenuBarController`.
+- It makes the old settings-window deletion gate explicit instead of prematurely hiding features.
+
+Proposed shape:
+
+```swift
+private enum AppWindowPage: CaseIterable {
+    case home
+    case current
+    case display
+    case schedule
+    case shortcuts
+    case settings
+    case diagnostics
+}
+
+func focus(_ target: AppDashboardFocusTarget?) {
+    activePage = AppWindowPage(target)
+    renderActivePage()
+    window?.makeKeyAndOrderFront(nil)
+}
+```
+
+```swift
+func update(
+    state: BrightnessState,
+    schedule: [ScheduleEntry],
+    shortcuts: [ShortcutBinding],
+    events: [DiagnosticsEvent],
+    snapshot: SettingsSnapshot,
+    displayCandidates: [DisplayIdentity],
+    loginItemStatus: LoginItemStatus
+) {
+    self.state = state
+    self.schedule = schedule
+    self.shortcuts = shortcuts
+    self.events = events
+    self.snapshot = snapshot
+    self.displayCandidates = displayCandidates
+    self.loginItemStatus = loginItemStatus
+    renderActivePage()
+}
+```
+
+### Fallback Hypotheses
+
+1. If page-shell replacement is too large for one safe patch, keep the class name but implement Home, Schedule, Display, Shortcuts, Settings, Diagnostics as vertically stacked sections with navigation buttons that scroll to each section. This improves reachability but does not satisfy the latest page mockup as well.
+2. If shortcut editor extraction is too risky, duplicate the small shortcut-control logic into the app window first, then extract a shared component in a cleanup commit.
+3. If full deletion of `SettingsWindowController` breaks too many tests, stop opening it from runtime first and leave physical deletion for a cleanup commit with migrated tests.
+
+### System Integrity Checks
+
+- Do not let UI pages call `DisplayTargetStore`, `LoginItemController`, or `DiagnosticsExporter` directly.
+- Keep `MenuBarController` as the side-effect boundary.
+- Preserve schedule save and hotkey registration behavior.
+- Preserve quick-disable/restore behavior.
+- Preserve diagnostics JSON export path through `DiagnosticsExporter`.
+- Preserve old settings features until the app window can perform them.
+
+### Open Questions
+
+- Exact final native dimensions may need screenshot/manual QA after implementation.
+- The physical deletion of `SettingsWindowController.swift` may require migrating `SettingsWindowShortcutCustomizationTests` and extracting `ShortcutKeyField`; this can be done in the same implementation if compilation remains manageable, but should stop if it creates broad unrelated churn.
