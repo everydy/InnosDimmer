@@ -768,3 +768,375 @@ func update(
 
 - Exact final native dimensions may need screenshot/manual QA after implementation.
 - The physical deletion of `SettingsWindowController.swift` may require migrating `SettingsWindowShortcutCustomizationTests` and extracting `ShortcutKeyField`; this can be done in the same implementation if compilation remains manageable, but should stop if it creates broad unrelated churn.
+
+---
+
+## 2026-06-22 Sidebar Navigation Structure Research
+
+### Goal
+
+Investigate how to change the real native app window to match the latest approved mockup navigation model:
+
+- persistent left sidebar navigation
+- right-side content pane
+- no Back button
+- one active page at a time
+- page routing through the existing unified app-window command surface
+
+This is a Pre-Plan Research Gate for a later `plan-first-implementation` document. It is not an implementation patch.
+
+### Scope And Entry Points
+
+Primary implementation entry point:
+
+- `InnosDimmer/UI/UnifiedAppWindowController.swift`
+
+Runtime routing entry point:
+
+- `InnosDimmer/UI/MenuBarController.swift`
+
+Design baseline:
+
+- `docs/design/window-redesign/app-window-componentized-mockup.html`
+- `DESIGN.md`
+- `docs/design-decisions.md`
+
+Reusable supporting views:
+
+- `InnosDimmer/UI/ScheduleEditorView.swift`
+- `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
+- `InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift`
+- popover-private primitives currently reused by the app window, especially `PopoverCommandButton`, `PopoverContainerView`, `ProgressTrackView`, and `AppWindowPageTileButton` from `InnosDimmer/UI/MenuBarPopoverView.swift`
+
+Test entry points:
+
+- `InnosDimmerTests/MenuBarStateTests.swift`
+- `InnosDimmerTests/HotkeyBindingTests.swift`
+
+External reference lane:
+
+- Apple AppKit `NSSplitViewController`
+- Apple AppKit `NSSplitViewItem.init(sidebarWithViewController:)`
+- Apple HIG `Sidebars`
+
+### Relevant Files
+
+Files read for this addendum:
+
+- `/Users/moonsoo/projects/InnosDimmer/DESIGN.md`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design-decisions.md`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/research.md`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/app-window-componentized-mockup.html`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/ScheduleEditorView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/SettingsActions.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`
+
+Commands used:
+
+- `rg --files`
+- `rg -n "app-body|sidebar|content-pane|Back|data-go|page-head|Schedule rows|Quick actions|Status" docs/design/window-redesign/app-window-componentized-mockup.html`
+- `rg -n "Back|Navigation|pageStructure|homeLayout|Mockup|sidebar|tile|Schedule rows|Current status|Next actions|Status|InnosDimmer Control Center" InnosDimmerTests/MenuBarStateTests.swift InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `nl -ba ...`
+- `sed -n ...`
+
+### Current Behavior
+
+The latest static mockup now defines a two-region app shell:
+
+- `.app-body` is a grid with `250px` sidebar and one content pane.
+- `.sidebar` owns the persistent Settings navigation list.
+- `.content-pane` owns active page rendering.
+- Sidebar buttons use `data-go` values for `home`, `current`, `display`, `automation`, `shortcuts`, `settings`, and `diagnostics`.
+- JavaScript updates both active page and active sidebar tile.
+- Back buttons and `icon-arrow-left` were removed from the mockup.
+
+The real native app window already has a unified controller, but it still uses the previous navigation model:
+
+- `UnifiedAppWindowPage` already enumerates the target pages: `home`, `current`, `display`, `schedule`, `shortcuts`, `settings`, and `diagnostics`.
+- `UnifiedAppWindowController.installContent()` currently builds one vertical root stack: header, transient status label, and `bodyView`.
+- `renderActivePage()` removes all `bodyView` subviews and inserts a page-specific view.
+- `makeHomePage()` still creates the old home layout with a left quick-actions column and a right navigation grid.
+- `makeNavigationGrid()` still creates 2-column navigation tiles only for the home page.
+- `makeDetailPage()` still creates a visible `← Back` button and places it in every detail page header.
+- Tests currently assert the Back identifier exists: `app-window-header-action:Back`.
+
+Routing is more mature than the layout:
+
+- `MenuBarController.perform(_:)` already routes `.openScheduleEditor` to `.schedule`, `.openShortcuts` to `.shortcuts`, `.openDiagnostics` to `.diagnostics`, and `.openSettings` to `.settings`.
+- `MenuBarController.showAppWindow(focus:)` already creates/reuses `UnifiedAppWindowController`, refreshes it, shows the window, and calls `controller.focus(focus)`.
+- The old standalone `ScheduleEditorWindowController` still exists, but `openScheduleEditor` no longer uses it from the primary menu-bar command path.
+
+Schedule editing is not the main blocker for this navigation task:
+
+- `ScheduleEditorView` already has `Time`, `Bright`, and `Blue` headers.
+- It already supports percent text fields, draggable tracks, and adjacent `-`/`+` step buttons.
+- It already exposes test hooks for row values, track fractions, and step behavior.
+
+### Data Flow And Control Flow
+
+Current native page flow:
+
+1. Runtime command enters `MenuBarController.perform(_:)`.
+2. Page-opening commands call `showAppWindow(focus:)`.
+3. `showAppWindow(focus:)` refreshes the `UnifiedAppWindowController` and calls `focus`.
+4. `UnifiedAppWindowController.focus(_:)` maps `AppDashboardFocusTarget?` into `UnifiedAppWindowPage`.
+5. `renderActivePage()` rebuilds the current page inside `bodyView`.
+6. Page-local controls still route side effects through injected `MenuBarActions`, `ScheduleEditorActions`, and `SettingsActions`.
+
+Target navigation flow:
+
+1. `installContent()` should build a persistent shell:
+   - optional top titlebar/header region
+   - sidebar navigation region
+   - content pane region
+2. Sidebar buttons should be built from `UnifiedAppWindowPage.allCases`, including `.home`.
+3. Clicking a sidebar row should set `activePage`, call `renderActivePage()`, and refresh sidebar selection state.
+4. Detail pages should no longer render Back buttons.
+5. Home should no longer render its separate right-side navigation grid.
+6. `renderActivePage()` should only replace the content pane, not recreate the whole shell.
+7. Side effects should continue to flow through the existing action structs.
+
+Recommended control-flow shape:
+
+```swift
+private let sidebarStack = NSStackView()
+private let contentPane = NSView()
+private var sidebarButtons: [UnifiedAppWindowPage: NSButton] = [:]
+
+private func installContent() {
+    configureReusableControls()
+
+    let sidebar = makeSidebar()
+    let content = makeContentPane()
+    let appBody = NSStackView(views: [sidebar, content])
+    appBody.orientation = .horizontal
+    appBody.alignment = .height
+    appBody.spacing = 0
+
+    let contentView = DashboardRootView()
+    window?.contentView = contentView
+    contentView.addSubview(appBody)
+    // constrain appBody to contentView edges
+    renderActivePage()
+}
+```
+
+```swift
+private func setActivePage(_ page: UnifiedAppWindowPage) {
+    activePage = page
+    renderActivePage()
+    updateSidebarSelection()
+}
+```
+
+```swift
+private func renderActivePage() {
+    titleLabel.stringValue = activePage == .home ? "InnosDimmer" : activePage.title
+    commandButtons.removeAll(keepingCapacity: true)
+    contentPane.subviews.forEach { $0.removeFromSuperview() }
+
+    let content = makePageContent(for: activePage)
+    contentPane.addSubview(content)
+    // constrain content to contentPane edges
+    updateSidebarSelection()
+    updateLiveControls()
+}
+```
+
+### Existing Abstractions And Boundaries
+
+Keep:
+
+- `UnifiedAppWindowPage` as the canonical native page enum.
+- `AppDashboardFocusTarget` as the external focus API for now, because `MenuBarController` and tests already use it.
+- `MenuBarController.perform(_:)` as the command router.
+- `MenuBarActions`, `ScheduleEditorActions`, and `SettingsActions` as side-effect boundaries.
+- `ScheduleEditorView` as the schedule row editor.
+- `InnosDesignTokens` and existing `Popover*` controls as visual primitives until a later component cleanup.
+
+Change:
+
+- Replace home-only navigation with persistent sidebar navigation.
+- Replace `pageButtons` with a clearer `sidebarButtons` map, or keep `pageButtons` only if its semantics are updated to include the always-visible sidebar.
+- Replace `homeLayoutMetricsForTesting()` with sidebar/content metrics or active navigation tests.
+- Remove `backPressed()` and the Back button identifier from the app-window structure tests.
+- Rename the visible Home title from `InnosDimmer Control Center` to `InnosDimmer` if following the latest mockup exactly.
+- Rename `Next actions` to `Status` if following the latest mockup exactly.
+
+### Side Effects And Integration Points
+
+Navigation changes must not alter:
+
+- brightness/blue reduction command behavior
+- quick disable/restore behavior
+- pause/resume automation behavior
+- schedule save behavior
+- display selection persistence
+- shortcut validation and save behavior
+- launch-at-login behavior
+- diagnostics export behavior
+- `MenuBarController.refreshAppWindow()` data injection
+- hotkey routing
+
+The implementation should be mostly layout/control-shell work inside `UnifiedAppWindowController`. Any change that directly edits `BrightnessController`, `DisplayTargetStore`, `LoginItemController`, `DiagnosticsExporter`, `ScheduleEngine`, or `HotkeyManager` is probably outside this navigation task.
+
+### Risk To Surrounding Systems
+
+High-risk areas:
+
+- `commandButtons.removeAll(keepingCapacity:)` currently runs on every page render. If sidebar buttons are stored in the same dictionary or created through the same `button(...)` helper, the sidebar could disappear from test lookup or lose command mappings. Sidebar page buttons should use a separate map from command buttons.
+- `pageButtons` currently stores both navigation tiles and status-list rows. Reusing it blindly for persistent sidebar selection can overwrite entries and make active state inconsistent.
+- `makeDetailPage()` currently owns page header creation and Back button creation. Removing Back requires changing tests that assert `app-window-header-action:Back`.
+- The old home navigation grid is still produced by `makeHomePage()`. If it is left in place after adding a sidebar, the app will have duplicate navigation.
+- `content.bottomAnchor.constraint(lessThanOrEqualTo:)` may produce pages that do not fill the content pane. A sidebar shell should use a scroll container per content pane or a stable content-pane constraint strategy.
+- `MenuBarPopoverView.swift` still contains old `AppDashboardWindowController` code. It is not the active route, but it can confuse future implementation if copied from. Prefer editing `UnifiedAppWindowController.swift`.
+
+Medium-risk areas:
+
+- The official AppKit split-view route is more native, but switching the controller to `NSSplitViewController` would be a larger architectural change than the current request requires.
+- Test screenshots may change significantly because the window shell changes even when page content stays the same.
+- The current window size is `880x560`; the mockup uses `900x640`. Changing size is visible but low behavioral risk.
+
+### Do Not Duplicate Or Bypass
+
+Do not duplicate:
+
+- `ScheduleEditorView` for schedule row editing.
+- `SettingsActions` side-effect closures.
+- `MenuBarController.showAppWindow(focus:)` routing.
+- `MenuBarController.perform(_:)` command routing.
+- `ShortcutKeyField` and shortcut validation.
+- `DiagnosticsExporter` export path.
+- `DisplayTargetStore` save/load behavior.
+
+Do not bypass:
+
+- `MenuBarActions.perform` for live dimming commands.
+- `ScheduleEditorActions.updateSchedule` for schedule saves.
+- `SettingsActions.updateShortcuts`, `.selectDisplay`, `.setLaunchAtLogin`, and `.exportDiagnostics` for durable settings behavior.
+
+### Open Questions
+
+- Should the native window adopt `NSSplitViewController` now, or should it keep the existing custom `NSStackView` shell? Recommendation below: keep custom shell for this iteration.
+- Should the sidebar show subtitles like the mockup (`Controls and status.`) or only page titles? The current mockup keeps concise subtitles; native implementation can keep them if text does not crowd the 250px sidebar.
+- Should the app window exact size change to `900x640` now? It is visual alignment, not a functional dependency.
+- Should the old `AppDashboardWindowController` inside `MenuBarPopoverView.swift` be deleted in the same plan? Recommendation: only after active `UnifiedAppWindowController` tests pass, because deletion is cleanup and can create broad diff noise.
+
+### Plan Implications
+
+First-priority hypothesis:
+
+Use a custom `NSStackView` sidebar shell inside `UnifiedAppWindowController`.
+
+Why:
+
+- The current controller is already manually composed with `NSStackView`.
+- The existing action injection and test hooks are all inside `UnifiedAppWindowController`.
+- A custom shell can preserve the current runtime route and reduce blast radius.
+- It directly matches the HTML mockup's `app-body/sidebar/content-pane` structure.
+
+Implementation plan implications:
+
+1. Add persistent shell state to `UnifiedAppWindowController`:
+   - `sidebarStack`
+   - `contentPane`
+   - `sidebarButtons`
+2. Refactor `installContent()` so it installs the persistent shell once.
+3. Add `makeSidebar()` and `makeSidebarButton(_:)`.
+4. Change `renderActivePage()` to replace only `contentPane`.
+5. Remove Back button creation from `makeDetailPage()`.
+6. Remove home-only navigation grid from `makeHomePage()`.
+7. Update active selection on `focus(_:)` and sidebar button click.
+8. Update tests:
+   - assert no Back button
+   - assert all sidebar pages exist
+   - assert clicking/focusing page updates active page
+   - replace `homeLayoutMetricsForTesting()` expectations
+   - keep existing behavior tests for settings/display/shortcuts/schedule/diagnostics
+9. Run focused tests around `UnifiedAppWindowController`, `MenuBarController` page routing, and schedule editor behavior.
+10. Run snapshot/smoke rendering for all pages if available.
+
+Fallback hypothesis A:
+
+If the persistent shell creates constraint issues, build the sidebar and content pane as siblings inside the existing `rootStack` body area first, while preserving the current top header. This is less elegant but preserves the same controller lifecycle.
+
+Fallback hypothesis B:
+
+If custom sidebar selection becomes fragile, use `NSSplitViewController` and two child view controllers:
+
+- `SidebarViewController`
+- `ContentPageViewController`
+
+This is more AppKit-native, but it requires a larger refactor of test hooks and the current `NSWindowController` composition.
+
+Fallback hypothesis C:
+
+If active page rebuilding breaks existing controls, keep page content functions intact and only move the navigation surface first:
+
+- persistent sidebar added
+- Home navigation grid removed
+- Back removed
+- detail page content unchanged
+
+Then later refine page internals.
+
+### Source Evaluation
+
+Local code is the strongest evidence and should be adopted:
+
+- `UnifiedAppWindowController` already owns active page state, page rendering, actions, and settings integration.
+- `MenuBarController` already routes page-specific commands into the unified app window.
+- Tests already cover many page contents and routing side effects.
+
+Official Apple evidence is supportive, not controlling:
+
+- Apple `NSSplitViewController` documentation describes a controller that manages child views side-by-side.
+- Apple `NSSplitViewItem.init(sidebarWithViewController:)` documents a formal sidebar split item.
+- Apple HIG Sidebars guidance frames sidebars as leading-side navigation between app areas or top-level content collections.
+
+Adoption decision:
+
+- Adopt the sidebar information architecture from the mockup and HIG.
+- Pilot the implementation with the current custom AppKit `NSStackView` architecture instead of immediately migrating to `NSSplitViewController`.
+- Watch `NSSplitViewController` as a later cleanup if manual constraints become brittle or the app needs a more native collapsible sidebar.
+
+### Evidence
+
+Local evidence:
+
+- `docs/design/window-redesign/app-window-componentized-mockup.html`
+  - `.app-body`, `.sidebar`, `.content-pane`: lines found by `rg` at 218, 225, 243, 1204, 1205, 1239.
+  - sidebar `data-go` entries: lines found by `rg` at 1208-1232.
+  - active sidebar update script: lines found by `rg` at 1671 and 1676.
+- `InnosDimmer/UI/UnifiedAppWindowController.swift`
+  - `UnifiedAppWindowPage`: lines 17-24.
+  - page titles/descriptions/symbols: lines 45-100.
+  - current layout constants still include home navigation sizing: lines 110-114.
+  - persistent controller state: lines 139-169.
+  - `installContent()` currently builds `header/statusLabel/bodyView`: lines 319-370.
+  - `renderActivePage()` currently replaces `bodyView`: lines 386-418.
+  - home-only navigation grid: lines 421-470.
+  - Back button creation in `makeDetailPage()`: lines 643-672.
+  - `Next actions` home section: lines 780-785.
+- `InnosDimmer/UI/MenuBarController.swift`
+  - page command routing: lines 203-215.
+  - `showAppWindow(focus:)`: lines 295-307.
+  - `openSettings()` now routes to app window settings page: lines 322-325.
+- `InnosDimmer/UI/ScheduleEditorView.swift`
+  - schedule table headers and three-column row structure: lines 280-341.
+  - row testing hooks and step/track hooks: lines 230-277.
+- `InnosDimmerTests/MenuBarStateTests.swift`
+  - current home layout test still expects home navigation metrics: lines 600-615.
+  - current detail structure test still expects Back identifier: lines 766-773.
+  - existing page content contracts: lines 617-763.
+
+Official sources:
+
+- Apple Developer Documentation, `NSSplitViewController`: https://developer.apple.com/documentation/appkit/nssplitviewcontroller
+- Apple Developer Documentation, `NSSplitViewItem.init(sidebarWithViewController:)`: https://developer.apple.com/documentation/appkit/nssplitviewitem/init%28sidebarwithviewcontroller%3A%29
+- Apple Human Interface Guidelines, Sidebars: https://developer.apple.com/design/Human-Interface-Guidelines/sidebars
