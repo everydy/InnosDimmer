@@ -407,7 +407,7 @@ final class UnifiedAppWindowController: NSWindowController {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("App window brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("App window blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("App window warmth percentage")
 
         let sidebar = makeSidebar()
         let header = makeHeader()
@@ -555,7 +555,7 @@ final class UnifiedAppWindowController: NSWindowController {
                 makeSummaryRow(title: "Mode", value: displayModeSummary()),
                 makeSummaryRow(
                     title: "Brightness",
-                    value: "Brightness: \(state.targetBrightness)% / Blue reduction: \(state.targetBlueReduction)%"
+                    value: "Brightness: \(state.targetBrightness)% / Warmth: \(state.targetBlueReduction)%"
                 ),
                 makeSummaryRow(title: "Automation", value: automationSummary())
                 ]),
@@ -579,14 +579,14 @@ final class UnifiedAppWindowController: NSWindowController {
             makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
                 makeSummaryRow(title: "Display", value: currentDisplaySummary()),
                 makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
-                makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
+                makeSummaryRow(title: "Warmth", value: "\(state.targetBlueReduction)%")
             ]),
             makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
                 displayPicker,
                 makeSummaryRow(title: "Selection rule", value: targetDisplayRuleSummary()),
                 makeSummaryRow(title: "Active target", value: resolvedDisplaySummary(resolvedDisplay)),
                 makeSummaryRow(title: "Safety scope", value: targetDisplayScopeSummary(resolvedDisplay)),
-                makeSummaryRow(title: "Blue reduction", value: gammaTableSummary(resolvedDisplay))
+                makeSummaryRow(title: "Warmth", value: gammaTableSummary(resolvedDisplay))
             ]),
             makeSection(title: "Saved selection", views: [
                 makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
@@ -785,7 +785,7 @@ final class UnifiedAppWindowController: NSWindowController {
         makeSection(title: "Quick actions", trailing: makeChip(state.automationPausedUntilNextBoundary ? "Manual" : "Automation active", tone: state.automationPausedUntilNextBoundary ? .warning : .ready), views: [
             makeControlGroup(title: "Brightness", valueLabel: brightnessValueLabel, trackView: brightnessTrackView, decrement: compactButton("-", accessibilityLabel: "Brightness down", command: .brightnessDown, action: #selector(brightnessDownPressed)), increment: compactButton("+", accessibilityLabel: "Brightness up", command: .brightnessUp, action: #selector(brightnessUpPressed))),
             makeSeparator(),
-            makeControlGroup(title: "Blue reduction", valueLabel: blueReductionValueLabel, trackView: blueReductionTrackView, decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)), increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))),
+            makeControlGroup(title: "Warmth", valueLabel: blueReductionValueLabel, trackView: blueReductionTrackView, decrement: compactButton("-", accessibilityLabel: "Warmth down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)), increment: compactButton("+", accessibilityLabel: "Warmth up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))),
             makeActionRow([
                 button("Disable", command: .quickDisable, action: #selector(quickDisablePressed), style: .warning),
                 button("Restore", command: .restorePrevious, action: #selector(restorePreviousPressed)),
@@ -1178,9 +1178,9 @@ final class UnifiedAppWindowController: NSWindowController {
 
         switch state.activeMode {
         case .overlay:
-            return "\(modeTitle) + gamma blue reduction"
+            return "\(modeTitle) + gamma warmth"
         case .gamma:
-            return "\(modeTitle) blue reduction"
+            return "\(modeTitle) warmth"
         case .platformBlocked, .unknown:
             return modeTitle
         }
@@ -1225,7 +1225,7 @@ final class UnifiedAppWindowController: NSWindowController {
 
         switch state.activeMode {
         case .overlay, .gamma:
-            return "Supported for blue reduction"
+            return "Supported for warmth"
         case .platformBlocked:
             return "Blocked by platform"
         case .unknown:
@@ -1249,13 +1249,13 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func scheduleSummaryText() -> String {
         SettingsSnapshot.sortedSchedule(schedule)
-            .map { "\(Self.timeLabel(for: $0.minuteOfDay)) · \($0.brightness)% / blue \($0.blueReduction)%" }
+            .map { "\(Self.timeLabel(for: $0.minuteOfDay)) · \($0.brightness)% / warmth \($0.blueReduction)%" }
             .joined(separator: ", ")
     }
 
     private func nextScheduleText() -> String {
         guard let entry = SettingsSnapshot.sortedSchedule(schedule).first else { return "not configured" }
-        return "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% / blue \(entry.blueReduction)%"
+        return "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% / warmth \(entry.blueReduction)%"
     }
 
     private func nextScheduleBadgeText() -> String {
@@ -1329,9 +1329,9 @@ final class UnifiedAppWindowController: NSWindowController {
         case .brightnessDown:
             return "Brightness down"
         case .blueReductionUp:
-            return "Blue reduction up"
+            return "Warmth up"
         case .blueReductionDown:
-            return "Blue reduction down"
+            return "Warmth down"
         case .quickDisableOverlay:
             return "Quick disable overlay"
         case .restorePreviousDimming:

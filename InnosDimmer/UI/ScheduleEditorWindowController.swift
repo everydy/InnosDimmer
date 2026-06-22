@@ -161,7 +161,7 @@ final class ScheduleEditorWindowController: NSWindowController {
 
     private static func scheduleSummary(for schedule: [ScheduleEntry]) -> String {
         let labels = SettingsSnapshot.sortedSchedule(schedule).map { entry in
-            "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% blue reduction"
+            "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% brightness / \(entry.blueReduction)% warmth"
         }
         return labels.isEmpty ? "Not configured" : labels.joined(separator: "\n")
     }

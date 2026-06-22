@@ -327,7 +327,7 @@ final class DashboardRootView: NSView {
 
 private enum BlueReductionWarning {
     static let threshold = 50
-    static let message = "High blue reduction may shift colors."
+    static let message = "High warmth may shift colors."
     static let popoverWarningMessage = "High warmth may shift colors."
 
     static func message(for blueReduction: Int) -> String? {
@@ -1993,7 +1993,7 @@ struct AppDashboardViewModel: Equatable {
         failureValue = "\(errors) errors, \(warnings) warnings"
         displayLine = "Display: \(displayValue)"
         modeLine = "Mode: \(modeValue)"
-        brightnessLine = "Brightness: \(brightnessValue) / Blue reduction: \(blueReductionValue)"
+        brightnessLine = "Brightness: \(brightnessValue) / Warmth: \(blueReductionValue)"
         automationLine = "Automation: \(automationValue)"
         scheduleLine = "Schedule: \(scheduleValue)"
         shortcutLine = "Shortcuts: \(shortcutValue)"
@@ -2221,7 +2221,7 @@ final class AppDashboardWindowController: NSWindowController {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Dashboard brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Dashboard blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("Dashboard warmth percentage")
 
         let header = makeHeader(title: title)
         let currentState = makeSection(
@@ -2250,7 +2250,7 @@ final class AppDashboardWindowController: NSWindowController {
                     )
                 ),
                 makeControlGroup(
-                    title: "Blue reduction",
+                    title: "Warmth",
                     iconSystemName: "thermometer.medium",
                     iconFallback: "🌡",
                     iconColor: PopoverPalette.warningColor(for: window?.effectiveAppearance ?? NSApp.effectiveAppearance),
@@ -2258,13 +2258,13 @@ final class AppDashboardWindowController: NSWindowController {
                     trackView: blueReductionTrackView,
                     decrement: compactButton(
                         "-",
-                        accessibilityLabel: "Dashboard blue reduction down",
+                        accessibilityLabel: "Dashboard warmth down",
                         command: .blueReductionDown,
                         action: #selector(blueReductionDownPressed)
                     ),
                     increment: compactButton(
                         "+",
-                        accessibilityLabel: "Dashboard blue reduction up",
+                        accessibilityLabel: "Dashboard warmth up",
                         command: .blueReductionUp,
                         action: #selector(blueReductionUpPressed)
                     )

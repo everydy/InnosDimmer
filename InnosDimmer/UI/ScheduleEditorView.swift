@@ -37,7 +37,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             case .brightness:
                 return "Brightness"
             case .blueReduction:
-                return "Blue reduction"
+                return "Warmth"
             }
         }
     }
@@ -214,7 +214,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
                 throw ScheduleEditorError.invalidPercent(row: index + 1, field: "brightness")
             }
             guard let blueReduction = Self.percentValue(from: row.blueReductionValue.stringValue) else {
-                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "blue reduction")
+                throw ScheduleEditorError.invalidPercent(row: index + 1, field: "warmth")
             }
 
             return ScheduleEntry(minuteOfDay: minuteOfDay, brightness: brightness, blueReduction: blueReduction)
@@ -287,7 +287,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         let header = NSStackView(views: [
             fixedLabel("Time", width: Layout.timeFieldWidth),
             metricHeaderLabel("Bright"),
-            metricHeaderLabel("Blue")
+            metricHeaderLabel("Warmth")
         ])
         header.orientation = .horizontal
         header.alignment = .centerY
