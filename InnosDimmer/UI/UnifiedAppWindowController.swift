@@ -71,7 +71,7 @@ enum UnifiedAppWindowPage: CaseIterable {
     var title: String {
         switch self {
         case .home:
-            return "InnosDimmer"
+            return "Overview"
         case .current:
             return "Current status"
         case .display:
@@ -143,7 +143,7 @@ final class UnifiedAppWindowController: NSWindowController {
         static let shortcutModifierWidth: CGFloat = 42
         static let shortcutKeyWidth: CGFloat = 70
         static let sidebarWidth: CGFloat = 244
-        static let sidebarButtonHeight: CGFloat = 58
+        static let sidebarButtonHeight: CGFloat = 54
         static let contentMinimumWidth: CGFloat = 560
         static let tokenRowHeight: CGFloat = 34
         static let windowContentSize = NSSize(width: 900, height: 640)
@@ -451,13 +451,6 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeSidebar() -> NSView {
-        let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = InnosDesignTokens.Font.appTitle
-        title.textColor = .labelColor
-
-        let caption = sectionLabel("Navigation")
-        caption.font = InnosDesignTokens.Font.app(ofSize: 11, weight: .semibold)
-
         let buttons: [AppWindowSidebarButton] = UnifiedAppWindowPage.allCases.map { page in
             let button = AppWindowSidebarButton(page: page, target: self, action: #selector(pageButtonPressed(_:)))
             button.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-page:\(page.navigationTitle)")
@@ -467,13 +460,12 @@ final class UnifiedAppWindowController: NSWindowController {
         }
         let buttonViews: [NSView] = buttons
 
-        let stack = NSStackView(views: [title, caption] + buttonViews + [spacer()])
+        let stack = NSStackView(views: buttonViews + [spacer()])
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 8
-        stack.setCustomSpacing(16, after: title)
         stack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar")
-        ([title, caption] + buttonViews).forEach { view in
+        buttonViews.forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
@@ -804,18 +796,15 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeNextActionsSection() -> NSView {
         makeSection(title: "Status", views: [
-            makeListRow(title: "Schedule", value: nextScheduleText(), page: .schedule),
-            makeListRow(title: "Diagnostics", value: diagnosticsSummary(), page: .diagnostics),
-            makeListRow(title: "Shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled", page: .shortcuts)
+            makeSummaryTable(
+                identifier: "Overview status",
+                rows: [
+                    .init(title: "Schedule", value: nextScheduleText()),
+                    .init(title: "Diagnostics", value: diagnosticsSummary()),
+                    .init(title: "Shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled")
+                ]
+            )
         ])
-    }
-
-    private func makeListRow(title: String, value: String, page: UnifiedAppWindowPage) -> NSButton {
-        let button = PopoverCommandButton(title: "\(title)    \(value)", style: .subtle, target: self, action: #selector(pageButtonPressed(_:)))
-        button.identifier = NSUserInterfaceItemIdentifier(page.title)
-        button.alignment = .left
-        pageButtons[page] = button
-        return button
     }
 
     private func makeSection(title: String, trailing: NSView? = nil, views: [NSView]) -> NSView {
@@ -1158,8 +1147,10 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func compactButton(_ title: String, accessibilityLabel: String, command: MenuBarCommand, action: Selector) -> NSButton {
         let button = button(title, command: command, action: action)
+        button.font = InnosDesignTokens.Font.popoverStepperButton
         button.setAccessibilityLabel(accessibilityLabel)
-        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
         return button
     }
 
@@ -1583,14 +1574,14 @@ private final class AppWindowSidebarButton: NSButton {
 
         if let image = NSImage(systemSymbolName: page.tileSymbolName, accessibilityDescription: nil) {
             iconView.image = image
-            iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+            iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 15.5, weight: .semibold)
         }
         iconView.imageScaling = .scaleProportionallyDown
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconBox.addSubview(iconView)
 
         titleLabel.stringValue = page.navigationTitle
-        titleLabel.font = InnosDesignTokens.Font.bodyStrong
+        titleLabel.font = InnosDesignTokens.Font.app(ofSize: 14, weight: .semibold)
         titleLabel.maximumNumberOfLines = 1
         titleLabel.lineBreakMode = .byTruncatingTail
 
@@ -1614,10 +1605,9 @@ private final class AppWindowSidebarButton: NSButton {
             iconView.centerYAnchor.constraint(equalTo: iconBox.centerYAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 17),
             iconView.heightAnchor.constraint(equalToConstant: 17),
-            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 10),
-            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -10),
-            row.topAnchor.constraint(equalTo: topAnchor, constant: 8),
-            row.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -8)
+            row.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            row.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            row.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
 
         setAccessibilityLabel(page.navigationTitle)

@@ -647,11 +647,20 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(metrics.quickActionsWidth, 560)
         XCTAssertGreaterThanOrEqual(metrics.nextActionsWidth, 560)
         XCTAssertGreaterThanOrEqual(metrics.firstTileWidth, 190)
-        XCTAssertGreaterThanOrEqual(metrics.firstTileHeight, 58)
+        XCTAssertGreaterThanOrEqual(metrics.firstTileHeight, 54)
         XCTAssertEqual(
             controller.sidebarNavigationForTesting(),
             ["Overview", "Current status", "Display", "Schedule", "Shortcuts", "Settings", "Diagnostics"]
         )
+
+        let home = controller.pageStructureForTesting(focus: .home)
+        XCTAssertEqual(home.pageTitle, "Overview")
+        XCTAssertFalse(home.containsText("Navigation"))
+        XCTAssertFalse(home.containsText("InnosDimmer"))
+        XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status"))
+        XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status:Schedule"))
+        XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status:Diagnostics"))
+        XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status:Shortcuts"))
     }
 
     @MainActor
