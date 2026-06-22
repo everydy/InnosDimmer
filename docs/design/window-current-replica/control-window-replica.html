@@ -29,7 +29,6 @@
       --radius-control: 7px;
       --window-width: 900px;
       --window-height: 640px;
-      --titlebar-height: 50px;
       color-scheme: dark;
       font-family: Pretendard, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       font-size: 13px;
@@ -43,10 +42,11 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
+      width: var(--window-width);
+      height: var(--window-height);
       display: grid;
       place-items: center;
-      background: #0d0d0f;
+      background: var(--root);
       color: var(--text);
     }
 
@@ -55,22 +55,13 @@
       height: var(--window-height);
       overflow: hidden;
       background: var(--root);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow:
-        0 28px 80px rgba(0, 0, 0, 0.42),
-        0 0 0 1px rgba(255, 255, 255, 0.025);
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
     }
 
     .titlebar {
-      height: var(--titlebar-height);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0 16px;
-      background: #242426;
-      border-bottom: 1px solid var(--border);
-      user-select: none;
+      display: none;
     }
 
     .traffic {
@@ -97,7 +88,7 @@
     }
 
     .app-body {
-      height: calc(var(--window-height) - var(--titlebar-height));
+      height: var(--window-height);
       display: grid;
       grid-template-columns: var(--sidebar-width) 1fr;
       background: var(--root);
@@ -181,8 +172,9 @@
     }
 
     .content-wrap {
+      width: 592px;
       padding: var(--surface-padding);
-      min-width: 560px;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -232,7 +224,7 @@
     .section-inner {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
 
     .section-title-row {
@@ -390,6 +382,10 @@
       font-weight: 700;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .sidebar .button {
       width: 100%;
     }
@@ -404,7 +400,7 @@
     .summary-row {
       min-height: 34px;
       display: grid;
-      grid-template-columns: 108px 1fr;
+      grid-template-columns: 116px 1fr;
       gap: 8px;
       align-items: baseline;
       padding: 8px 12px;
@@ -436,7 +432,7 @@
     .native-select,
     .native-input {
       width: 100%;
-      min-height: 30px;
+      min-height: 26px;
       border-radius: 7px;
       border: 1px solid var(--control-border);
       background: var(--control);
@@ -446,33 +442,72 @@
       padding: 0 10px;
     }
 
+    .field-lines {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field-line {
+      min-height: 21px;
+      display: grid;
+      grid-template-columns: 122px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .field-label {
+      color: var(--secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .field-value {
+      min-height: 25px;
+      display: flex;
+      align-items: center;
+      border-radius: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0;
+    }
+
+    .section .button.primary:only-child {
+      width: 100%;
+    }
+
     .schedule-table {
-      overflow: hidden;
-      border-radius: var(--radius-control);
-      border: 1px solid var(--border);
-      background: var(--subtle);
+      display: grid;
+      gap: 8px;
+      overflow: visible;
+      border-radius: 0;
+      border: 0;
+      background: transparent;
     }
 
     .schedule-head,
     .schedule-row {
       display: grid;
-      grid-template-columns: 66px 1fr 1fr;
+      grid-template-columns: 74px 1fr 1fr;
+      column-gap: 10px;
     }
 
     .schedule-head {
-      height: 34px;
+      height: 24px;
       align-items: center;
       color: var(--secondary);
-      text-transform: uppercase;
-      font-size: 12px;
+      text-transform: none;
+      font-size: 13px;
       font-weight: 600;
-      background: rgba(255, 255, 255, 0.02);
+      background: transparent;
     }
 
     .schedule-head > div,
     .schedule-row > div {
-      border-left: 1px solid var(--border);
-      padding: 0 12px;
+      border-left: 0;
+      padding: 0;
     }
 
     .schedule-head > div:first-child,
@@ -481,34 +516,53 @@
     }
 
     .schedule-row {
-      min-height: 54px;
+      min-height: 34px;
       align-items: center;
-      border-top: 1px solid var(--border);
+      border-top: 0;
     }
 
     .time-cell {
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      border-radius: 7px;
+      border: 1px solid var(--control-border);
+      background: var(--subtle);
+      padding: 0 10px;
       font-size: 13px;
       font-weight: 700;
     }
 
     .mini-control {
       display: grid;
-      grid-template-columns: 54px 1fr 58px;
+      grid-template-columns: 40px 1fr 58px;
       gap: 8px;
       align-items: center;
     }
 
-    .stepper {
+    .number-pill {
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      border: 1px solid var(--control-border);
+      background: var(--subtle);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stepper-pair {
       height: 30px;
       display: grid;
-      grid-template-columns: 30px 1fr 30px;
+      grid-template-columns: 1fr 1fr;
       border: 1px solid var(--border);
       border-radius: 7px;
       overflow: hidden;
       background: var(--control);
     }
 
-    .stepper span {
+    .stepper-pair span {
       display: grid;
       place-items: center;
       border-left: 1px solid var(--border);
@@ -516,7 +570,7 @@
       font-size: 13px;
     }
 
-    .stepper span:first-child {
+    .stepper-pair span:first-child {
       border-left: 0;
     }
 
@@ -540,16 +594,22 @@
     }
 
     .checkbox {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border: 1px solid var(--control-border);
-      border-radius: 3px;
+      border-radius: 5px;
       background: var(--control);
       display: inline-grid;
       place-items: center;
-      color: var(--accent);
-      font-size: 11px;
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 13px;
+      font-weight: 800;
       line-height: 1;
+    }
+
+    .checkbox:not(:empty) {
+      background: #68bd4d;
+      border-color: #68bd4d;
     }
 
     .code-log {
@@ -621,9 +681,9 @@
         <header class="header">
           <h1 id="pageTitle">Overview</h1>
           <span class="header-spacer"></span>
-          <span class="chip ready header-chip home-only">Overlay active</span>
+          <span class="chip warning header-chip home-only">Paused</span>
           <span class="chip ready header-chip home-only">Login item on</span>
-          <span class="chip warning header-chip schedule-only" hidden>Next 09:00</span>
+          <span class="chip warning header-chip schedule-only" hidden>Next 19:00</span>
           <button class="button primary header-chip diagnostics-only" hidden>Export diagnostics</button>
         </header>
 
@@ -634,7 +694,7 @@
                 <div class="section-title-row">
                   <div class="section-title">Quick actions</div>
                   <span class="spacer"></span>
-                  <span class="chip ready">Automation active</span>
+                  <span class="chip warning">Manual</span>
                 </div>
                 <div class="control-row">
                   <div class="control-label">Brightness</div>
@@ -654,7 +714,7 @@
                 <div class="button-row">
                   <button class="button warning">Disable</button>
                   <button class="button">Restore</button>
-                  <button class="button">Pause automation</button>
+                  <button class="button">Resume automation</button>
                 </div>
               </div>
             </section>
@@ -665,8 +725,8 @@
                   <div class="section-title">Status</div>
                 </div>
                 <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Schedule</div><div class="summary-value">09:00 · 100% / warmth 0%</div></div>
-                  <div class="summary-row"><div class="summary-key">Diagnostics</div><div class="summary-value">1 warning(s)</div></div>
+                  <div class="summary-row"><div class="summary-key">Schedule</div><div class="summary-value">09:00 · 80% / warmth 12%</div></div>
+                  <div class="summary-row"><div class="summary-key">Diagnostics</div><div class="summary-value">clear</div></div>
                   <div class="summary-row"><div class="summary-key">Shortcuts</div><div class="summary-value">7 enabled</div></div>
                 </div>
               </div>
@@ -684,10 +744,11 @@
                   <span class="chip ready">Ready</span>
                 </div>
                 <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Display</div><div class="summary-value">27QA100M</div></div>
+                  <div class="summary-row"><div class="summary-key">Display</div><div class="summary-value">INNOS 27QA100M</div></div>
+                  <div class="summary-row"><div class="summary-key">Mode</div><div class="summary-value">Software dimming ready</div></div>
                   <div class="summary-row"><div class="summary-key">Brightness</div><div class="summary-value">100%</div></div>
                   <div class="summary-row"><div class="summary-key">Warmth</div><div class="summary-value">0%</div></div>
-                  <div class="summary-row"><div class="summary-key">Automation</div><div class="summary-value">Active</div></div>
+                  <div class="summary-row"><div class="summary-key">Automation</div><div class="summary-value">Paused until 19:00</div></div>
                 </div>
               </div>
             </section>
@@ -698,20 +759,20 @@
                   <span class="spacer"></span>
                   <span class="chip ready">Resolved</span>
                 </div>
-                <select class="native-select"><option>Automatic external display</option><option>27QA100M</option></select>
-                <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Selection rule</div><div class="summary-value">Automatic external display, preferring a non-main monitor</div></div>
-                  <div class="summary-row"><div class="summary-key">Active target</div><div class="summary-value">27QA100M - Display 2</div></div>
-                  <div class="summary-row"><div class="summary-key">Safety scope</div><div class="summary-value">External display only</div></div>
-                  <div class="summary-row"><div class="summary-key">Warmth</div><div class="summary-value">Supported for warmth</div></div>
+                <select class="native-select"><option>Automatic external display</option><option>INNOS 27QA100M</option></select>
+                <div class="field-lines">
+                  <div class="field-line"><div class="field-label">Selection rule</div><div class="field-value">Automatic external display, preferring a non-main monitor</div></div>
+                  <div class="field-line"><div class="field-label">Active target</div><div class="field-value">INNOS 27QA100M - Display 1</div></div>
+                  <div class="field-line"><div class="field-label">Safety scope</div><div class="field-value">Primary screen - review before saving</div></div>
+                  <div class="field-line"><div class="field-label">Warmth</div><div class="field-value">Available when software dimming starts</div></div>
                 </div>
               </div>
             </section>
             <section class="section">
               <div class="section-inner">
                 <div class="section-title-row"><div class="section-title">Saved selection</div></div>
-                <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Saved</div><div class="summary-value">Automatic external display</div></div>
+                <div class="field-lines">
+                  <div class="field-line"><div class="field-label">Saved</div><div class="field-value">Automatic external display</div></div>
                 </div>
                 <div class="button-row"><button class="button primary">Save display</button></div>
               </div>
@@ -726,10 +787,10 @@
                 <div class="section-title-row">
                   <div class="section-title">Schedule</div>
                   <span class="spacer"></span>
-                  <span class="chip warning">Next 09:00</span>
+                  <span class="chip warning">Next 19:00</span>
                 </div>
                 <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Status</div><div class="summary-value">Active</div></div>
+                  <div class="summary-row"><div class="summary-key">Status</div><div class="summary-value">Paused until 19:00</div></div>
                   <div class="summary-row"><div class="summary-key">Current</div><div class="summary-value">09:00 · 80% / warmth 12%, 19:00 · 45% / warmth 32%, 23:00 · 25% / warmth 58%</div></div>
                   <div class="summary-row"><div class="summary-key">Shortcuts</div><div class="summary-value">Option + Shift controls</div></div>
                 </div>
@@ -742,22 +803,22 @@
                   <div class="schedule-head"><div>Time</div><div>Bright</div><div>Warmth</div></div>
                   <div class="schedule-row">
                     <div class="time-cell">09:00</div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>80%</span><span>+</span></div><div class="track" style="--value: 80%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>12%</span><span>+</span></div><div class="track" style="--value: 12%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><span class="number-pill">80</span><div class="track" style="--value: 80%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
+                    <div class="mini-control"><span class="number-pill">12</span><div class="track" style="--value: 12%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
                   <div class="schedule-row">
                     <div class="time-cell">19:00</div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>45%</span><span>+</span></div><div class="track" style="--value: 45%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>32%</span><span>+</span></div><div class="track" style="--value: 32%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><span class="number-pill">45</span><div class="track" style="--value: 45%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
+                    <div class="mini-control"><span class="number-pill">32</span><div class="track" style="--value: 32%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
                   <div class="schedule-row">
                     <div class="time-cell">23:00</div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>25%</span><span>+</span></div><div class="track" style="--value: 25%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
-                    <div class="mini-control"><div class="stepper"><span>-</span><span>58%</span><span>+</span></div><div class="track" style="--value: 58%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><span class="number-pill">25</span><div class="track" style="--value: 25%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
+                    <div class="mini-control"><span class="number-pill">58</span><div class="track" style="--value: 58%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
                 </div>
                 <div class="page-actions">
-                  <button class="button">Pause automation</button>
+                  <button class="button">Resume automation</button>
                   <button class="button primary">Save schedule</button>
                 </div>
               </div>
@@ -774,13 +835,13 @@
               </div>
               <div class="shortcut-table">
                 <div class="shortcut-row shortcut-head"><div>Action</div><div>On</div><div>Opt</div><div>Shift</div><div>Ctrl</div><div>Cmd</div><div>Key</div></div>
-                <div class="shortcut-row"><div>Brightness up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="126"></div>
-                <div class="shortcut-row"><div>Brightness down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="125"></div>
-                <div class="shortcut-row"><div>Warmth up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="124"></div>
-                <div class="shortcut-row"><div>Warmth down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="123"></div>
-                <div class="shortcut-row"><div>Quick disable overlay</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="29"></div>
-                <div class="shortcut-row"><div>Restore previous dimming</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="15"></div>
-                <div class="shortcut-row"><div>Open popover</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="35"></div>
+                <div class="shortcut-row"><div>Brightness up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="Up"></div>
+                <div class="shortcut-row"><div>Brightness down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="Down"></div>
+                <div class="shortcut-row"><div>Warmth up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="Right"></div>
+                <div class="shortcut-row"><div>Warmth down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="Left"></div>
+                <div class="shortcut-row"><div>Quick disable overlay</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="0"></div>
+                <div class="shortcut-row"><div>Restore previous dimming</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="R"></div>
+                <div class="shortcut-row"><div>Open popover</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="P"></div>
               </div>
               <div class="button-row"><button class="button primary">Save shortcuts</button><button class="button">Reset shortcuts</button></div>
             </div>
@@ -806,7 +867,7 @@
               <div class="section-inner">
                 <div class="section-title-row"><div class="section-title">Verification matrix</div></div>
                 <div class="summary-table">
-                  <div class="summary-row"><div class="summary-key">Summary</div><div class="summary-value">8 handled - 0 blocked - 0 missing · handled checks · 0 blocked</div></div>
+                  <div class="summary-row"><div class="summary-key">Summary</div><div class="summary-value">Verification: 0/10 handled · handled checks · 0 blocked</div></div>
                   <div class="summary-row"><div class="summary-key">Overlay</div><div class="summary-value">✓</div></div>
                   <div class="summary-row"><div class="summary-key">Gamma</div><div class="summary-value">✓</div></div>
                   <div class="summary-row"><div class="summary-key">Hotkeys</div><div class="summary-value">✓</div></div>
@@ -821,10 +882,7 @@
                   <span class="spacer"></span>
                   <button class="button">Copy log</button>
                 </div>
-                <div class="code-log">[18:54:11] INFO settings: Settings saved.
-[18:53:58] INFO gamma: Gamma table restored before applying new warmth.
-[18:53:14] WARNING automation: Automation paused until 19:00.
-[18:52:41] INFO shortcuts: Shortcut monitor registered 7 bindings.</div>
+                <div class="code-log">[09:00:00] INFO softwareDimming: Safe visual smoke renders without live dimming.</div>
               </div>
             </section>
           </div>
