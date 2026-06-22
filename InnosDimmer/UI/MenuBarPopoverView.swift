@@ -789,10 +789,12 @@ private final class ShortcutSeparatorView: NSView {
 
 private final class ShortcutPairRowView: NSView {
     private enum Metrics {
-        static let titleWidth: CGFloat = 76
+        static let titleWidth: CGFloat = 96
         static let directionWidth: CGFloat = 28
         static let rowHeight: CGFloat = 34
         static let horizontalPadding: CGFloat = 8
+        static let actionLeading: CGFloat = 12
+        static let actionSpacing: CGFloat = 10
     }
 
     init(group: ShortcutSummaryGroup) {
@@ -815,7 +817,7 @@ private final class ShortcutPairRowView: NSView {
         }
         actionGrid.orientation = .horizontal
         actionGrid.alignment = .centerY
-        actionGrid.spacing = 6
+        actionGrid.spacing = Metrics.actionSpacing
         actionGrid.translatesAutoresizingMaskIntoConstraints = false
 
         title.translatesAutoresizingMaskIntoConstraints = false
@@ -826,7 +828,7 @@ private final class ShortcutPairRowView: NSView {
             title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.horizontalPadding),
             title.centerYAnchor.constraint(equalTo: centerYAnchor),
             title.widthAnchor.constraint(equalToConstant: Metrics.titleWidth),
-            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: 8),
+            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: Metrics.actionLeading),
             actionGrid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Metrics.horizontalPadding),
             actionGrid.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
