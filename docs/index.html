@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Tutorial</title>
+  <meta name="description" content="A practical tutorial for using InnosDimmer, a macOS menu bar utility for software dimming and blue reduction.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101113;
+      --panel: #181a1f;
+      --panel-soft: #20232a;
+      --line: #333842;
+      --text: #f4f0e8;
+      --muted: #b7afa2;
+      --accent: #74b6a6;
+      --accent-strong: #d8b15f;
+      --danger: #e9816f;
+      --shadow: rgba(0, 0, 0, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Pretendard", "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      min-height: 76vh;
+      display: grid;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+      gap: 48px;
+      align-items: center;
+      padding: 56px 0 44px;
+    }
+
+    .eyebrow {
+      margin: 0 0 16px;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-size: clamp(2.7rem, 7vw, 5.8rem);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 660px;
+      margin: 24px 0 0;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--text);
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 26px var(--shadow);
+    }
+
+    .button.primary {
+      border-color: transparent;
+      background: var(--accent);
+      color: #081412;
+    }
+
+    .preview {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 24px 60px var(--shadow);
+    }
+
+    .preview-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+    }
+
+    .app-title img {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+    }
+
+    .status {
+      color: #081412;
+      background: var(--accent);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .control {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .control:last-child {
+      border-bottom: 0;
+      padding-bottom: 4px;
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+
+    .control-name {
+      font-weight: 800;
+    }
+
+    .control-value {
+      color: var(--accent-strong);
+      font-weight: 800;
+    }
+
+    .track {
+      height: 8px;
+      border-radius: 999px;
+      background: #2c3038;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent-strong);
+    }
+
+    main {
+      padding: 56px 0 72px;
+    }
+
+    section {
+      margin-top: 56px;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: clamp(1.7rem, 3vw, 2.45rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .section-intro {
+      max-width: 760px;
+      margin: 0 0 24px;
+      color: var(--muted);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 20px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.04rem;
+      letter-spacing: 0;
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+    }
+
+    .card p {
+      margin: 0;
+    }
+
+    ol,
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+
+    li + li {
+      margin-top: 8px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 14px;
+      counter-reset: step;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #081412;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      margin: 0 0 6px;
+      font-size: 1.02rem;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .shortcut-table th,
+    .shortcut-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .shortcut-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .shortcut-table th {
+      color: var(--text);
+      background: var(--panel-soft);
+      font-size: 0.88rem;
+    }
+
+    .shortcut-table td {
+      color: var(--muted);
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #292d35;
+      color: var(--text);
+      font-size: 0.92em;
+    }
+
+    .notice {
+      border-left: 4px solid var(--danger);
+      background: #271c1b;
+      padding: 16px 18px;
+      border-radius: 8px;
+      color: #f0c4bc;
+    }
+
+    footer {
+      border-top: 1px solid var(--line);
+      padding: 28px 0 44px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero {
+        min-height: auto;
+      }
+
+      .hero-grid,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-grid {
+        gap: 28px;
+        padding-top: 36px;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+
+      .shortcut-table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="shell hero-grid">
+      <div>
+        <p class="eyebrow">macOS menu bar dimming tutorial</p>
+        <h1>InnosDimmer</h1>
+        <p class="lead">A practical guide for using the app safely: pick the external display, adjust perceived brightness, reduce blue output, use shortcuts, and know when macOS can block the result.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#quick-start">Start tutorial</a>
+          <a class="button" href="https://github.com/everydy/InnosDimmer">View repository</a>
+        </div>
+      </div>
+      <aside class="preview" aria-label="InnosDimmer control preview">
+        <div class="preview-top">
+          <div class="app-title">
+            <img src="assets/innos-dimmer-app-icon-v5-source.png" alt="">
+            <span>InnosDimmer</span>
+          </div>
+          <span class="status">Overlay active</span>
+        </div>
+        <div class="control">
+          <div class="control-row">
+            <span class="control-name">Brightness</span>
+            <span class="control-value">45%</span>
+          </div>
+          <div class="track" aria-hidden="true"><div class="fill" style="width: 45%"></div></div>
+        </div>
+        <div class="control">
+          <div class="control-row">
+            <span class="control-name">Blue reduction</span>
+            <span class="control-value">32%</span>
+          </div>
+          <div class="track" aria-hidden="true"><div class="fill" style="width: 32%"></div></div>
+        </div>
+        <div class="control">
+          <div class="control-row">
+            <span class="control-name">Schedule</span>
+            <span class="control-value">paused until next boundary</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="quick-start">
+      <h2>Quick Start</h2>
+      <p class="section-intro">InnosDimmer is built for a direct-HDMI INNOS 27QA100M secondary display on macOS. It dims by drawing click-through overlay windows and adjusts blue output through the macOS gamma table.</p>
+      <div class="steps">
+        <article class="step">
+          <div>
+            <h3>Launch the app</h3>
+            <p>Open the Release build or local app bundle. The app appears in the macOS menu bar instead of as a normal Dock-first app.</p>
+          </div>
+        </article>
+        <article class="step">
+          <div>
+            <h3>Pick the target display</h3>
+            <p>Use the app window or settings surface to confirm the selected external display. Keep the target as the INNOS display before testing dimming.</p>
+          </div>
+        </article>
+        <article class="step">
+          <div>
+            <h3>Adjust brightness and blue reduction</h3>
+            <p>Brightness changes perceived screen brightness through the overlay. Blue reduction uses gamma adjustment and should restore the original table when cleared.</p>
+          </div>
+        </article>
+        <article class="step">
+          <div>
+            <h3>Use quick disable and restore</h3>
+            <p>Quick disable returns to a bright working state. Restore previous dimming brings back the last software dimming values.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Default Shortcuts</h2>
+      <p class="section-intro">The app does not intercept native brightness or media keys. It uses custom global shortcuts so macOS display controls remain untouched.</p>
+      <table class="shortcut-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Shortcut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Brightness up</td><td><code>Option + Shift + Up</code></td></tr>
+          <tr><td>Brightness down</td><td><code>Option + Shift + Down</code></td></tr>
+          <tr><td>Blue reduction up</td><td><code>Option + Shift + Right</code></td></tr>
+          <tr><td>Blue reduction down</td><td><code>Option + Shift + Left</code></td></tr>
+          <tr><td>Quick disable overlay</td><td><code>Option + Shift + 0</code></td></tr>
+          <tr><td>Restore previous dimming</td><td><code>Option + Shift + R</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>What The Status Means</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Software dimming ready</h3>
+          <p>No dimming command has been applied yet. This is the neutral launch state.</p>
+        </article>
+        <article class="card">
+          <h3>Overlay active</h3>
+          <p>The app is changing perceived brightness through click-through overlay windows.</p>
+        </article>
+        <article class="card">
+          <h3>Platform blocked</h3>
+          <p>macOS or the current surface prevented reliable dimming. Treat this as a limitation, not success.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Schedule Behavior</h2>
+      <p class="section-intro">The default schedule is intentionally simple. Manual changes pause automation until the next schedule boundary.</p>
+      <div class="grid">
+        <article class="card">
+          <h3>09:00</h3>
+          <p>Brightness 80, blue reduction 12.</p>
+        </article>
+        <article class="card">
+          <h3>19:00</h3>
+          <p>Brightness 45, blue reduction 32.</p>
+        </article>
+        <article class="card">
+          <h3>23:00</h3>
+          <p>Brightness 25, blue reduction 58.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Before You Rely On It</h2>
+      <div class="notice">
+        This app changes perceived brightness, not monitor backlight brightness. Full manual QA is still required for full-screen Spaces, presentation mode, protected playback, screen sharing, sleep/wake, HDMI reconnect, and shortcut behavior in different focused apps.
+      </div>
+    </section>
+
+    <section>
+      <h2>Release And QA Links</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Release draft</h3>
+          <p>Use the GitHub release draft only after Debug and Release verification pass and the artifact signing status is clear.</p>
+        </article>
+        <article class="card">
+          <h3>QA matrix</h3>
+          <p><a href="qa-matrix.md">Track manual scenario evidence</a> before claiming full dimming coverage.</p>
+        </article>
+        <article class="card">
+          <h3>Operator guide</h3>
+          <p><a href="operator-guide.md">Review local operation notes</a>, default schedule, shortcuts, and no-dependency policy.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell">
+      InnosDimmer is a personal utility. No open-source license is currently granted unless the repository adds one later.
+    </div>
+  </footer>
+</body>
+</html>

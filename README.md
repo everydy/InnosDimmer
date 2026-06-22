@@ -55,6 +55,8 @@ Use the Debug command after implementation changes. Use the Release command befo
 
 ## Manual QA
 
+Read the public tutorial at [everydy.github.io/InnosDimmer](https://everydy.github.io/InnosDimmer/) for the basic usage flow, shortcuts, status meanings, and release-readiness cautions.
+
 Use [docs/qa-matrix.md](docs/qa-matrix.md) as the manual QA checklist. Use [docs/operator-guide.md](docs/operator-guide.md) for local operation notes.
 
 Diagnostics export lives in `Settings` under the `Diagnostics` section as `Export diagnostics`. Use it after a successful dimming command and after any observed blocked/failed scenario.
