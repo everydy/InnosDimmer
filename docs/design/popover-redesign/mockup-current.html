@@ -481,6 +481,10 @@
       min-width: 0;
     }
 
+    .shortcut-actions.compact {
+      grid-template-columns: 68px max-content;
+    }
+
     .shortcut-direction {
       color: var(--secondary);
       font-size: 12px;
@@ -622,28 +626,20 @@
         <div class="shortcuts-table">
           <div class="shortcut-row">
             <div class="shortcut-name">Brightness</div>
-            <div class="shortcut-actions">
-              <span class="shortcut-direction">Up</span>
+            <div class="shortcut-actions compact">
+              <span class="shortcut-direction">Up / Down</span>
               <span class="key-chip">
-                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">↑</span>
-              </span>
-              <span class="shortcut-direction">Down</span>
-              <span class="key-chip">
-                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">↓</span>
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">↑</span><span class="key-plus">/</span><span class="key-token">↓</span>
               </span>
             </div>
           </div>
 
           <div class="shortcut-row">
             <div class="shortcut-name">Warmth</div>
-            <div class="shortcut-actions">
-              <span class="shortcut-direction">Up</span>
+            <div class="shortcut-actions compact">
+              <span class="shortcut-direction">Up / Down</span>
               <span class="key-chip">
-                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">→</span>
-              </span>
-              <span class="shortcut-direction">Down</span>
-              <span class="key-chip">
-                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">←</span>
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">→</span><span class="key-plus">/</span><span class="key-token">←</span>
               </span>
             </div>
           </div>

@@ -640,6 +640,38 @@ private struct ShortcutSummaryGroup {
     var title: String
     var upKeyLabel: String
     var downKeyLabel: String
+
+    var compressedKeyDisplay: ShortcutCompressedKeyDisplay? {
+        ShortcutCompressedKeyDisplay(upKeyLabel: upKeyLabel, downKeyLabel: downKeyLabel)
+    }
+}
+
+private struct ShortcutCompressedKeyDisplay {
+    var commonPrefix: String
+    var upKey: String
+    var downKey: String
+    var plainKeyLabel: String {
+        "\(commonPrefix)\(upKey)/\(downKey)"
+    }
+
+    init?(upKeyLabel: String, downKeyLabel: String) {
+        guard upKeyLabel != "Off", downKeyLabel != "Off" else {
+            return nil
+        }
+        guard let upKey = upKeyLabel.last, let downKey = downKeyLabel.last else {
+            return nil
+        }
+
+        let upPrefix = String(upKeyLabel.dropLast())
+        let downPrefix = String(downKeyLabel.dropLast())
+        guard upPrefix == downPrefix else {
+            return nil
+        }
+
+        commonPrefix = upPrefix
+        self.upKey = String(upKey)
+        self.downKey = String(downKey)
+    }
 }
 
 private enum ShortcutSummaryFormatter {
@@ -661,7 +693,12 @@ private enum ShortcutSummaryFormatter {
 
     static func plainSummary(from rows: [ShortcutSummaryRow]) -> String {
         groups(from: rows)
-            .map { "\($0.title)  Up  \($0.upKeyLabel)  Down  \($0.downKeyLabel)" }
+            .map { group in
+                if let compressed = group.compressedKeyDisplay {
+                    return "\(group.title)  Up / Down  \(compressed.plainKeyLabel)"
+                }
+                return "\(group.title)  Up  \(group.upKeyLabel)  Down  \(group.downKeyLabel)"
+            }
             .joined(separator: "\n")
     }
 }
@@ -764,11 +801,18 @@ private final class ShortcutPairRowView: NSView {
         updateColors()
 
         let title = Self.titleLabel(group.title)
-        let upLabel = Self.directionLabel("Up")
-        let upKey = ShortcutKeyChipView(title: group.upKeyLabel)
-        let downLabel = Self.directionLabel("Down")
-        let downKey = ShortcutKeyChipView(title: group.downKeyLabel)
-        let actionGrid = NSStackView(views: [upLabel, upKey, downLabel, downKey])
+        let actionGrid: NSStackView
+        if let compressed = group.compressedKeyDisplay {
+            let direction = Self.directionLabel("Up / Down", width: 68)
+            let key = ShortcutKeyChipView(compressed: compressed)
+            actionGrid = NSStackView(views: [direction, key])
+        } else {
+            let upLabel = Self.directionLabel("Up")
+            let upKey = ShortcutKeyChipView(title: group.upKeyLabel)
+            let downLabel = Self.directionLabel("Down")
+            let downKey = ShortcutKeyChipView(title: group.downKeyLabel)
+            actionGrid = NSStackView(views: [upLabel, upKey, downLabel, downKey])
+        }
         actionGrid.orientation = .horizontal
         actionGrid.alignment = .centerY
         actionGrid.spacing = 6
@@ -811,12 +855,12 @@ private final class ShortcutPairRowView: NSView {
         return label
     }
 
-    private static func directionLabel(_ title: String) -> NSTextField {
+    private static func directionLabel(_ title: String, width: CGFloat = Metrics.directionWidth) -> NSTextField {
         let label = NSTextField(labelWithString: title)
         label.font = InnosDesignTokens.Font.popoverShortcutDirection
         label.textColor = .secondaryLabelColor
         label.alignment = .right
-        label.widthAnchor.constraint(equalToConstant: Metrics.directionWidth).isActive = true
+        label.widthAnchor.constraint(equalToConstant: width).isActive = true
         label.setContentHuggingPriority(.required, for: .horizontal)
         label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
@@ -840,6 +884,24 @@ private final class ShortcutKeyChipView: NSView {
     init(title: String) {
         isOff = title == "Off"
         super.init(frame: .zero)
+        configureContainer()
+        buildTokens(from: title)
+        finishSetup()
+    }
+
+    init(compressed: ShortcutCompressedKeyDisplay) {
+        isOff = false
+        super.init(frame: .zero)
+        configureContainer()
+        buildCompressedTokens(compressed)
+        finishSetup()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    private func configureContainer() {
         wantsLayer = true
         layer?.cornerRadius = 6
         layer?.borderWidth = 1
@@ -848,8 +910,9 @@ private final class ShortcutKeyChipView: NSView {
         stack.alignment = .centerY
         stack.spacing = 0
         stack.translatesAutoresizingMaskIntoConstraints = false
-        buildTokens(from: title)
+    }
 
+    private func finishSetup() {
         addSubview(stack)
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 20),
@@ -861,10 +924,6 @@ private final class ShortcutKeyChipView: NSView {
         updateColors()
         setContentHuggingPriority(.required, for: .horizontal)
         setContentCompressionResistancePriority(.required, for: .horizontal)
-    }
-
-    required init?(coder: NSCoder) {
-        nil
     }
 
     override var intrinsicContentSize: NSSize {
@@ -895,27 +954,62 @@ private final class ShortcutKeyChipView: NSView {
         let tokens = isOff ? [title] : title.map(String.init)
         for (index, token) in tokens.enumerated() {
             if index > 0 {
-                let plus = Self.label(
-                    "+",
-                    font: InnosDesignTokens.Font.popoverShortcutSeparator
-                )
-                plusLabels.append(plus)
-                stack.addArrangedSubview(plus)
-                stack.setCustomSpacing(Metrics.tokenSpacing, after: plus)
+                addPlus()
             }
 
-            let tokenLabel = Self.label(
-                token,
-                font: isOff
-                    ? InnosDesignTokens.Font.popoverShortcutOff
-                    : InnosDesignTokens.Font.popoverShortcutToken
-            )
-            tokenLabels.append(tokenLabel)
-            stack.addArrangedSubview(tokenLabel)
+            addToken(token, isOff: isOff)
             if !isOff {
-                stack.setCustomSpacing(Metrics.tokenSpacing, after: tokenLabel)
+                stack.setCustomSpacing(Metrics.tokenSpacing, after: tokenLabels[tokenLabels.count - 1])
             }
         }
+    }
+
+    private func buildCompressedTokens(_ compressed: ShortcutCompressedKeyDisplay) {
+        let prefixTokens = compressed.commonPrefix.map(String.init)
+        for (index, token) in prefixTokens.enumerated() {
+            if index > 0 {
+                addPlus()
+            }
+            addToken(token)
+        }
+
+        if !prefixTokens.isEmpty {
+            addPlus()
+        }
+        addToken(compressed.upKey)
+        addSlash()
+        addToken(compressed.downKey)
+    }
+
+    private func addPlus() {
+        let plus = Self.label(
+            "+",
+            font: InnosDesignTokens.Font.popoverShortcutSeparator
+        )
+        plusLabels.append(plus)
+        stack.addArrangedSubview(plus)
+        stack.setCustomSpacing(Metrics.tokenSpacing, after: plus)
+    }
+
+    private func addSlash() {
+        let slash = Self.label(
+            "/",
+            font: InnosDesignTokens.Font.popoverShortcutSeparator
+        )
+        plusLabels.append(slash)
+        stack.addArrangedSubview(slash)
+        stack.setCustomSpacing(Metrics.tokenSpacing, after: slash)
+    }
+
+    private func addToken(_ token: String, isOff: Bool = false) {
+        let tokenLabel = Self.label(
+            token,
+            font: isOff
+                ? InnosDesignTokens.Font.popoverShortcutOff
+                : InnosDesignTokens.Font.popoverShortcutToken
+        )
+        tokenLabels.append(tokenLabel)
+        stack.addArrangedSubview(tokenLabel)
     }
 
     private static func label(_ title: String, font: NSFont) -> NSTextField {

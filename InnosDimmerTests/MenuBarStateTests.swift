@@ -55,7 +55,7 @@ final class MenuBarStateTests: XCTestCase {
         )
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness  Up  Off  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up  Off  Down  ⌥⇧↓\nWarmth  Up / Down  ⌥⇧→/←"
         )
         XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
     }
@@ -83,7 +83,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness  Up  ⌥⇧↑  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up / Down  ⌥⇧↑/↓\nWarmth  Up / Down  ⌥⇧→/←"
         )
     }
 
@@ -1422,7 +1422,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertFalse(view.scheduleStatusForTesting().contains("Current"))
         XCTAssertEqual(
             view.shortcutSummaryForTesting(),
-            "Brightness  Up  ⌥⇧↑  Down  Off\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up  ⌥⇧↑  Down  Off\nWarmth  Up / Down  ⌥⇧→/←"
         )
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),
