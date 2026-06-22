@@ -876,9 +876,17 @@ final class PopoverCommandButton: NSButton {
     static let minimumHeight: CGFloat = 30
 
     private let popoverStyle: PopoverButtonStyle
+    private let preferredMinimumHeight: CGFloat
 
-    init(title: String, style: PopoverButtonStyle, target: AnyObject?, action: Selector?) {
+    init(
+        title: String,
+        style: PopoverButtonStyle,
+        minimumHeight: CGFloat = PopoverCommandButton.minimumHeight,
+        target: AnyObject?,
+        action: Selector?
+    ) {
         self.popoverStyle = style
+        self.preferredMinimumHeight = minimumHeight
         super.init(frame: .zero)
         self.title = title
         self.target = target
@@ -899,7 +907,7 @@ final class PopoverCommandButton: NSButton {
 
     override var intrinsicContentSize: NSSize {
         let size = super.intrinsicContentSize
-        return NSSize(width: size.width, height: max(Self.minimumHeight, size.height))
+        return NSSize(width: size.width, height: max(preferredMinimumHeight, size.height))
     }
 
     override func viewDidChangeEffectiveAppearance() {
@@ -1623,10 +1631,17 @@ final class MenuBarPopoverView: NSView {
         _ title: String,
         command: MenuBarCommand,
         action: Selector,
-        style: PopoverButtonStyle = .normal
+        style: PopoverButtonStyle = .normal,
+        minimumHeight: CGFloat = PopoverCommandButton.minimumHeight
     ) -> NSButton {
-        let button = PopoverCommandButton(title: title, style: style, target: self, action: action)
-        button.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        let button = PopoverCommandButton(
+            title: title,
+            style: style,
+            minimumHeight: minimumHeight,
+            target: self,
+            action: action
+        )
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: minimumHeight).isActive = true
         button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         commandButtons[command] = button
         return button
@@ -1638,10 +1653,11 @@ final class MenuBarPopoverView: NSView {
         command: MenuBarCommand,
         action: Selector
     ) -> NSButton {
-        let button = button(title, command: command, action: action)
+        let button = button(title, command: command, action: action, minimumHeight: 28)
+        button.font = InnosDesignTokens.Font.popoverStepperButton
         button.setAccessibilityLabel(accessibilityLabel)
-        button.widthAnchor.constraint(equalToConstant: 34).isActive = true
-        button.heightAnchor.constraint(equalToConstant: 30).isActive = true
+        button.widthAnchor.constraint(equalToConstant: 30).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 28).isActive = true
         return button
     }
 

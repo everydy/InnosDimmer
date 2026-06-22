@@ -226,6 +226,12 @@ final class MenuBarStateTests: XCTestCase {
 
     @MainActor
     func testMenuBarPopoverCommandButtonsKeepMinimumActionHeight() {
+        let compactCommands: Set<MenuBarCommand> = [
+            .brightnessDown,
+            .brightnessUp,
+            .blueReductionDown,
+            .blueReductionUp
+        ]
         let view = MenuBarPopoverView(state: .defaultState())
         view.layoutSubtreeIfNeeded()
 
@@ -235,7 +241,8 @@ final class MenuBarStateTests: XCTestCase {
                 continue
             }
 
-            XCTAssertGreaterThanOrEqual(button.fittingSize.height, 30, "Button for \(command) is too thin")
+            let minimumHeight: CGFloat = compactCommands.contains(command) ? 28 : 30
+            XCTAssertGreaterThanOrEqual(button.fittingSize.height, minimumHeight, "Button for \(command) is too thin")
         }
     }
 

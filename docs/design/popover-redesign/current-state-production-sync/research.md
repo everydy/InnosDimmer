@@ -199,6 +199,7 @@ static var popoverSectionLabel: NSFont { app(ofSize: 12, weight: .semibold) }
 static var popoverLabel: NSFont { app(ofSize: 13, weight: .semibold) }
 static var popoverValue: NSFont { app(ofSize: 18, weight: .bold) }
 static var popoverButton: NSFont { app(ofSize: 12, weight: .semibold) }
+static var popoverStepperButton: NSFont { app(ofSize: 15, weight: .bold) }
 static var popoverShortcutDirection: NSFont { app(ofSize: 12, weight: .medium) }
 static var popoverShortcutToken: NSFont { app(ofSize: 13, weight: .semibold) }
 static var popoverShortcutSeparator: NSFont { app(ofSize: 9, weight: .regular) }

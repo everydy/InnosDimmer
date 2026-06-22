@@ -219,7 +219,7 @@
 
     .control-row {
       display: grid;
-      grid-template-columns: 96px 54px minmax(0, 1fr) 34px 34px;
+      grid-template-columns: 96px 54px minmax(0, 1fr) 30px 30px;
       gap: 8px;
       align-items: center;
     }
@@ -360,6 +360,14 @@
       color: var(--warning);
       border-color: color-mix(in srgb, var(--warning) 46%, transparent);
       background: color-mix(in srgb, var(--warning) 12%, transparent);
+    }
+
+    .control-row button {
+      height: 28px;
+      min-width: 30px;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1;
     }
 
     .action-row {
