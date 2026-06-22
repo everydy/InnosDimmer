@@ -148,6 +148,7 @@ final class UnifiedAppWindowController: NSWindowController {
         static let detailSidebarWidth: CGFloat = 256
         static let detailMinimumPrimaryWidth: CGFloat = 360
         static let tokenRowHeight: CGFloat = 34
+        static let windowContentSize = NSSize(width: 900, height: 640)
     }
 
     private struct ShortcutControls {
@@ -212,13 +213,16 @@ final class UnifiedAppWindowController: NSWindowController {
         self.scheduleActions = scheduleActions
         self.settingsActions = settingsActions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 640),
+            contentRect: NSRect(origin: .zero, size: Layout.windowContentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "InnosDimmer"
-        window.minSize = NSSize(width: 820, height: 560)
+        window.setContentSize(Layout.windowContentSize)
+        let fixedFrameSize = window.frameRect(forContentRect: NSRect(origin: .zero, size: Layout.windowContentSize)).size
+        window.minSize = fixedFrameSize
+        window.maxSize = fixedFrameSize
         super.init(window: window)
         installContent()
     }
@@ -288,6 +292,10 @@ final class UnifiedAppWindowController: NSWindowController {
             firstTile.frame.width,
             firstTile.frame.height
         )
+    }
+
+    func windowContentSizeForTesting() -> NSSize? {
+        window?.contentView?.frame.size
     }
 
     func sidebarNavigationForTesting() -> [String] {

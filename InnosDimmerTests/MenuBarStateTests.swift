@@ -649,6 +649,20 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowKeepsStableContentSizeAcrossDetailPages() throws {
+        let controller = makeMockupAcceptanceController()
+        controller.focus(.home)
+        let baselineSize = try XCTUnwrap(controller.windowContentSizeForTesting())
+
+        for target in [AppDashboardFocusTarget.current, .display, .schedule, .shortcuts, .settings, .diagnostics, .home] {
+            controller.focus(target)
+            let pageSize = try XCTUnwrap(controller.windowContentSizeForTesting())
+            XCTAssertEqual(pageSize.width, baselineSize.width, accuracy: 0.5, "Width changed for \(target)")
+            XCTAssertEqual(pageSize.height, baselineSize.height, accuracy: 0.5, "Height changed for \(target)")
+        }
+    }
+
+    @MainActor
     func testUnifiedAppWindowCurrentStatusPageDefinesReadOnlyDetailContract() throws {
         let controller = makeMockupAcceptanceController()
         let text = try renderedAppWindowText(controller, focus: .current)
