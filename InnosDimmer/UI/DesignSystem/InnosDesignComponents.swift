@@ -256,6 +256,121 @@ final class InnosDimmingControlGroupView: NSStackView {
     }
 }
 
+struct InnosSummaryTableEntry: Equatable {
+    var title: String
+    var value: String
+}
+
+final class InnosSummaryTableView: NSView {
+    private var separators: [NSView] = []
+
+    init(entries: [InnosSummaryTableEntry], identifier: NSUserInterfaceItemIdentifier? = nil) {
+        super.init(frame: .zero)
+        self.identifier = identifier
+        wantsLayer = true
+        layer?.cornerRadius = InnosDesignTokens.Radius.control
+        layer?.borderWidth = 1
+        layer?.masksToBounds = true
+
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        for (index, entry) in entries.enumerated() {
+            if index > 0 {
+                let separatorView = separator()
+                separators.append(separatorView)
+                stack.addArrangedSubview(separatorView)
+            }
+            let row = InnosSummaryTableRowView(entry: entry)
+            row.identifier = rowIdentifier(for: entry, tableIdentifier: identifier)
+            stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.topAnchor.constraint(equalTo: topAnchor),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        applyAppearance()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        applyAppearance()
+    }
+
+    private func applyAppearance() {
+        layer?.backgroundColor = InnosDesignTokens.surfaceSubtle(for: effectiveAppearance).cgColor
+        layer?.borderColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
+        separators.forEach {
+            $0.layer?.backgroundColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
+        }
+    }
+
+    private func separator() -> NSView {
+        let view = NSView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.heightAnchor.constraint(equalToConstant: 1).isActive = true
+        view.wantsLayer = true
+        view.layer?.backgroundColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
+        return view
+    }
+
+    private func rowIdentifier(
+        for entry: InnosSummaryTableEntry,
+        tableIdentifier: NSUserInterfaceItemIdentifier?
+    ) -> NSUserInterfaceItemIdentifier {
+        let tableName = tableIdentifier?.rawValue ?? "Summary"
+        return NSUserInterfaceItemIdentifier("\(tableName):\(entry.title)")
+    }
+}
+
+private final class InnosSummaryTableRowView: NSView {
+    init(entry: InnosSummaryTableEntry) {
+        super.init(frame: .zero)
+
+        let titleLabel = NSTextField(labelWithString: entry.title)
+        titleLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        titleLabel.textColor = .secondaryLabelColor
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.widthAnchor.constraint(equalToConstant: InnosDesignTokens.Size.summaryLabelWidth).isActive = true
+
+        let valueLabel = NSTextField(wrappingLabelWithString: entry.value)
+        valueLabel.font = InnosDesignTokens.Font.bodyEmphasis
+        valueLabel.textColor = .labelColor
+        valueLabel.maximumNumberOfLines = 0
+
+        let stack = NSStackView(views: [titleLabel, valueLabel])
+        stack.orientation = .horizontal
+        stack.alignment = .firstBaseline
+        stack.spacing = InnosDesignTokens.Spacing.rowGap
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: InnosDesignTokens.Spacing.sectionPadding),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -InnosDesignTokens.Spacing.sectionPadding),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: InnosDesignTokens.Spacing.rowGap),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -InnosDesignTokens.Spacing.rowGap),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: InnosDesignTokens.Size.buttonMinHeight + 4)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+}
+
 @MainActor
 enum InnosComponentFactory {
     static func section(title: String, trailing: NSView? = nil, views: [NSView], style: InnosSectionStyle = .section) -> NSView {
@@ -304,6 +419,13 @@ enum InnosComponentFactory {
         row.alignment = .firstBaseline
         row.spacing = InnosDesignTokens.Spacing.rowGap
         return row
+    }
+
+    static func summaryTable(entries: [InnosSummaryTableEntry], identifier: String) -> NSView {
+        InnosSummaryTableView(
+            entries: entries,
+            identifier: NSUserInterfaceItemIdentifier("app-window-summary-table:\(identifier)")
+        )
     }
 
     private static func spacer() -> NSView {

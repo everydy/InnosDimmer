@@ -13,7 +13,7 @@
       - .dimming-control-group -> InnosDimmingControlGroupView
       - .dimming-track -> InnosDimmingTrackView
       - .component-action-row -> InnosComponentFactory.actionRow
-      - .summary-row-list -> InnosComponentFactory.summaryRow
+      - .summary-row-list -> InnosComponentFactory.summaryTable
       - .token-list, .token-card, .token-box, .token-mini-track, .token-schedule-row,
         .token-shortcut-row, .token-log-row -> detail-page review components
     */
@@ -632,8 +632,7 @@
       color: var(--text);
     }
 
-    .tile.active h3,
-    .tile.active .meta {
+    .tile.active h3 {
       color: var(--text);
     }
 
@@ -642,14 +641,6 @@
       text-transform: none;
       font-size: 13px;
       line-height: 1.2;
-    }
-
-    .tile .meta {
-      display: block;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 11px;
-      line-height: 1.3;
     }
 
     .glyph {
@@ -988,6 +979,20 @@
       background: #fff;
     }
 
+    .setting-control {
+      min-height: 44px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--control);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
     .check,
     .key {
       min-height: 28px;
@@ -1007,7 +1012,9 @@
     }
 
     .diagnostics-layout {
-      grid-template-columns: 300px 1fr;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
 
     .matrix-card {
@@ -1091,6 +1098,28 @@
     .log time {
       color: var(--muted);
       font-variant-numeric: tabular-nums;
+    }
+
+    .code-log {
+      min-height: 220px;
+      max-height: 260px;
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--control) 78%, black 8%);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      user-select: text;
+    }
+
+    .code-log code {
+      user-select: text;
     }
 
     .log strong {
@@ -1207,31 +1236,31 @@
         <nav class="nav-grid sidebar-nav" aria-label="Settings pages">
           <button class="tile active" type="button" data-go="home">
             <span class="glyph home" aria-hidden="true"><svg class="icon-svg"><use href="#icon-house"></use></svg></span>
-            <span><h3>Overview</h3><span class="meta">Controls and status.</span></span>
+            <span><h3>Overview</h3></span>
           </button>
           <button class="tile" type="button" data-go="current">
             <span class="glyph current" aria-hidden="true"><svg class="icon-svg"><use href="#icon-sliders-horizontal"></use></svg></span>
-            <span><h3>Current status</h3><span class="meta">State and commands.</span></span>
+            <span><h3>Current status</h3></span>
           </button>
           <button class="tile" type="button" data-go="display">
             <span class="glyph display" aria-hidden="true"><svg class="icon-svg"><use href="#icon-monitor"></use></svg></span>
-            <span><h3>Display</h3><span class="meta">Target monitor.</span></span>
+            <span><h3>Display</h3></span>
           </button>
           <button class="tile" type="button" data-go="automation">
             <span class="glyph automation" aria-hidden="true"><svg class="icon-svg"><use href="#icon-clock"></use></svg></span>
-            <span><h3>Schedule</h3><span class="meta">Rows and pause state.</span></span>
+            <span><h3>Schedule</h3></span>
           </button>
           <button class="tile" type="button" data-go="shortcuts">
             <span class="glyph shortcuts" aria-hidden="true"><svg class="icon-svg"><use href="#icon-keyboard"></use></svg></span>
-            <span><h3>Shortcuts</h3><span class="meta">Global hotkeys.</span></span>
+            <span><h3>Shortcuts</h3></span>
           </button>
           <button class="tile" type="button" data-go="settings">
             <span class="glyph settings" aria-hidden="true"><svg class="icon-svg"><use href="#icon-settings"></use></svg></span>
-            <span><h3>Settings</h3><span class="meta">Startup and persistence.</span></span>
+            <span><h3>Settings</h3></span>
           </button>
           <button class="tile" type="button" data-go="diagnostics">
             <span class="glyph diagnostics" aria-hidden="true"><svg class="icon-svg"><use href="#icon-activity"></use></svg></span>
-            <span><h3>Diagnostics</h3><span class="meta">Failures and export.</span></span>
+            <span><h3>Diagnostics</h3></span>
           </button>
         </nav>
       </aside>
@@ -1305,27 +1334,27 @@
         <nav class="nav-grid" aria-label="Settings pages">
           <button class="tile" type="button" data-go="current">
             <span class="glyph current" aria-hidden="true"><svg class="icon-svg"><use href="#icon-sliders-horizontal"></use></svg></span>
-            <span><h3>Current status</h3><span class="meta">State and commands.</span></span>
+            <span><h3>Current status</h3></span>
           </button>
           <button class="tile" type="button" data-go="display">
             <span class="glyph display" aria-hidden="true"><svg class="icon-svg"><use href="#icon-monitor"></use></svg></span>
-            <span><h3>Display</h3><span class="meta">Target monitor.</span></span>
+            <span><h3>Display</h3></span>
           </button>
           <button class="tile" type="button" data-go="automation">
             <span class="glyph automation" aria-hidden="true"><svg class="icon-svg"><use href="#icon-clock"></use></svg></span>
-            <span><h3>Schedule</h3><span class="meta">Rows and pause state.</span></span>
+            <span><h3>Schedule</h3></span>
           </button>
           <button class="tile" type="button" data-go="shortcuts">
             <span class="glyph shortcuts" aria-hidden="true"><svg class="icon-svg"><use href="#icon-keyboard"></use></svg></span>
-            <span><h3>Shortcuts</h3><span class="meta">Global hotkeys.</span></span>
+            <span><h3>Shortcuts</h3></span>
           </button>
           <button class="tile" type="button" data-go="settings">
             <span class="glyph settings" aria-hidden="true"><svg class="icon-svg"><use href="#icon-settings"></use></svg></span>
-            <span><h3>Settings</h3><span class="meta">Startup and persistence.</span></span>
+            <span><h3>Settings</h3></span>
           </button>
           <button class="tile" type="button" data-go="diagnostics">
             <span class="glyph diagnostics" aria-hidden="true"><svg class="icon-svg"><use href="#icon-activity"></use></svg></span>
-            <span><h3>Diagnostics</h3><span class="meta">Failures and export.</span></span>
+            <span><h3>Diagnostics</h3></span>
           </button>
         </nav>
       </div>
@@ -1365,7 +1394,6 @@
           </div>
           <div class="action-row component-action-row">
             <button class="button command-button primary" type="button">Open popover</button>
-            <button class="button command-button" type="button">Settings</button>
             <button class="button command-button" type="button">Resume automation</button>
           </div>
         </section>
@@ -1377,14 +1405,12 @@
         <div>
           <h2>Display</h2>
         </div>
-        <button class="button command-button primary" type="button">Refresh displays</button>
       </header>
       <div class="detail-layout">
         <section class="section section-shell snapshot">
           <div class="section-head"><div><div class="section-title">Current state</div></div><span class="chip status-chip ready">Ready</span></div>
           <dl class="summary-grid summary-row-list">
             <dt>Display</dt><dd>27QA100M</dd>
-            <dt>Mode</dt><dd>Software overlay + gamma</dd>
             <dt>Brightness</dt><dd>45%</dd>
             <dt>Blue</dt><dd>32%</dd>
           </dl>
@@ -1396,17 +1422,16 @@
               <span class="chip status-chip ready">Resolved</span>
             </div>
             <dl class="summary-grid summary-row-list">
-              <dt>Selected</dt><dd><div class="box token-box">Automatic external display</div></dd>
-              <dt>Resolved to</dt><dd><div class="box token-box">27QA100M - HDMI - Display 2</div></dd>
-              <dt>Main display</dt><dd><div class="box token-box">No</div></dd>
-              <dt>Gamma table</dt><dd><div class="box token-box">Supported, 1024 samples</div></dd>
+              <dt>Selection rule</dt><dd><div class="box token-box">Automatic external display, preferring a non-main monitor</div></dd>
+              <dt>Active target</dt><dd><div class="box token-box">27QA100M - HDMI - Display 2</div></dd>
+              <dt>Safety scope</dt><dd><div class="box token-box">External display only</div></dd>
+              <dt>Blue reduction</dt><dd><div class="box token-box">Gamma table available for this display</div></dd>
             </dl>
           </section>
           <section class="section section-shell">
             <div class="section-head"><div><div class="section-title">Saved selection</div></div></div>
             <div class="action-row component-action-row">
               <button class="button command-button primary" type="button">Save display</button>
-              <button class="button command-button" type="button">Use automatic</button>
             </div>
           </section>
         </div>
@@ -1418,7 +1443,6 @@
         <div>
           <h2>Schedule</h2>
         </div>
-        <button class="button command-button warning" type="button">Resume automation</button>
       </header>
       <div class="detail-layout automation-layout">
         <section class="section section-shell automation-summary">
@@ -1540,32 +1564,15 @@
         <div>
           <h2>Settings</h2>
         </div>
-        <button class="button command-button primary" type="button">Apply settings</button>
       </header>
       <div class="detail-layout">
         <section class="section section-shell">
           <div class="section-head"><div><div class="section-title">Launch at login</div></div><span class="chip status-chip ready">Enabled</span></div>
-          <dl class="summary-grid summary-row-list">
-            <dt>State</dt><dd><div class="box token-box">Launch at login: enabled</div></dd>
-            <dt>Approval</dt><dd><div class="box token-box">No System Settings approval needed</div></dd>
-            <dt>Behavior</dt><dd><div class="box token-box">App reappears in the menu bar after macOS login</div></dd>
-          </dl>
+          <label class="setting-control">
+            <span>Launch at login</span>
+            <span class="toggle" aria-hidden="true"></span>
+          </label>
         </section>
-        <div class="detail-main">
-          <section class="section section-shell">
-            <div class="section-head"><div><div class="section-title">Saved settings</div></div></div>
-            <dl class="summary-grid summary-row-list">
-              <dt>Target display</dt><dd>Automatic external display</dd>
-              <dt>Schedule</dt><dd>3 rows saved</dd>
-              <dt>Shortcuts</dt><dd>7 normalized bindings</dd>
-              <dt>Schema</dt><dd>Current SettingsSnapshot schema</dd>
-            </dl>
-          </section>
-          <section class="section section-shell">
-            <div class="section-head"><div><div class="section-title">Status label</div></div></div>
-            <div class="box token-box">Launch at login updated.</div>
-          </section>
-        </div>
       </div>
     </section>
 
@@ -1592,20 +1599,24 @@
             <span class="chip status-chip ready">0 blocked</span>
           </div>
           <div class="matrix-list token-list">
-            <div class="matrix-row"><span>Overlay</span><strong>Applied</strong></div>
-            <div class="matrix-row"><span>Gamma</span><strong>Applied</strong></div>
-            <div class="matrix-row"><span>Hotkeys</span><strong>Registered</strong></div>
-            <div class="matrix-row"><span>Login item</span><strong>Enabled</strong></div>
+            <div class="matrix-row"><span>Overlay</span><strong>✓</strong></div>
+            <div class="matrix-row"><span>Gamma</span><strong>✓</strong></div>
+            <div class="matrix-row"><span>Hotkeys</span><strong>✓</strong></div>
+            <div class="matrix-row"><span>Login item</span><strong>✓</strong></div>
             <div class="matrix-row"><span>Missing</span><strong>0</strong></div>
           </div>
         </section>
         <section class="section section-shell log-feed" aria-label="Recent diagnostics log">
-          <div class="list token-list">
-            <div class="log token-log-row"><time>17:54</time><span>Settings saved.</span></div>
-            <div class="log token-log-row"><time>17:53</time><span>Gamma table restored before applying new blue reduction.</span></div>
-            <div class="log token-log-row"><time>17:48</time><span><strong>Warning</strong> automation paused until 19:00.</span></div>
-            <div class="log token-log-row"><time>17:45</time><span>Shortcut monitor registered 7 bindings.</span></div>
+          <div class="section-head">
+            <div>
+              <div class="section-title">Recent diagnostics log</div>
+            </div>
+            <button class="button command-button" type="button">Copy log</button>
           </div>
+          <pre class="code-log token-code-log" tabindex="0"><code>17:54:02 [info] Settings saved.
+17:53:41 [info] Gamma table restored before applying new blue reduction.
+17:48:19 [warning] Automation paused until 19:00.
+17:45:08 [info] Shortcut monitor registered 7 bindings.</code></pre>
         </section>
       </div>
     </section>
@@ -1625,12 +1636,11 @@
       { match: /^Resume$|^Resume automation$/, icon: "play" },
       { match: /^Pause automation$/, icon: "pause" },
       { match: /^Schedule$/, icon: "clock" },
-      { match: /^Refresh displays$/, icon: "refresh-cw" },
       { match: /^Save|^Apply/, icon: "save" },
       { match: /^Export diagnostics$/, icon: "download" },
       { match: /^Settings$/, icon: "settings" },
       { match: /^Diagnostics$/, icon: "activity" },
-      { match: /^Use automatic|^Open popover$/, icon: "monitor" }
+      { match: /^Open popover$/, icon: "monitor" }
     ];
 
     function makeIcon(name) {

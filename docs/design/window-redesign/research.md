@@ -1,5 +1,266 @@
 # Research
 
+## 2026-06-22 Current Implementation Vs Mockup Gap Audit
+
+Trigger mode: `research` Purpose Research with local `codebase`, `design`, `empirical`, and `reasoning` lanes.
+
+### Goal
+
+Compare the current native AppKit implementation against `docs/design/window-redesign/app-window-componentized-mockup.html` and identify what must change for the real app to reflect the useful parts of the refined mockup more closely.
+
+This pass treats the mockup as an information-architecture and interaction contract, not a pixel-perfect visual target. The operator's latest direction favors the concise old settings feel over verbose dashboard explanations.
+
+### Evidence Read In This Pass
+
+Files read:
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/ScheduleEditorView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/app-window-componentized-mockup.html`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/research.md`
+
+Commands used:
+
+- `git status --short`
+- `rg -n "makeSidebar|makeCurrentPage|makeDisplayPage|makeSchedulePage|makeSettingsPage|makeDiagnosticsPage|tileDescription|Refresh displays|Use automatic|Settings\"|Recent diagnostics log|Launch at login|makeSummaryTable|diagnostics-code-log" ...`
+- `rg -n "SettingsWindowController|openSettings|openAppWindow|openScheduleEditor|refreshDisplaysPressed|useAutomaticDisplayPressed|saveDisplayPressed" InnosDimmer/UI InnosDimmerTests`
+- `rg -n "Quick controls and status\.|State and commands\.|Target monitor\.|Rows and pause state\.|Global hotkeys\.|Startup and persistence\.|Failures and export\." ...`
+- targeted `sed -n ...` reads of the files above
+
+### Comparison Matrix
+
+| Surface | Mockup direction | Current implementation | Gap | Priority |
+| --- | --- | --- | --- | --- |
+| Sidebar navigation | icon + page title, no small descriptive copy | `AppWindowSidebarButton` renders `titleLabel` and `descriptionLabel`; descriptions come from `UnifiedAppWindowPage.tileDescription` | Visible nav is still too verbose and not aligned with the simplified mockup | P0 |
+| Sidebar accessibility | concise page navigation | `setAccessibilityLabel("\(page.navigationTitle). \(page.tileDescription)")` repeats removed descriptions | If visible descriptions are removed, accessibility label should be intentionally reset instead of accidentally stale | P1 |
+| Current status commands | `Open popover` + automation action only | `makeCurrentPage()` still includes `Settings` command | Redundant because Settings is already a sidebar destination | P0 |
+| Display page header actions | no top-level display refresh button | `makeDisplayPage()` still adds `Refresh displays` as a page-level primary action | Operator marked this unclear/unnecessary; mockup removed it | P0 |
+| Display saved selection | `Save display` only | `Saved selection` still shows `Save display` and `Use automatic` | `Use automatic` remains a confusing visible command | P0 |
+| Display current state | only changing/useful values: display, brightness, blue | Current implementation already has Display/Brightness/Blue and no Mode row | aligned | Done |
+| Display target facts | useful target details instead of generic mode | Current implementation has `Selection rule`, `Active target`, `Safety scope`, `Blue reduction` | mostly aligned; actual `Active target` lacks HDMI because `DisplayIdentity` does not expose transport | P2 |
+| Schedule summary | summary table above schedule rows | `makeSchedulePage()` uses `makeSummaryTable(identifier: "Schedule", ...)` | aligned | Done |
+| Schedule rows | fixed 3 rows, Time/Bright/Blue headers, editable numbers, track, adjacent `-`/`+` | `ScheduleEditorView` implements `rowCount = 3`, `Time`, `Bright`, `Blue`, value field + track + adjacent stepper | aligned | Done |
+| Settings page | only real global settings | `makeSettingsPage()` has `Launch at login` only | aligned | Done |
+| Diagnostics matrix | checkmark-style matrix | `makeDiagnosticsPage()` uses `verificationCheckmark()` for Overlay/Gamma/Hotkeys/Login item | aligned | Done |
+| Diagnostics log | scrollable code-style log with copy/export | `makeDiagnosticsCodeLogView()` uses `NSTextView` in `NSScrollView`; page has `Copy log` and `Export diagnostics` | aligned | Done |
+| Acceptance tests | should protect simplified UI | `MenuBarStateTests` still expects `Settings`, `Refresh displays`, and `Use automatic` in relevant pages | Tests currently lock in stale UI and must be updated before/with implementation | P0 |
+
+### Highest-Value Implementation Moves
+
+1. Update `MenuBarStateTests` first so stale UI is rejected rather than expected:
+   - remove `Settings` from current-status expected command labels
+   - remove `Refresh displays` and `Use automatic` from display expected labels
+   - add negative assertions for sidebar descriptions such as `Target monitor.` and `Startup and persistence.`
+2. Simplify `AppWindowSidebarButton`:
+   - remove `descriptionLabel`
+   - make the text stack title-only
+   - change `setAccessibilityLabel(...)` to `page.navigationTitle` or intentionally add a hidden accessibility help string
+3. Simplify `makeCurrentPage()`:
+   - keep `Open popover`
+   - keep `automationActionTitle()`
+   - remove the visible `Settings` command
+4. Simplify `makeDisplayPage()`:
+   - remove top-level `Refresh displays`
+   - remove visible `Use automatic`
+   - keep `Save display`
+   - preserve `refreshDisplaysPressed()` and `useAutomaticDisplayPressed()` temporarily until dead-code review proves they can be deleted safely
+5. Leave schedule, settings, and diagnostics mostly alone:
+   - these pages already reflect the best parts of the mockup
+   - unnecessary churn here risks breaking working behavior without improving the requested alignment
+
+### Current Test Contract Problem
+
+The biggest blocker is not that AppKit cannot express the mockup. The problem is that the current test suite still codifies older UI:
+
+- `testUnifiedAppWindowCurrentStatusPageDefinesReadOnlyDetailContract()` expects `Settings`.
+- `testUnifiedAppWindowDisplayPageDefinesTargetSelectionContract()` expects `Refresh displays` and `Use automatic`.
+- Existing tests verify good newer pieces too, such as diagnostics code log identifiers and schedule summary-table identifiers.
+
+Implementation should therefore change tests and UI together. A UI-only change will fail current tests; a test-only change will document the failure clearly before the code cleanup.
+
+### Do Not Change Yet
+
+- Do not rewrite `ScheduleEditorView`; it already matches the latest table requirement.
+- Do not expand `Settings` again with saved schema/status details; the operator explicitly wanted settings to contain only values that are actually changed there.
+- Do not re-add verbose captions/subtitles to detail pages.
+- Do not remove display-selection recovery methods in the same step as removing their visible buttons; first verify no internal or future-safe path needs them.
+- Do not fake HDMI/transport information in the native display page unless `DisplayIdentity` or a display service actually provides it.
+
+### Recommended Next Plan Shape
+
+Next `plan-first-implementation` should be a smaller follow-up than the previous full redesign plans:
+
+1. **Commit 1: Test contract cleanup**
+   - update `MenuBarStateTests` for simplified sidebar/current/display contracts
+2. **Commit 2: Native UI cleanup**
+   - simplify sidebar, current commands, display actions
+3. **Commit 3: Mockup/doc sync**
+   - remove stale mockup icon rules for labels no longer present
+   - record any retained hidden action methods as intentional
+4. **Final gate**
+   - run focused `MenuBarStateTests`
+   - manually inspect native app window or capture a screenshot if possible
+
+### Source Evaluation
+
+- Strongest source: local AppKit code and test contracts, because they define actual current implementation.
+- Strong design source: current HTML mockup, because it reflects the operator's latest commented decisions.
+- Weak/unused source: external UI references. They were not needed because this is a local implementation-vs-mockup comparison.
+- Insufficient evidence:
+  - native app screenshot was not captured in this pass
+  - no `xcodebuild test` was run in this pass
+  - visual spacing quality still needs a manual/native screenshot check after implementation
+
+### Research Brief
+
+- Confirmed facts: sidebar descriptions, current-page `Settings`, display `Refresh displays`, display `Use automatic`, and stale test expectations remain in the current implementation.
+- Repeated observations: the same stale labels are found in native code and in tests, while the refined mockup omits them from visible UI.
+- Inference: implementation should focus on removing stale UI and updating tests, not on rewriting already-aligned schedule/settings/diagnostics pages.
+- Recommendation: use a small plan and implementation pass centered on test contract cleanup plus native UI simplification.
+- Open questions: whether display recovery actions should remain hidden/internal or be reintroduced later with clearer labels.
+
+## 2026-06-22 Mockup-To-App Alignment Update
+
+Trigger mode: `research` Pre-Plan Research Gate.
+
+### Goal
+
+Prepare the implementation basis for carrying the latest, simplified `app-window-componentized-mockup.html` decisions into the native AppKit app window.
+
+The important distinction is that the app should not chase the mockup pixel-for-pixel. The target is to preserve the concise behavior of the older settings flow while adopting the mockup decisions that survived operator review:
+
+- persistent sidebar navigation instead of back-button page stacks
+- settings page limited to actual global controls, currently `Launch at login`
+- display page focused on meaningful target-display facts and saved selection
+- schedule page using the table pattern, fixed three rows, editable numeric values, track controls, and adjacent `-` / `+`
+- diagnostics page using a vertical structure, a checkmark-based matrix, and a scrollable code-style log with copy/export actions
+- reduced subtitles/captions and removal of explanatory filler
+
+### Scope And Entry Points
+
+Files read or re-read for this update:
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/ScheduleEditorView.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/app-window-componentized-mockup.html`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/2026-06-22-unimplemented-followup-plan-first.md`
+
+Commands used:
+
+- `git status --short`
+- `git diff --name-only`
+- `rg -n "makeDisplayPage|makeSettingsPage|makeDiagnosticsPage|makeSchedulePage|makeCurrentPage|makeSidebar|Refresh displays|Use automatic|Settings" InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `rg -n "data-page=\"current|data-page=\"display|data-page=\"automation|data-page=\"settings|data-page=\"diagnostics|Selection rule|Recent diagnostics log|Launch at login|summary-row-list|token-code-log|Refresh displays|Use automatic|Target monitor|Controls and status" docs/design/window-redesign/app-window-componentized-mockup.html`
+- `rg -n "testUnifiedAppWindow.*(Current|Display|Schedule|Settings|Diagnostics)|summary-table|diagnostics-code-log|Selection rule|Launch at login|Refresh displays|Use automatic|Target monitor" InnosDimmerTests/MenuBarStateTests.swift`
+- `sed -n ...` targeted reads on the files above
+
+### Confirmed Current State
+
+- The native app window is now owned by `UnifiedAppWindowController`, not the removed standalone settings window path.
+- `UnifiedAppWindowController.makeSidebar()` still renders each sidebar item with both `page.navigationTitle` and `page.tileDescription`.
+- `UnifiedAppWindowPage.tileDescription` still contains the sidebar helper copy that the operator marked unnecessary, such as `Target monitor.`, `Rows and pause state.`, and `Startup and persistence.`
+- `makeCurrentPage()` still exposes a `Settings` command in the `Commands` section, while the current mockup keeps only `Open popover` and the automation action there.
+- `makeDisplayPage()` still exposes `Refresh displays` as a page-level action and `Use automatic` inside `Saved selection`; the current mockup keeps only `Save display` in that section.
+- `makeDisplayPage()` already removed the `Mode` row from the display page's `Current state`, matching the operator's comment that static, non-configurable mode text is not useful there.
+- `makeDisplayPage()` already uses the more meaningful target-display rows: `Selection rule`, `Active target`, `Safety scope`, and `Blue reduction`.
+- `makeSettingsPage()` is already reduced to `Launch at login`, which matches the operator's request to keep settings limited to values that can actually be changed there.
+- `makeDiagnosticsPage()` already uses a vertical stack, a checkmark matrix, `Recent diagnostics log`, `Copy log`, and a scrollable `NSTextView` inside `NSScrollView`.
+- `makeSchedulePage()` already uses `InnosSummaryTableView` through `makeSummaryTable(...)` for the summary section and embeds `ScheduleEditorView` plus bottom actions in `Schedule rows`.
+- `ScheduleEditorView` already has `Time`, `Bright`, and `Blue` columns, percent fields, tracks, and adjacent `-` / `+` step controls.
+- `MenuBarStateTests` currently encode both the desired newer contracts and some stale contracts. In particular, current tests still expect `Settings` on the current-status page and `Refresh displays` / `Use automatic` on the display page.
+
+### Mockup-To-App Gap Classification
+
+Implemented or mostly implemented:
+
+- persistent sidebar navigation
+- no back button on detail pages
+- settings page is single-purpose
+- display page no longer shows static `Mode`
+- target display rows are more meaningful
+- schedule summary is table-like and componentized
+- schedule editor uses fixed three rows and percent editing controls
+- diagnostics matrix is simplified to checkmarks
+- diagnostics log is scrollable code-style text with copy support
+
+Still missing or stale:
+
+- sidebar helper descriptions should be removed from the actual native sidebar, not only from the HTML mockup
+- current-status page should drop the redundant `Settings` command
+- display page should drop or demote `Refresh displays` and `Use automatic`, because the operator repeatedly flagged them as unclear and unnecessary in this simplified flow
+- acceptance tests should assert absence of these stale UI elements so they do not drift back
+- accessibility labels should remain understandable after sidebar descriptions are removed; use page title-only labels unless a hidden accessibility hint is intentionally kept
+
+### Data Flow And Control Flow
+
+Native app window routing:
+
+1. `MenuBarController` opens or focuses the app window.
+2. `UnifiedAppWindowController` maps `AppDashboardFocusTarget` to `UnifiedAppWindowPage`.
+3. `renderActivePage()` chooses `makeHomePage`, `makeCurrentPage`, `makeDisplayPage`, `makeSchedulePage`, `makeShortcutsPage`, `makeSettingsPage`, or `makeDiagnosticsPage`.
+4. Page actions are `PopoverCommandButton` instances or local selectors that ultimately route through injected `SettingsActions` / `MenuBarCommand` handling.
+5. Tests inspect the rendered native view tree with `pageStructureForTesting(focus:)` and text extraction helpers.
+
+Mockup flow:
+
+1. `app-window-componentized-mockup.html` has `data-page` sections matching the native page enum.
+2. The mockup is the review surface for information architecture, not the executable production implementation.
+3. The native AppKit implementation should share labels, section names, command placement, and structural identifiers where they define a durable contract.
+
+### Existing Abstractions And Boundaries
+
+Do not bypass:
+
+- `UnifiedAppWindowController` page factory methods for app-window layout
+- `AppWindowSidebarButton` for sidebar navigation visuals
+- `InnosComponentFactory.summaryTable` and `InnosSummaryTableView` for summary-table rows
+- `ScheduleEditorView` for schedule row editing and validation
+- `MenuBarCommand` and `SettingsActions` routing for actual command side effects
+- `MenuBarStateTests` as the native UI contract boundary
+
+Do not reintroduce:
+
+- standalone `SettingsWindowController`
+- duplicated schedule editor controls inside the app window
+- one-off display or diagnostics components when an existing helper or component already owns the pattern
+- verbose captions whose only purpose is explaining the UI to the user inside the app
+
+### Risk To Surrounding Systems
+
+- Removing visible buttons can silently remove test-covered behavior if the underlying command is not preserved elsewhere. For `Refresh displays`, verify whether the display list is refreshed automatically through existing render/open flows before deleting the visible action.
+- Removing `Use automatic` changes display-selection recovery. The safer implementation is to keep the underlying `useAutomaticDisplayPressed` capability available internally or through a clearer future control, while removing the confusing visible button from the simplified page.
+- Removing sidebar descriptions changes accessibility labels if the current label concatenates title and description. Tests should cover the visible-text change and the implementation should choose whether accessibility keeps a concise hidden hint or title-only labeling.
+- Current tests still assert some stale UI; updating app code before updating the contract tests will produce expected failures.
+
+### Plan Implications
+
+The plan should prioritize contract cleanup before visual polish:
+
+1. Update `MenuBarStateTests` so stale UI elements are explicitly rejected.
+2. Remove sidebar descriptions from `AppWindowSidebarButton` and simplify `UnifiedAppWindowPage.tileDescription` usage.
+3. Remove `Settings` from current-status commands.
+4. Remove visible `Refresh displays` and `Use automatic` from display page, unless implementation evidence shows one is the only way to recover a necessary state.
+5. Keep the existing settings, schedule, and diagnostics implementations largely intact because they already match the latest mockup direction.
+6. Re-run the focused native UI regression suite after implementation.
+
+### Source Evaluation
+
+- Local code and tests: high quality, adopted. They define actual production behavior and executable contracts.
+- HTML mockup: high quality for UX intent, adopted as review artifact but not as pixel-perfect source of truth.
+- Prior plan documents: medium quality, used as historical context only because the user has since changed direction toward more concise settings-like UI.
+- External sources: not used. This task is local UI contract alignment, and current external UI guidance would be weaker than the operator's direct review comments plus local code evidence.
+
+### Open Questions
+
+- Should the display page expose an explicit "automatic display" recovery control later under a clearer label, or is automatic selection implicit enough for the personal-use app?
+- Should sidebar accessibility keep hidden descriptive hints, or should it be strictly title-only to match visible simplification?
+
+Default for planning: title-only visible sidebar labels, remove unclear display actions from the primary UI, keep underlying action methods unless they become provably dead after tests.
+
 ## Goal
 
 Prepare the evidence basis for a full redesign of the standalone InnosDimmer app window so the real AppKit window can be rebuilt from `docs/design/window-redesign/app-window-componentized-mockup.html` without losing current runtime behavior.
@@ -1140,3 +1401,23 @@ Official sources:
 - Apple Developer Documentation, `NSSplitViewController`: https://developer.apple.com/documentation/appkit/nssplitviewcontroller
 - Apple Developer Documentation, `NSSplitViewItem.init(sidebarWithViewController:)`: https://developer.apple.com/documentation/appkit/nssplitviewitem/init%28sidebarwithviewcontroller%3A%29
 - Apple Human Interface Guidelines, Sidebars: https://developer.apple.com/design/Human-Interface-Guidelines/sidebars
+
+## 2026-06-22 Implementation Result
+
+The remaining simplified-window gaps from this research pass were implemented in the native app window.
+
+Completed:
+
+- The app-window sidebar now renders icon + title only. The shared `UnifiedAppWindowPage.tileDescription` remains for other surfaces that still use it, but the full app window no longer shows those descriptions or repeats them in the sidebar accessibility label.
+- The Current status page no longer exposes a duplicate `Settings` command. It keeps `Open popover` and the current pause/resume automation action.
+- The Display page no longer exposes `Refresh displays` as a primary header action or `Use automatic` in the saved-selection action row. The underlying selector methods remain available internally so this pass removes confusing visible controls without prematurely deleting recovery behavior.
+- The componentized mockup no longer carries stale command-icon rules for removed labels.
+- `MenuBarStateTests` now protects this contract with rendered app-window assertions for removed sidebar descriptions, removed display actions, and removed current-page `Settings` command identifier.
+
+Verification:
+
+```bash
+xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateTests CODE_SIGNING_ALLOWED=NO
+```
+
+Result: passed, 60 tests, 0 failures.

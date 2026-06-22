@@ -5,34 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>InnosDimmer Popover Mockup</title>
   <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
     :root,
     body[data-theme="dark"] {
       color-scheme: dark;
-      --page: #0f0f11;
-      --bg: #161616;
-      --panel: #1f1f22;
-      --panel-2: #18181b;
-      --control: #303036;
-      --text: #f3f3f1;
-      --muted: #aaa9a3;
-      --line: #3b3b40;
-      --blue: #5aa7ff;
-      --blue-strong: #1f7bd9;
-      --green: #75d99b;
-      --amber: #f1c45f;
+      --font-ui: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      --page: #101113;
+      --bg: #17181b;
+      --panel: #24262b;
+      --panel-2: #191a1e;
+      --control: #2d3037;
+      --control-strong: #343741;
+      --text: #f1f0ec;
+      --muted: #aaa8a1;
+      --muted-2: #7f817f;
+      --line: #3a3d45;
+      --line-soft: #2e3138;
+      --blue: #62a8ef;
+      --blue-strong: #247ed7;
+      --green: #77cf98;
+      --amber: #e5b84e;
       --shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
     }
 
     body[data-theme="light"] {
       color-scheme: light;
+      --font-ui: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       --page: #eef0f3;
-      --bg: #f7f7f8;
+      --bg: #f7f8fa;
       --panel: #ffffff;
-      --panel-2: #f1f3f5;
-      --control: #f7f7f8;
+      --panel-2: #eef1f5;
+      --control: #f1f3f6;
+      --control-strong: #e9edf2;
       --text: #1f2328;
       --muted: #66707a;
+      --muted-2: #87909a;
       --line: #d6d9de;
+      --line-soft: #e4e7eb;
       --blue: #3d79af;
       --blue-strong: #356b9d;
       --green: #4c8460;
@@ -50,13 +60,18 @@
       display: grid;
       place-items: center;
       background: var(--page);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 560;
+      letter-spacing: -0.012em;
+      text-rendering: geometricPrecision;
+      -webkit-font-smoothing: antialiased;
       color: var(--text);
     }
 
     .popover {
-      width: 428px;
-      min-height: 858px;
+      width: 432px;
+      min-height: 0;
       padding: 16px;
       background: var(--bg);
       border: 1px solid var(--line);
@@ -73,23 +88,24 @@
       grid-template-columns: 1fr auto;
       gap: 8px 12px;
       align-items: start;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--line);
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--line-soft);
     }
 
     h1 {
       margin: 0;
-      font-size: 17px;
+      font-size: 18px;
       line-height: 1.2;
-      font-weight: 700;
-      letter-spacing: 0;
+      font-weight: 760;
+      letter-spacing: -0.025em;
     }
 
     .display {
       grid-column: 1 / -1;
       color: var(--muted);
       font-size: 12px;
-      line-height: 1.35;
+      line-height: 1.4;
+      font-weight: 520;
     }
 
     .badge,
@@ -99,14 +115,14 @@
       border-radius: 8px;
       border: 1px solid var(--line);
       background: var(--panel);
-      font-weight: 650;
+      font-weight: 720;
       white-space: nowrap;
     }
 
     .badge {
-      min-height: 24px;
-      padding: 3px 8px;
-      font-size: 12px;
+      min-height: 23px;
+      padding: 3px 8px 4px;
+      font-size: 11px;
     }
 
     .badge {
@@ -116,25 +132,26 @@
     }
 
     .chip {
-      min-height: 20px;
-      padding: 1px 6px;
+      min-height: 19px;
+      padding: 1px 7px 2px;
       font-size: 10px;
-      letter-spacing: 0.01em;
+      letter-spacing: 0;
     }
 
     #shortcuts .chip {
-      min-height: 16px;
-      padding: 0 4px;
-      font-size: 8px;
+      min-height: 15px;
+      padding: 0 4px 1px;
+      font-size: 7.5px;
       letter-spacing: 0;
     }
 
     .section {
       margin-top: 12px;
-      padding: 12px;
+      padding: 11px 12px 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
     }
 
     .section-title {
@@ -143,23 +160,24 @@
       gap: 12px;
       margin-bottom: 10px;
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 650;
+      font-size: 11.5px;
+      font-weight: 740;
+      letter-spacing: 0.01em;
       text-transform: uppercase;
     }
 
     .control-row {
       display: grid;
-      grid-template-columns: 1fr 54px 1fr 34px 34px;
+      grid-template-columns: minmax(118px, 1fr) 52px minmax(104px, 1fr) 34px 34px;
       gap: 8px;
       align-items: center;
-      min-height: 40px;
+      min-height: 41px;
     }
 
     .control-row + .control-row {
       margin-top: 10px;
       padding-top: 10px;
-      border-top: 1px solid var(--line);
+      border-top: 1px solid var(--line-soft);
     }
 
     .control-title {
@@ -171,37 +189,41 @@
 
     .control-icon {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 720;
       line-height: 1;
       flex: 0 0 auto;
+      width: 13px;
+      text-align: center;
     }
 
     .control-icon.bright {
       color: var(--amber);
     }
 
-    .control-icon.warm {
-      color: #b97a2e;
+    .control-icon.blue {
+      color: var(--blue);
     }
 
     .control-name {
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 720;
       line-height: 1.1;
+      letter-spacing: -0.015em;
     }
 
     .control-value {
       text-align: right;
       font-variant-numeric: tabular-nums;
-      font-size: 18px;
-      font-weight: 720;
+      font-size: 20px;
+      font-weight: 780;
+      letter-spacing: -0.04em;
     }
 
     .track {
       position: relative;
       height: 8px;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--line) 70%, transparent);
+      background: var(--control-strong);
       overflow: hidden;
     }
 
@@ -219,7 +241,7 @@
       background: var(--amber);
     }
 
-    .fill.warm {
+    .fill.blue {
       width: 32%;
       background: var(--blue);
     }
@@ -244,11 +266,11 @@
       left: calc(45% - 7px);
     }
 
-    .track.warm {
+    .track.blue {
       color: var(--blue);
     }
 
-    .track.warm::after {
+    .track.blue::after {
       left: calc(32% - 7px);
     }
 
@@ -261,7 +283,7 @@
       color: var(--text);
       font: inherit;
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 740;
     }
 
     button.primary {
@@ -272,14 +294,15 @@
 
     button.warning {
       color: var(--amber);
-      background: rgba(192, 154, 73, 0.10);
-      border-color: rgba(192, 154, 73, 0.36);
+      background: rgba(192, 154, 73, 0.09);
+      border-color: rgba(192, 154, 73, 0.34);
     }
 
     .warning {
       margin-top: 8px;
-      color: var(--amber);
+      color: color-mix(in srgb, var(--amber) 88%, var(--text));
       font-size: 12px;
+      font-weight: 620;
       line-height: 1.35;
     }
 
@@ -300,7 +323,7 @@
 
     .status-title {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 760;
       line-height: 1.3;
     }
 
@@ -308,7 +331,7 @@
       margin-top: 2px;
       color: var(--muted);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 560;
       line-height: 1.3;
     }
 
@@ -319,7 +342,7 @@
       align-items: center;
       min-height: 34px;
       padding: 0 10px;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-soft);
       border-radius: 8px;
       background: var(--panel-2);
     }
@@ -330,7 +353,7 @@
 
     .time-pill {
       font-size: 13px;
-      font-weight: 720;
+      font-weight: 780;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.01em;
     }
@@ -340,7 +363,7 @@
       align-items: center;
       gap: 6px;
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 720;
       white-space: nowrap;
     }
 
@@ -348,22 +371,19 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      font-size: 11px;
+      width: 14px;
+      height: 14px;
+      font-size: 13px;
       line-height: 1;
-      font-weight: 800;
+      font-weight: 700;
     }
 
     .metric-icon.sun {
-      background: rgba(192, 154, 73, 0.92);
-      color: #332700;
+      color: var(--amber);
     }
 
     .metric-icon.blue {
-      background: var(--blue);
-      color: #fff;
+      color: var(--blue);
     }
 
     .metric-text {
@@ -377,12 +397,12 @@
 
     .shortcut-row {
       display: grid;
-      grid-template-columns: 84px minmax(0, 1fr);
-      gap: 10px;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 8px;
       align-items: center;
-      min-height: 34px;
-      padding: 0 10px;
-      border: 1px solid var(--line);
+      min-height: 32px;
+      padding: 0 9px;
+      border: 1px solid var(--line-soft);
       background: var(--panel-2);
     }
 
@@ -400,15 +420,15 @@
 
     .shortcut-name {
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 760;
       line-height: 1.1;
       letter-spacing: -0.01em;
     }
 
     .shortcut-grid {
       display: grid;
-      grid-template-columns: 30px max-content 30px max-content;
-      gap: 6px;
+      grid-template-columns: 24px max-content 34px max-content;
+      column-gap: 5px;
       align-items: center;
       justify-content: start;
       min-width: 0;
@@ -416,8 +436,8 @@
 
     .shortcut-direction {
       color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11.5px;
+      font-weight: 720;
       text-align: right;
     }
 
@@ -425,34 +445,37 @@
       display: inline-flex;
       align-items: baseline;
       gap: 0;
-      padding: 2px 8px 3px;
+      padding: 2px 7px 3px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: var(--control, var(--panel-2));
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-      font-family: "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+      font-family: var(--font-ui);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 620;
       line-height: 1;
       color: var(--text);
       white-space: nowrap;
     }
 
     .shortcut-chip.off {
-      color: #7f7d78;
+      color: var(--muted-2);
+      font-size: 11px;
+      font-weight: 740;
+      letter-spacing: 0;
     }
 
     .shortcut-token {
       font-size: 14px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+      font-weight: 620;
+      letter-spacing: -0.035em;
     }
 
     .shortcut-plus {
       margin: 0 4px;
-      color: #87847f;
-      font-size: 10px;
-      font-weight: 700;
+      color: var(--muted-2);
+      font-size: 9px;
+      font-weight: 540;
       line-height: 1;
       transform: translateY(-1px);
     }
@@ -461,6 +484,7 @@
       margin-top: 8px;
       color: var(--muted);
       font-size: 12px;
+      font-weight: 520;
       line-height: 1.35;
     }
 
@@ -545,18 +569,18 @@
 
       <div class="control-row">
         <div class="control-title">
-          <span class="control-icon warm">◐</span>
-          <span class="control-name">Warmth</span>
+          <span class="control-icon blue">◐</span>
+          <span class="control-name">Blue reduction</span>
         </div>
         <div class="control-value">32%</div>
-        <div class="track warm" aria-label="Warmth 32 percent">
-          <div class="fill warm"></div>
+        <div class="track blue" aria-label="Blue reduction 32 percent">
+          <div class="fill blue"></div>
         </div>
-        <button aria-label="Warmth down">-</button>
-        <button aria-label="Warmth up">+</button>
+        <button aria-label="Blue reduction down">-</button>
+        <button aria-label="Blue reduction up">+</button>
       </div>
 
-      <div class="warning">High warmth may shift colors.</div>
+      <div class="warning">High blue reduction may shift colors.</div>
 
       <div class="action-row">
         <button class="warning">Quick disable</button>
@@ -620,7 +644,7 @@
         </div>
 
         <div class="shortcut-row">
-          <div class="shortcut-name">Warmth</div>
+          <div class="shortcut-name">Blue</div>
           <div class="shortcut-grid">
             <div class="shortcut-direction">Up</div>
             <div class="shortcut-chip">

@@ -226,14 +226,14 @@ final class MenuBarStateTests: XCTestCase {
 
     @MainActor
     func testMenuBarPopoverCommandButtonsKeepMinimumActionHeight() {
+        let view = MenuBarPopoverView(state: .defaultState())
+        view.layoutSubtreeIfNeeded()
         let compactCommands: Set<MenuBarCommand> = [
             .brightnessDown,
             .brightnessUp,
             .blueReductionDown,
             .blueReductionUp
         ]
-        let view = MenuBarPopoverView(state: .defaultState())
-        view.layoutSubtreeIfNeeded()
 
         for command in MenuBarCommand.buttonCommands {
             guard let button = view.commandButtonForTesting(command) else {
@@ -643,7 +643,6 @@ final class MenuBarStateTests: XCTestCase {
             "Paused until 19:00",
             "Commands",
             "Open popover",
-            "Settings",
             "Resume automation"
         ])
         assert(text, doesNotContain: [
@@ -661,20 +660,24 @@ final class MenuBarStateTests: XCTestCase {
 
         assert(text, contains: [
             "Display",
-            "Refresh displays",
             "Current state",
             "INNOS 27QA100M",
-            "Overlay active",
             "Brightness",
             "Blue",
             "Target display",
-            "Selected",
-            "Automatic external display",
-            "Resolved to",
-            "Main display",
-            "Gamma table",
+            "Selection rule",
+            "Automatic external display, preferring a non-main monitor",
+            "Active target",
+            "Safety scope",
+            "Blue reduction",
             "Saved selection",
-            "Save display",
+            "Save display"
+        ])
+        assert(text, doesNotContain: [
+            "Mode",
+            "Software overlay",
+            "Main display",
+            "Refresh displays",
             "Use automatic"
         ])
     }
@@ -693,11 +696,11 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testUnifiedAppWindowDisplayAndSettingsUseSplitLayout() {
+    func testUnifiedAppWindowDisplayUsesSplitLayoutButSettingsStaysSinglePurpose() {
         let controller = makeMockupAcceptanceController()
 
         XCTAssertTrue(controller.pageStructureForTesting(focus: .display).usesSplitLayout)
-        XCTAssertTrue(controller.pageStructureForTesting(focus: .settings).usesSplitLayout)
+        XCTAssertFalse(controller.pageStructureForTesting(focus: .settings).usesSplitLayout)
         XCTAssertFalse(controller.pageStructureForTesting(focus: .schedule).usesSplitLayout)
     }
 
@@ -760,16 +763,15 @@ final class MenuBarStateTests: XCTestCase {
 
         assert(text, contains: [
             "Settings",
-            "Apply settings",
             "Launch at login",
-            "State",
-            "Enabled",
+            "Enabled"
+        ])
+        assert(text, doesNotContain: [
+            "Apply settings",
             "Approval",
             "Behavior",
             "Saved settings",
             "Target display",
-            "Schedule",
-            "Shortcuts",
             "Schema",
             "Status label"
         ])
@@ -791,11 +793,16 @@ final class MenuBarStateTests: XCTestCase {
             "Gamma",
             "Hotkeys",
             "Login item",
-            "Recent diagnostics",
+            "Recent diagnostics log",
+            "Copy log",
             "Shortcut monitor registered"
         ])
-        XCTAssertGreaterThanOrEqual(structure.diagnosticsLogRowCount, 1)
+        XCTAssertEqual(structure.visibleText.filter { $0 == "✓" }.count, 4)
+        XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-stack"))
+        XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-code-log"))
+        XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-code-log-text"))
         XCTAssertTrue(structure.compactActionLabels.contains("Export diagnostics"))
+        XCTAssertTrue(structure.compactActionLabels.contains("Copy log"))
     }
 
     @MainActor
@@ -810,18 +817,26 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
         XCTAssertTrue(current.containsIdentifier("app-window-page-header"))
         XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
+        XCTAssertTrue(current.containsIdentifier("app-window-command:Open popover"))
+        XCTAssertTrue(current.containsIdentifier("app-window-command:Resume automation"))
+        XCTAssertFalse(current.containsIdentifier("app-window-command:Settings"))
         XCTAssertTrue(current.containsIdentifier("app-window-section:Snapshot lines"))
         XCTAssertTrue(current.containsIdentifier("app-window-section:Commands"))
+        XCTAssertFalse(current.containsText("Quick controls and status."))
+        XCTAssertFalse(current.containsText("Target monitor."))
+        XCTAssertFalse(current.containsText("Rows and pause state."))
 
         let display = controller.pageStructureForTesting(focus: .display)
         XCTAssertTrue(display.containsIdentifier("app-window-detail-split"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Target display"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Saved selection"))
+        XCTAssertFalse(display.containsText("Refresh displays"))
+        XCTAssertFalse(display.containsText("Use automatic"))
 
         let settings = controller.pageStructureForTesting(focus: .settings)
-        XCTAssertTrue(settings.containsIdentifier("app-window-detail-split"))
+        XCTAssertFalse(settings.containsIdentifier("app-window-detail-split"))
         XCTAssertTrue(settings.containsIdentifier("app-window-section:Launch at login"))
-        XCTAssertTrue(settings.containsIdentifier("app-window-section:Saved settings"))
+        XCTAssertFalse(settings.containsIdentifier("app-window-section:Saved settings"))
     }
 
     @MainActor
@@ -833,22 +848,27 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule rows"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-table"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-actions"))
-        XCTAssertTrue(schedule.containsIdentifier("app-window-token-row:Status"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Status"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Current"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Shortcuts"))
         XCTAssertTrue(schedule.containsText("Resume automation"))
         XCTAssertTrue(schedule.containsText("Save schedule"))
         XCTAssertFalse(schedule.containsText("Remove"))
     }
 
     @MainActor
-    func testUnifiedAppWindowDiagnosticsPageUsesReadableLogFeedRows() throws {
+    func testUnifiedAppWindowDiagnosticsPageUsesScrollableCodeLog() throws {
         let controller = makeMockupAcceptanceController()
         let diagnostics = controller.pageStructureForTesting(focus: .diagnostics)
 
-        XCTAssertTrue(diagnostics.containsIdentifier("app-window-detail-split"))
+        XCTAssertFalse(diagnostics.containsIdentifier("app-window-detail-split"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-stack"))
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Verification matrix"))
-        XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Recent diagnostics"))
-        XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-log-feed"))
-        XCTAssertTrue(diagnostics.containsIdentifier("app-window-log-row"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Recent diagnostics log"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-code-log"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-code-log-text"))
+        XCTAssertTrue(diagnostics.containsText("Copy log"))
         XCTAssertTrue(diagnostics.containsText("Shortcut monitor registered 7 bindings."))
     }
 
