@@ -28,7 +28,9 @@
       --radius-section: 8px;
       --radius-control: 7px;
       --window-width: 900px;
-      --window-height: 640px;
+      --content-height: 640px;
+      --titlebar-height: 46px;
+      --window-height: calc(var(--content-height) + var(--titlebar-height));
       color-scheme: dark;
       font-family: Pretendard, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
       font-size: 13px;
@@ -42,11 +44,11 @@
 
     body {
       margin: 0;
-      width: var(--window-width);
-      height: var(--window-height);
+      min-height: 100vh;
       display: grid;
       place-items: center;
-      background: var(--root);
+      padding: 40px;
+      background: #050505;
       color: var(--text);
     }
 
@@ -55,13 +57,22 @@
       height: var(--window-height);
       overflow: hidden;
       background: var(--root);
-      border: 0;
-      border-radius: 0;
-      box-shadow: none;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.50),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
     }
 
     .titlebar {
-      display: none;
+      height: var(--titlebar-height);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: #202020;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      user-select: none;
     }
 
     .traffic {
@@ -83,12 +94,12 @@
     .window-name {
       font-size: 13px;
       font-weight: 700;
-      color: var(--text);
+      color: rgba(255, 255, 255, 0.62);
       margin-left: 6px;
     }
 
     .app-body {
-      height: var(--window-height);
+      height: var(--content-height);
       display: grid;
       grid-template-columns: var(--sidebar-width) 1fr;
       background: var(--root);

@@ -37,7 +37,7 @@ All checked native captures are 1800x1280 PNG files, which corresponds to a 900x
 
 ### Window Model
 
-The smoke screenshots capture only the native `contentView`, not a full decorated macOS window. Therefore, the replica must not render a browser-style or fake AppKit titlebar.
+The smoke screenshots capture only the native `contentView`, not a full decorated macOS window. For precise content comparison, the inner app body should remain a 900x640 model. For user review in the browser, the replica should wrap that content model in a fake macOS-style titlebar and rounded outer frame.
 
 ### Header Visibility Model
 
@@ -86,7 +86,7 @@ Shortcuts native content uses human-readable key labels rather than numeric key 
 
 ## Implementation Hypothesis
 
-Primary hypothesis: The existing replica can be corrected without replacing the full file. The structural shell is close enough; the major mismatch is caused by titlebar modeling, hidden CSS leakage, stale copy, stale state values, and a few page-specific layout choices.
+Primary hypothesis: The existing replica can be corrected without replacing the full file. The structural shell is close enough; the major mismatch is caused by titlebar/window-frame modeling, hidden CSS leakage, stale copy, stale state values, and a few page-specific layout choices.
 
 If further mismatch remains after this pass, the next focused step is to generate per-page HTML screenshots and compare them side-by-side against each native PNG.
 

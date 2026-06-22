@@ -14,11 +14,11 @@ xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateT
 
 ## Findings
 
-### P1: Replica included a fake titlebar not present in native captures
+### P1: Replica needs a browser-visible app-window frame
 
 Native evidence files under `/tmp/InnosDimmerSafeSmoke/` are 1800x1280 Retina screenshots of a 900x640 `contentView`. They do not include the macOS traffic-light titlebar.
 
-The replica had a 50px fake titlebar, so every sidebar and content element was vertically shifted and the visible content height was wrong.
+However, the user-facing replica is reviewed in a browser as a window mock. The replica should therefore keep a fake app-window titlebar and outer rounded frame, while preserving the 900x640 native content area below that titlebar.
 
 ### P1: Hidden header controls were still visible
 
@@ -52,6 +52,6 @@ Native Diagnostics shows `Verification: 0/10 handled · handled checks · 0 bloc
 ## Required Fix Direction
 
 - Treat the HTML as a capture replica, not as a product redesign.
-- Match the native 900x640 contentView model.
+- Preserve the native 900x640 contentView model inside a browser-visible fake app-window frame.
 - Keep the current comparison page URLs stable.
 - Prefer exact native text values over ideal mockup text values.

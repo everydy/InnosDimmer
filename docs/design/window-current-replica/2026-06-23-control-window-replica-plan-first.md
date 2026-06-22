@@ -4,7 +4,7 @@ Date: 2026-06-23
 
 ## Objective
 
-Make `docs/design/window-current-replica/control-window-replica.html` reflect the current native AppKit control window as captured by the safe visual smoke screenshots.
+Make `docs/design/window-current-replica/control-window-replica.html` reflect the current native AppKit control window as captured by the safe visual smoke screenshots, while presenting it in the browser as a realistic window-shaped replica.
 
 The replica is not the ideal redesign mockup. It is a current-implementation clone used for visual comparison.
 
@@ -39,13 +39,13 @@ System Chrome is used because the Playwright bundled browser is unavailable loca
 
 Change:
 
-- Remove the visible fake titlebar.
-- Make the replica `900x640` with no outer border/radius/shadow.
-- Make `.app-body` occupy the full 640px height.
+- Keep the fake titlebar and rounded outer frame for browser review.
+- Preserve a 900x640 `.app-body` content area below the titlebar.
+- Center the window on a dark page background with a subtle border and shadow.
 
 Expected result:
 
-- Sidebar and content start at the same top-left contentView origin as native screenshots.
+- Sidebar and content preserve the native contentView proportions while the browser page reads as an app-window replica.
 
 ### Unit 2: Fix page-specific header visibility
 
