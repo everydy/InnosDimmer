@@ -70,6 +70,21 @@ Current token:
 static var popoverSectionLabel: NSFont { app(ofSize: 12, weight: .semibold) }
 ```
 
+The current mockup section title CSS still uses a mid-weight title:
+
+```css
+.section-title {
+  font-size: 12px;
+  font-weight: 620;
+  text-transform: uppercase;
+}
+```
+
+This means `mockup-current.html` is the approved source for schedule table structure, but the production sync plan must apply two latest-comment overrides that are not fully represented in the current HTML yet:
+
+1. remove `Shortcuts` `ENABLED`
+2. strengthen the three top-level section labels
+
 The schedule summary is owned by `ScheduleSummaryRowsView`. It currently:
 
 - Uses a vertical `NSStackView` with `spacing = 6`.
@@ -157,6 +172,7 @@ This production change should only affect step 4 section title font and step 6 s
 - Snapshot tests write `docs/design/popover-redesign/captures/actual-dark.png` and `actual-light.png`.
 - `MenuBarStateTests` includes tests for popover state, command routing, snapshot generation, and visual smoke.
 - The private schedule view is not currently strongly asserted as a table structure; captures are the main visual evidence.
+- Existing test helpers expose popover visible summary strings, but do not currently expose a popover view-structure tree equivalent to the app-window `containsIdentifier(...)` tests.
 - Changing `popoverSectionLabel` affects all popover section headers that use `sectionLabel(_:)`, not app-window section headers.
 - Changing schedule summary row layout should not affect schedule editing, persisted schedule entries, or automation behavior.
 
@@ -186,6 +202,7 @@ This production change should only affect step 4 section title font and step 6 s
 - The exact title weight may need a visual pass after implementation. Recommended default is `bold` at the existing `12pt` size because the user described the current title layer as too thin and asked for a mockup-level stronger weight.
 - The latest comment says the `Shortcuts` `ENABLED` badge can be removed. Recommended default is to remove it from both production and the current-state mockup during implementation, because the badge duplicates static enablement information and competes with the stronger section label.
 - The row divider color should start with existing `PopoverPalette.border(for:)`; revise only if the capture looks too strong.
+- `mockup-current.html` should be treated as "approved base + latest comment overrides", not as a perfect final artifact until `ENABLED` removal and stronger section title weight are also reflected.
 
 ## Plan Implications
 
@@ -196,7 +213,8 @@ This production change should only affect step 4 section title font and step 6 s
 - Use equal-width row cells to match `repeat(3, minmax(0, 1fr))`.
 - Apply the left shift by asymmetrical row content constraints, matching the mockup intent of `padding: 0 18px 0 0`.
 - Increase `popoverSectionLabel` from `.semibold` to `.bold` rather than changing each label manually.
-- Remove the `Shortcuts` trailing `ENABLED` badge by passing `trailing: nil` for that section, and remove the matching badge from `mockup-current.html` if production sync also updates the review artifact.
+- Remove the `Shortcuts` trailing `ENABLED` badge by passing `trailing: nil` for that section, and remove the matching badge from `mockup-current.html`.
+- Update `mockup-current.html` `.section-title` weight during production sync so the review artifact no longer conflicts with the stronger production title weight.
 - Add or update tests that can catch the new structural intent, then regenerate `actual-dark.png` and `actual-light.png`.
 
 ## Source Evaluation

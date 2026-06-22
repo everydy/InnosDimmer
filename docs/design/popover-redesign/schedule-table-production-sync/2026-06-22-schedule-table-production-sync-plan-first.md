@@ -20,6 +20,7 @@ Move the approved `mockup-current.html` schedule table treatment into the produc
   - Time uses `pillLabel(...)`, which creates a `BadgePillView`.
   - Section labels use `InnosDesignTokens.Font.popoverSectionLabel`.
   - `mockup-current.html` now uses `.schedule-table` and equal three-column `.schedule-row` layout.
+  - `mockup-current.html` still shows the `Shortcuts` `ENABLED` badge and uses `.section-title { font-weight: 620; }`.
 - `Inferred`:
   - The production schedule summary should become one container with internal row dividers, mirroring the shortcut table and mockup schedule table.
   - Bumping `popoverSectionLabel` to `.bold` is the safest single-point typography change for the three top-level section labels.
@@ -38,11 +39,26 @@ flowchart LR
     ScheduleRows --> Sort["SettingsSnapshot.sortedSchedule"]
     ScheduleRows --> Table["single subtle table container + row dividers"]
     Popover --> Tests["MenuBarStateTests + actual captures"]
+    Mockup["mockup-current.html"] --> Overrides["latest comment overrides"]
+    Overrides --> Table
+    Overrides --> SectionTitle["stronger section title weight"]
+    Overrides --> ShortcutBadge["remove Shortcuts ENABLED"]
 ```
 
-- changed nodes: `FontToken`, `ScheduleRows`, `Table`, `Tests`
+- changed nodes: `FontToken`, `ScheduleRows`, `Table`, `Tests`, `ShortcutBadge`, `SectionTitle`
 - preserved nodes: `Controller`, `ViewModel`, `Sort`, command routing
-- diagram notes: the change is visual/layout only and should not alter state derivation or side effects.
+- diagram notes: the change is visual/layout only and should not alter state derivation or side effects. `mockup-current.html` is the approved base, but latest comments override its still-visible `ENABLED` badge and mid-weight section title CSS.
+
+## Mockup-To-Production Mapping
+
+| Area | Current production | Current mockup | Latest override | Production target |
+| --- | --- | --- | --- | --- |
+| Schedule rows | Three separate subtle cards | One `.schedule-table` with dividers | Approved | One `ScheduleSummaryRowsView` table container |
+| Schedule time | `BadgePillView` via `pillLabel(...)` | `.schedule-time` plain text | Approved | Plain secondary time label |
+| Schedule columns | time + brightness + warmth + spacer | `repeat(3, minmax(0, 1fr))`, shifted left | Approved | Three equal cells with left-biased content constraints |
+| Section title weight | `popoverSectionLabel` `.semibold` | `.section-title` `font-weight: 620` | Make bolder | `popoverSectionLabel` `.bold`; mockup CSS also updated |
+| Shortcuts badge | `pillBadge("ENABLED", compact: true)` | `<span class="badge compact">ENABLED</span>` | Remove | `trailing: nil`; HTML badge removed |
+| Quick controls badge | `MANUAL` / `AUTO` state badge | `MANUAL` / `AUTO` state badge | Preserve | Unchanged |
 
 ## Related Files
 
@@ -62,6 +78,8 @@ Production section headers are generated correctly through one helper, but the c
 
 The `Shortcuts` section also currently carries a trailing compact `ENABLED` badge. Latest review feedback says this badge can be removed because it adds visual noise without changing the shortcut table's meaning.
 
+The review HTML is not a perfect final artifact after the latest comments: it still contains the `ENABLED` badge and uses `font-weight: 620` for section titles. Treat it as the approved schedule-table base plus the latest comment overrides listed in `Mockup-To-Production Mapping`.
+
 ## Change Map
 
 - likely files to edit:
@@ -70,6 +88,7 @@ The `Shortcuts` section also currently carries a trailing compact `ENABLED` badg
   - `InnosDimmerTests/MenuBarStateTests.swift`
   - `docs/design/popover-redesign/captures/actual-dark.png`
   - `docs/design/popover-redesign/captures/actual-light.png`
+  - `docs/design/popover-redesign/mockup-current.html`
 - likely functions/components/hooks/stores/routes to touch:
   - `ScheduleSummaryRowsView.update(schedule:)`
   - `ScheduleSummaryRowsView.rowView(for:)`
@@ -78,6 +97,7 @@ The `Shortcuts` section also currently carries a trailing compact `ENABLED` badg
   - `MenuBarPopoverView.sectionLabel(_:)` only indirectly through token update.
   - `MenuBarPopoverView.buildLayout()` `Shortcuts` section trailing badge argument.
   - `InnosDesignTokens.Font.popoverSectionLabel`
+  - `mockup-current.html` `.section-title` and `#current-shortcuts` header contents
 - state/data/content dependencies:
   - `SettingsSnapshot.sortedSchedule(schedule)` must remain the source of row order.
   - `plainSummary` must remain unchanged.
@@ -96,6 +116,7 @@ The `Shortcuts` section also currently carries a trailing compact `ENABLED` badg
   - Time values are text cells rather than pill badges.
   - Section labels are visibly stronger.
   - The `Shortcuts` section title has no trailing `ENABLED` badge.
+  - The review mockup is synced with the same badge removal and stronger title weight.
 - constraints to preserve:
   - No command routing changes.
   - No schedule editing changes.
@@ -113,11 +134,37 @@ The `Shortcuts` section also currently carries a trailing compact `ENABLED` badg
   - Section label `.bold` may overpower badges.
   - Removing `ENABLED` may make shortcut enablement less explicit, but the table itself remains visible and actionable.
   - Private view structure may be hard to assert without adding identifiers.
+  - `mockup-current.html` can drift from production if the latest overrides are only applied in Swift.
 - assumptions:
   - The current mockup is the approved visual target.
   - The user wants this exact schedule table direction in production.
 - unanswered questions:
   - None blocking. Weight can be tuned after capture review.
+
+## Review-All-In-One Hardening Passes
+
+### Pass 1 Findings
+
+- Important: The plan called `mockup-current.html` the direct source of truth while the latest comments changed two details not yet represented there: `Shortcuts` `ENABLED` removal and stronger section-title weight.
+- Important: The test strategy did not name the current gap that popover tests expose text summaries but do not yet expose a popover structure tree comparable to app-window `containsIdentifier(...)`.
+- Minor: The AppKit implementation snippets showed the target direction but did not specify how to preserve equal cell sizing while applying the mockup's left-biased padding.
+
+### Pass 1 Resolutions
+
+- Added `Mockup-To-Production Mapping` to distinguish approved mockup base from latest-comment overrides.
+- Added explicit `mockup-current.html` updates to Commit 2 so HTML and production do not drift.
+- Added concrete testing helper and AppKit layout snippets under Commit 1 and Commit 2.
+
+### Pass 2 Status
+
+- Initial Pass 2 found one minor snippet ambiguity: the `MANUAL` assertion needs a paused automation state setup.
+- Resolved by making the proposed test setup explicit.
+- Remaining risk is visual calibration after implementation: `.bold` section labels and AppKit table alignment must be verified in `actual-dark.png` and `actual-light.png`.
+
+### Pass 3 Status
+
+- No additional document-contract, content-sync, or code-snippet issue found.
+- The plan is implementation-ready for `구현커밋` with one expected post-implementation visual review risk: screenshot calibration.
 
 ## Plan Quality Check
 
@@ -148,16 +195,42 @@ The `Shortcuts` section also currently carries a trailing compact `ENABLED` badg
 
 - target files:
   - `InnosDimmerTests/MenuBarStateTests.swift`
-  - `InnosDimmer/UI/MenuBarPopoverView.swift` if accessibility identifiers are needed for reliable tests
+  - `InnosDimmer/UI/MenuBarPopoverView.swift`
 - changes:
   - Add a narrow popover test that can verify schedule rows are rendered as one table group instead of independent row cards.
-  - Prefer identifiers such as `popover-schedule-table` and `popover-schedule-row` if existing structure introspection cannot observe the change.
+  - Add lightweight production identifiers or testing helpers because current popover tests expose visible text summaries but not a popover structure tree.
+  - Prefer identifiers such as `popover-schedule-table`, `popover-schedule-row`, `popover-schedule-time`, and `popover-schedule-divider`.
+  - Add a test that also asserts `Shortcuts` no longer exposes `ENABLED` while `MANUAL` / `AUTO` remains available through Quick controls.
 - code snippets:
   - Proposed identifier shape:
 
 ```swift
 tableContainer.setAccessibilityIdentifier("popover-schedule-table")
 row.setAccessibilityIdentifier("popover-schedule-row")
+timeLabel.setAccessibilityIdentifier("popover-schedule-time")
+divider.setAccessibilityIdentifier("popover-schedule-divider")
+```
+
+  - Proposed testing helper shape:
+
+```swift
+func popoverScheduleTableIdentifiersForTesting() -> [String] {
+    scheduleSummaryRowsView.flattenedAccessibilityIdentifiersForTesting()
+}
+```
+
+  - Proposed assertions:
+
+```swift
+var state = BrightnessState.defaultState()
+state.automationPausedUntilNextBoundary = true
+state.automationResumeMinuteOfDay = 1_140
+let view = MenuBarPopoverView(state: state)
+
+XCTAssertEqual(view.popoverScheduleTableIdentifiersForTesting().filter { $0 == "popover-schedule-row" }.count, 3)
+XCTAssertEqual(view.popoverScheduleTableIdentifiersForTesting().filter { $0 == "popover-schedule-divider" }.count, 2)
+XCTAssertFalse(view.flattenedVisibleTextForTesting().contains("ENABLED"))
+XCTAssertTrue(view.flattenedVisibleTextForTesting().contains("MANUAL"))
 ```
 
 - tradeoff:
@@ -167,9 +240,10 @@ row.setAccessibilityIdentifier("popover-schedule-row")
   - why acceptable: they improve regression detection without changing user-visible behavior.
   - revisit when: if existing test helpers can prove the structure without identifiers.
 - verification:
-  - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests/testMenuBarPopoverScheduleRowsUseTableLayout`: verifies structural contract.
+  - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests/testMenuBarPopoverScheduleRowsUseTableLayout`: verifies table, row, divider, and plain time-cell structure after the test is added.
 - success criteria:
-  - Test fails before implementation and passes after implementation.
+  - New structural assertions fail against the old per-card schedule layout and pass after implementation.
+  - Test confirms `ENABLED` is gone from `Shortcuts` while the Quick controls state badge remains.
   - No unrelated app-window dirty files are staged.
 - stop conditions:
   - Stop if reliable structure assertion requires broad production API changes.
@@ -187,6 +261,7 @@ row.setAccessibilityIdentifier("popover-schedule-row")
   - Add row dividers between rows inside the table.
   - Remove the `Shortcuts` section trailing `ENABLED` badge in production and the current-state mockup.
   - Change `popoverSectionLabel` from `.semibold` to `.bold`.
+  - Change `mockup-current.html` `.section-title` weight to the HTML equivalent of the production title weight.
 - code snippets:
   - Proposed token change:
 
@@ -212,6 +287,7 @@ row.orientation = .horizontal
 row.alignment = .centerY
 row.distribution = .fillEqually
 row.spacing = 0
+row.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 18)
 ```
 
   - Proposed table direction:
@@ -223,6 +299,37 @@ rows.spacing = 0
 rows.addArrangedSubview(row)
 rows.addArrangedSubview(separator)
 return PopoverContainerView(style: .subtle, content: rows)
+```
+
+  - Proposed plain time cell:
+
+```swift
+let timeLabel = NSTextField(labelWithString: timeLabel(for: entry.minuteOfDay))
+timeLabel.font = InnosDesignTokens.Font.popoverLabel
+timeLabel.textColor = .secondaryLabelColor
+timeLabel.alignment = .center
+```
+
+  - Proposed divider:
+
+```swift
+let divider = NSBox()
+divider.boxType = .separator
+divider.setAccessibilityIdentifier("popover-schedule-divider")
+```
+
+  - Proposed mockup sync:
+
+```css
+.section-title {
+  font-weight: 700;
+}
+```
+
+```html
+<div class="section-title" id="current-shortcuts">
+  <span>Shortcuts</span>
+</div>
 ```
 
 - tradeoff:
@@ -238,6 +345,7 @@ return PopoverContainerView(style: .subtle, content: rows)
   - Schedule table visually matches the mockup direction.
   - Section labels are visibly stronger without layout clipping.
   - `Shortcuts` no longer shows the static `ENABLED` badge.
+  - `mockup-current.html` no longer conflicts with production on section title weight or `Shortcuts` badge visibility.
   - Existing automation and command tests still pass.
 - stop conditions:
   - Stop if the popover preferred fit test fails or row values clip at normal width.
