@@ -400,8 +400,8 @@
 
     .schedule-row {
       display: grid;
-      grid-template-columns: 62px 54px 1fr;
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
       align-items: center;
       min-height: 34px;
       padding: 0 8px;
@@ -413,6 +413,7 @@
     }
 
     .schedule-time {
+      justify-self: center;
       color: var(--secondary);
       font-size: 13px;
       font-weight: 560;
@@ -423,6 +424,7 @@
     .metric {
       display: inline-flex;
       align-items: center;
+      justify-self: center;
       gap: 5px;
       color: var(--text);
       font-size: 13px;
