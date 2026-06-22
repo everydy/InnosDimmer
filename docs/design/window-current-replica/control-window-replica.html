@@ -501,7 +501,7 @@
     .schedule-head,
     .schedule-row {
       display: grid;
-      grid-template-columns: 74px 1fr 1fr;
+      grid-template-columns: 86px 1fr 1fr;
       column-gap: 10px;
     }
 
@@ -532,16 +532,33 @@
       border-top: 0;
     }
 
-    .time-cell {
+    .time-picker {
       min-height: 30px;
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 6px;
       border-radius: 7px;
       border: 1px solid var(--control-border);
       background: var(--subtle);
-      padding: 0 10px;
+      color: var(--text);
+      padding: 0 8px;
+      font: inherit;
       font-size: 13px;
       font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .time-picker svg {
+      width: 13px;
+      height: 13px;
+      flex: 0 0 13px;
+      stroke: var(--accent);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     .mini-control {
@@ -799,17 +816,17 @@
                 <div class="schedule-table">
                   <div class="schedule-head"><div>Time</div><div>Bright</div><div>Warmth</div></div>
                   <div class="schedule-row">
-                    <div class="time-cell">09:00</div>
+                    <button class="time-picker" type="button" aria-label="Open time picker for 09:00"><span>09:00</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></button>
                     <div class="mini-control"><span class="number-pill">80</span><div class="track" style="--value: 80%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                     <div class="mini-control"><span class="number-pill">12</span><div class="track" style="--value: 12%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
                   <div class="schedule-row">
-                    <div class="time-cell">19:00</div>
+                    <button class="time-picker" type="button" aria-label="Open time picker for 19:00"><span>19:00</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></button>
                     <div class="mini-control"><span class="number-pill">45</span><div class="track" style="--value: 45%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                     <div class="mini-control"><span class="number-pill">32</span><div class="track" style="--value: 32%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
                   <div class="schedule-row">
-                    <div class="time-cell">23:00</div>
+                    <button class="time-picker" type="button" aria-label="Open time picker for 23:00"><span>23:00</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></button>
                     <div class="mini-control"><span class="number-pill">25</span><div class="track" style="--value: 25%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                     <div class="mini-control"><span class="number-pill">58</span><div class="track" style="--value: 58%"><span class="track-fill"></span><span class="track-thumb"></span></div><div class="stepper-pair"><span>-</span><span>+</span></div></div>
                   </div>
