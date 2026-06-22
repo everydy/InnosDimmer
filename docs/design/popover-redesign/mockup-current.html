@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Current Popover Mockup</title>
+  <style>
+    @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css");
+
+    :root,
+    body[data-theme="dark"] {
+      color-scheme: dark;
+      --font-ui: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      --page: #0f0f11;
+      --root: #161616;
+      --section: #1f1f22;
+      --subtle: #18181b;
+      --control: #303036;
+      --border: #3b3b40;
+      --control-border: #4b4b52;
+      --text: #f3f3f1;
+      --secondary: #aaa9a3;
+      --tertiary: #7d7c78;
+      --accent: #5aa7ff;
+      --primary: #1f7bd9;
+      --ready: #75d99b;
+      --warning: #f1c45f;
+      --orange-icon: #ef9329;
+      --shadow: 0 24px 58px rgba(0, 0, 0, 0.42);
+    }
+
+    body[data-theme="light"] {
+      color-scheme: light;
+      --font-ui: "Pretendard", "Pretendard Variable", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      --page: #eef0f3;
+      --root: #f7f7f8;
+      --section: #ffffff;
+      --subtle: #f1f2f4;
+      --control: #f7f7f8;
+      --border: #d6d9de;
+      --control-border: #c2c7ce;
+      --text: #1f2328;
+      --secondary: #66707a;
+      --tertiary: #9199a3;
+      --accent: #0f75d3;
+      --primary: #0b70c9;
+      --ready: #196b39;
+      --warning: #8a5b00;
+      --orange-icon: #b96b16;
+      --shadow: 0 22px 48px rgba(21, 30, 45, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: var(--page);
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      letter-spacing: -0.012em;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      display: inline-grid;
+      grid-template-columns: auto auto;
+      gap: 8px;
+      align-items: center;
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .theme-toggle input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .theme-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--section);
+    }
+
+    .theme-switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      transition: transform 140ms ease;
+    }
+
+    body[data-theme="light"] .theme-switch::after {
+      transform: translateX(22px);
+    }
+
+    .popover {
+      width: 428px;
+      min-height: 749px;
+      padding: 16px;
+      background: var(--root);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .header {
+      display: grid;
+      gap: 8px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      flex: 1;
+      min-width: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.026em;
+    }
+
+    .display {
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.35;
+    }
+
+    .separator {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 24px;
+      padding: 4px 8px;
+      border: 1px solid var(--control-border);
+      border-radius: 8px;
+      background: var(--section);
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge.success {
+      color: var(--ready);
+      border-color: color-mix(in srgb, var(--ready) 35%, transparent);
+      background: color-mix(in srgb, var(--ready) 12%, transparent);
+    }
+
+    .badge.compact {
+      min-height: 16px;
+      padding: 2px 4px;
+      border-radius: 6px;
+      font-size: 9px;
+      line-height: 1;
+    }
+
+    .section {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--section);
+    }
+
+    .section-content {
+      display: grid;
+      gap: 9px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 620;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    .section-title span:first-child {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 96px 54px minmax(0, 1fr) 34px 34px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .control-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+
+    .control-title .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      flex: 0 0 auto;
+      font-size: 15px;
+      font-weight: 620;
+    }
+
+    .control-title .name {
+      overflow: hidden;
+      min-width: 0;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .sun {
+      color: var(--warning);
+    }
+
+    .thermo {
+      color: var(--orange-icon);
+    }
+
+    .thermo {
+      position: relative;
+      font-size: 0 !important;
+    }
+
+    .thermo::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 1px;
+      width: 4px;
+      height: 11px;
+      border: 1.5px solid currentColor;
+      border-bottom: 0;
+      border-radius: 4px 4px 1px 1px;
+    }
+
+    .thermo::after {
+      content: "";
+      position: absolute;
+      left: 4px;
+      bottom: 1px;
+      width: 8px;
+      height: 8px;
+      border: 1.5px solid currentColor;
+      border-radius: 50%;
+      background: color-mix(in srgb, currentColor 18%, transparent);
+    }
+
+    .value {
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.034em;
+    }
+
+    .track {
+      position: relative;
+      height: 18px;
+    }
+
+    .track::before,
+    .track .fill {
+      content: "";
+      position: absolute;
+      top: 5px;
+      left: 0;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .track::before {
+      right: 0;
+      background: color-mix(in srgb, var(--border) 70%, transparent);
+    }
+
+    .track .fill {
+      width: var(--value);
+      min-width: 8px;
+      background: var(--accent);
+    }
+
+    .track::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: calc(var(--value) - 7px);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 1px solid var(--section);
+    }
+
+    button {
+      height: 30px;
+      min-width: 34px;
+      border: 1px solid var(--control-border);
+      border-radius: 7px;
+      background: var(--control);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    button.primary {
+      color: #fff;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+
+    button.warning {
+      color: var(--warning);
+      border-color: color-mix(in srgb, var(--warning) 46%, transparent);
+      background: color-mix(in srgb, var(--warning) 12%, transparent);
+    }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .subtle-card {
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--subtle);
+    }
+
+    .status-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .schedule-rows {
+      display: grid;
+      gap: 6px;
+    }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 60px max-content max-content 1fr;
+      gap: 10px;
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .time-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 60px;
+      min-height: 24px;
+      padding: 4px 8px;
+      border: 1px solid var(--control-border);
+      border-radius: 8px;
+      background: var(--section);
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 560;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric .metric-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .shortcuts-table {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--subtle);
+    }
+
+    .shortcut-row {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 8px;
+      background: var(--subtle);
+    }
+
+    .shortcut-row + .shortcut-row {
+      border-top: 1px solid var(--border);
+    }
+
+    .shortcut-name {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 620;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .shortcut-actions {
+      display: grid;
+      grid-template-columns: 28px max-content 28px max-content;
+      gap: 6px;
+      align-items: center;
+      justify-content: start;
+      min-width: 0;
+    }
+
+    .shortcut-direction {
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 560;
+      text-align: right;
+    }
+
+    .key-chip {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      padding: 0 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--control);
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .key-token {
+      color: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .key-plus {
+      margin: 0 3px;
+      color: var(--tertiary);
+      font-size: 9px;
+      font-weight: 450;
+      line-height: 1;
+    }
+
+    .key-chip.off {
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <label class="theme-toggle">
+    <span>Dark / Light</span>
+    <input id="theme-toggle" type="checkbox" aria-label="Toggle light mode">
+    <span class="theme-switch" aria-hidden="true"></span>
+  </label>
+
+  <main class="popover stack" aria-label="Current InnosDimmer popover implementation mockup">
+    <header class="header">
+      <div class="header-top">
+        <h1>InnosDimmer</h1>
+        <span class="badge success">Overlay active</span>
+      </div>
+      <div class="display">27QA100M · software dimming</div>
+      <div class="separator" aria-hidden="true"></div>
+    </header>
+
+    <section class="section" aria-labelledby="current-quick-controls">
+      <div class="section-content">
+        <div class="section-title" id="current-quick-controls">
+          <span>Quick controls</span>
+          <span class="badge" data-automation-badge>MANUAL</span>
+        </div>
+
+        <div class="control-row">
+          <div class="control-title">
+            <span class="icon sun">☀</span>
+            <span class="name">Brightness</span>
+          </div>
+          <div class="value">45%</div>
+          <div class="track" style="--value: 45%;" aria-label="Brightness 45 percent"><span class="fill"></span></div>
+          <button aria-label="Brightness down">-</button>
+          <button aria-label="Brightness up">+</button>
+        </div>
+
+        <div class="separator" aria-hidden="true"></div>
+
+        <div class="control-row">
+          <div class="control-title">
+            <span class="icon thermo" aria-hidden="true"></span>
+            <span class="name">Warmth</span>
+          </div>
+          <div class="value">32%</div>
+          <div class="track" style="--value: 32%;" aria-label="Warmth 32 percent"><span class="fill"></span></div>
+          <button aria-label="Warmth down">-</button>
+          <button aria-label="Warmth up">+</button>
+        </div>
+
+        <div class="action-row">
+          <button class="warning">Quick disable</button>
+          <button>Restore previous</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="current-schedule">
+      <div class="section-content">
+        <div class="section-title" id="current-schedule">
+          <span>Schedule</span>
+        </div>
+
+        <div class="subtle-card">
+          <p class="status-title" data-automation-title>Schedule paused until 19:00</p>
+        </div>
+
+        <div class="schedule-rows">
+          <div class="subtle-card schedule-row">
+            <span class="time-pill">09:00</span>
+            <span class="metric"><span class="metric-icon sun">☀</span><span>80%</span></span>
+            <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>12%</span></span>
+            <span></span>
+          </div>
+          <div class="subtle-card schedule-row">
+            <span class="time-pill">19:00</span>
+            <span class="metric"><span class="metric-icon sun">☀</span><span>45%</span></span>
+            <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>32%</span></span>
+            <span></span>
+          </div>
+          <div class="subtle-card schedule-row">
+            <span class="time-pill">23:00</span>
+            <span class="metric"><span class="metric-icon sun">☀</span><span>25%</span></span>
+            <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>58%</span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="primary">Edit schedule</button>
+          <button data-automation-action type="button">Resume schedule</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="current-shortcuts">
+      <div class="section-content">
+        <div class="section-title" id="current-shortcuts">
+          <span>Shortcuts</span>
+          <span class="badge compact">ENABLED</span>
+        </div>
+
+        <div class="shortcuts-table">
+          <div class="shortcut-row">
+            <div class="shortcut-name">Brightness</div>
+            <div class="shortcut-actions">
+              <span class="shortcut-direction">Up</span>
+              <span class="key-chip">
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">↑</span>
+              </span>
+              <span class="shortcut-direction">Down</span>
+              <span class="key-chip">
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">↓</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="shortcut-row">
+            <div class="shortcut-name">Warmth</div>
+            <div class="shortcut-actions">
+              <span class="shortcut-direction">Up</span>
+              <span class="key-chip">
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">→</span>
+              </span>
+              <span class="shortcut-direction">Down</span>
+              <span class="key-chip">
+                <span class="key-token">⌥</span><span class="key-plus">+</span><span class="key-token">⇧</span><span class="key-plus">+</span><span class="key-token">←</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button>Edit Shortcuts</button>
+          <button class="primary">Open Control Window</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const toggle = document.querySelector("#theme-toggle");
+    const savedTheme = localStorage.getItem("innosdimmer-current-mockup-theme") || "dark";
+    document.body.dataset.theme = savedTheme;
+    toggle.checked = savedTheme === "light";
+
+    toggle.addEventListener("change", () => {
+      const nextTheme = toggle.checked ? "light" : "dark";
+      document.body.dataset.theme = nextTheme;
+      localStorage.setItem("innosdimmer-current-mockup-theme", nextTheme);
+    });
+
+    const automationBadge = document.querySelector("[data-automation-badge]");
+    const automationTitle = document.querySelector("[data-automation-title]");
+    const automationAction = document.querySelector("[data-automation-action]");
+    let automationPaused = true;
+
+    function renderAutomationState() {
+      automationBadge.textContent = automationPaused ? "MANUAL" : "AUTO";
+      automationTitle.textContent = automationPaused
+        ? "Schedule paused until 19:00"
+        : "Schedule active";
+      automationAction.textContent = automationPaused
+        ? "Resume schedule"
+        : "Pause schedule";
+    }
+
+    automationAction.addEventListener("click", () => {
+      automationPaused = !automationPaused;
+      renderAutomationState();
+    });
+
+    renderAutomationState();
+  </script>
+</body>
+</html>

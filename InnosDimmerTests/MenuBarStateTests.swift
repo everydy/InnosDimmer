@@ -38,29 +38,29 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.blueReductionLabel, "32%")
         XCTAssertNil(viewModel.blueReductionWarning)
-        XCTAssertEqual(viewModel.automationTitle, "Automation paused until 19:00")
-        XCTAssertEqual(viewModel.automationActionTitle, "Resume automation")
+        XCTAssertEqual(viewModel.automationTitle, "Schedule paused until 19:00")
+        XCTAssertEqual(viewModel.automationActionTitle, "Resume schedule")
         XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
         XCTAssertEqual(viewModel.quickControlsBadgeTitle, "MANUAL")
-        XCTAssertEqual(viewModel.scheduleStatusDetail, "Next boundary 19:00")
+        XCTAssertEqual(viewModel.scheduleStatusDetail, "")
         XCTAssertEqual(viewModel.scheduleSummary, "10:00 · ☀ 70% · 🌡 20%")
         XCTAssertEqual(
             viewModel.shortcutRows,
             [
                 ShortcutSummaryRow(action: .brightnessUp, title: "Brightness up", keyLabel: "Off"),
                 ShortcutSummaryRow(action: .brightnessDown, title: "Brightness down", keyLabel: "⌥⇧↓"),
-                ShortcutSummaryRow(action: .blueReductionUp, title: "Blue reduction up", keyLabel: "⌥⇧→"),
-                ShortcutSummaryRow(action: .blueReductionDown, title: "Blue reduction down", keyLabel: "⌥⇧←")
+                ShortcutSummaryRow(action: .blueReductionUp, title: "Warmth up", keyLabel: "⌥⇧→"),
+                ShortcutSummaryRow(action: .blueReductionDown, title: "Warmth down", keyLabel: "⌥⇧←")
             ]
         )
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness  Up  Off  Down  ⌥⇧↓\nBlue reduction  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up  Off  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
         XCTAssertEqual(viewModel.diagnosticsSummary, "Overlay active")
     }
 
-    func testMenuBarViewModelAppendsPausedStatusToDisplaySummaryWhenDisplayExists() {
+    func testMenuBarViewModelKeepsPausedStatusOutOfDisplaySummaryWhenDisplayExists() {
         var state = BrightnessState.defaultState()
         state.display = .menuBarTestDisplay
         state.automationPausedUntilNextBoundary = true
@@ -70,7 +70,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(
             viewModel.displaySummary,
-            "27QA100M · software dimming · automation paused until 19:00"
+            "27QA100M · software dimming"
         )
         XCTAssertEqual(viewModel.quickControlsBadgeTitle, "MANUAL")
     }
@@ -83,7 +83,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertEqual(
             viewModel.shortcutSummary,
-            "Brightness  Up  ⌥⇧↑  Down  ⌥⇧↓\nBlue reduction  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up  ⌥⇧↑  Down  ⌥⇧↓\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
     }
 
@@ -171,7 +171,7 @@ final class MenuBarStateTests: XCTestCase {
             events: []
         )
 
-        XCTAssertEqual(menuViewModel.blueReductionWarning, "High blue reduction may shift colors.")
+        XCTAssertEqual(menuViewModel.blueReductionWarning, "High warmth may shift colors.")
         XCTAssertEqual(dashboardViewModel.blueReductionWarning, "High blue reduction may shift colors.")
     }
 
@@ -217,7 +217,7 @@ final class MenuBarStateTests: XCTestCase {
 
         XCTAssertNil(view.commandButtonForTesting(.pauseAutomation))
         let button = view.commandButtonForTesting(.resumeAutomation)
-        XCTAssertEqual(button?.title, "Resume automation")
+        XCTAssertEqual(button?.title, "Resume schedule")
 
         button?.performClick(nil)
 
@@ -1320,11 +1320,11 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
         XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · 🌡 21%")
-        XCTAssertEqual(view.scheduleStatusForTesting(), "Automation active\nSchedule rows below")
+        XCTAssertEqual(view.scheduleStatusForTesting(), "Schedule active")
         XCTAssertFalse(view.scheduleStatusForTesting().contains("Current"))
         XCTAssertEqual(
             view.shortcutSummaryForTesting(),
-            "Brightness  Up  ⌥⇧↑  Down  Off\nBlue reduction  Up  ⌥⇧→  Down  ⌥⇧←"
+            "Brightness  Up  ⌥⇧↑  Down  Off\nWarmth  Up  ⌥⇧→  Down  ⌥⇧←"
         )
         XCTAssertEqual(
             view.diagnosticsSummaryForTesting(),

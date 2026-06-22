@@ -119,8 +119,8 @@ private final class BadgePillView: NSView {
 
         label.stringValue = title
         label.font = compact
-            ? InnosDesignTokens.Font.badgeCompact
-            : InnosDesignTokens.Font.badgeLabel
+            ? InnosDesignTokens.Font.popoverBadgeCompact
+            : InnosDesignTokens.Font.popoverBadge
         label.alignment = .center
         label.drawsBackground = false
         label.isBezeled = false
@@ -328,9 +328,14 @@ final class DashboardRootView: NSView {
 private enum BlueReductionWarning {
     static let threshold = 50
     static let message = "High blue reduction may shift colors."
+    static let popoverWarningMessage = "High warmth may shift colors."
 
     static func message(for blueReduction: Int) -> String? {
         Clamped.percent(blueReduction) >= threshold ? message : nil
+    }
+
+    static func popoverMessage(for blueReduction: Int) -> String? {
+        Clamped.percent(blueReduction) >= threshold ? popoverWarningMessage : nil
     }
 }
 
@@ -504,7 +509,7 @@ private final class ScheduleSummaryRowsView: NSView {
     ) -> NSStackView {
         let icon = metricIcon(systemSymbolName: systemSymbolName, fallback: fallback, iconColor: iconColor)
         let valueLabel = NSTextField(labelWithString: value)
-        valueLabel.font = InnosDesignTokens.Font.numericValue
+        valueLabel.font = InnosDesignTokens.Font.popoverLabel
         valueLabel.textColor = .labelColor
         valueLabel.widthAnchor.constraint(equalToConstant: 38).isActive = true
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -585,7 +590,7 @@ private enum ShortcutSummaryFormatter {
                 downKeyLabel: lookup[.brightnessDown] ?? "Off"
             ),
             ShortcutSummaryGroup(
-                title: "Blue reduction",
+                title: "Warmth",
                 upKeyLabel: lookup[.blueReductionUp] ?? "Off",
                 downKeyLabel: lookup[.blueReductionDown] ?? "Off"
             )
@@ -736,7 +741,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func titleLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = InnosDesignTokens.Font.shortcutName
+        label.font = InnosDesignTokens.Font.popoverShortcutName
         label.textColor = .labelColor
         label.lineBreakMode = .byTruncatingTail
         label.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -746,7 +751,7 @@ private final class ShortcutPairRowView: NSView {
 
     private static func directionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title)
-        label.font = InnosDesignTokens.Font.shortcutDirection
+        label.font = InnosDesignTokens.Font.popoverShortcutDirection
         label.textColor = .secondaryLabelColor
         label.alignment = .right
         label.widthAnchor.constraint(equalToConstant: Metrics.directionWidth).isActive = true
@@ -830,7 +835,7 @@ private final class ShortcutKeyChipView: NSView {
             if index > 0 {
                 let plus = Self.label(
                     "+",
-                    font: InnosDesignTokens.Font.shortcutSeparator
+                    font: InnosDesignTokens.Font.popoverShortcutSeparator
                 )
                 plusLabels.append(plus)
                 stack.addArrangedSubview(plus)
@@ -840,8 +845,8 @@ private final class ShortcutKeyChipView: NSView {
             let tokenLabel = Self.label(
                 token,
                 font: isOff
-                    ? InnosDesignTokens.Font.shortcutOff
-                    : InnosDesignTokens.Font.shortcutToken
+                    ? InnosDesignTokens.Font.popoverShortcutOff
+                    : InnosDesignTokens.Font.popoverShortcutToken
             )
             tokenLabels.append(tokenLabel)
             stack.addArrangedSubview(tokenLabel)
@@ -883,7 +888,7 @@ final class PopoverCommandButton: NSButton {
         layer?.cornerRadius = 7
         layer?.borderWidth = 1
         controlSize = .regular
-        font = InnosDesignTokens.Font.buttonLabel
+        font = InnosDesignTokens.Font.popoverButton
         setButtonType(.momentaryPushIn)
         updateColors()
     }
@@ -1058,27 +1063,20 @@ struct MenuBarViewModel: Equatable {
         modeTitle = ModeStatusLabel.title(for: state.activeMode)
         quickControlsBadgeTitle = state.automationPausedUntilNextBoundary ? "MANUAL" : "AUTO"
         displaySummary = state.display.map { display in
-            var parts = [Self.displaySummaryDisplayName(for: display), "software dimming"]
-            if state.automationPausedUntilNextBoundary {
-                if let resumeMinute = state.automationResumeMinuteOfDay {
-                    parts.append("automation paused until \(Self.timeLabel(for: resumeMinute))")
-                } else {
-                    parts.append("automation paused until next schedule boundary")
-                }
-            }
-            return parts.joined(separator: " · ")
+            [Self.displaySummaryDisplayName(for: display), "software dimming"]
+                .joined(separator: " · ")
         } ?? "No display selected"
         brightnessLabel = "\(state.targetBrightness)%"
         blueReductionLabel = "\(state.targetBlueReduction)%"
-        blueReductionWarning = BlueReductionWarning.message(for: state.targetBlueReduction)
+        blueReductionWarning = BlueReductionWarning.popoverMessage(for: state.targetBlueReduction)
         if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
-            automationTitle = "Automation paused until \(Self.timeLabel(for: resumeMinute))"
+            automationTitle = "Schedule paused until \(Self.timeLabel(for: resumeMinute))"
         } else if state.automationPausedUntilNextBoundary {
-            automationTitle = "Automation paused until next schedule boundary"
+            automationTitle = "Schedule paused"
         } else {
-            automationTitle = "Automation active"
+            automationTitle = "Schedule active"
         }
-        automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume automation" : "Pause automation"
+        automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume schedule" : "Pause schedule"
         automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation
         scheduleStatusDetail = Self.scheduleStatusDetail(state: state, schedule: schedule)
         scheduleSummary = Self.scheduleSummary(for: schedule)
@@ -1106,13 +1104,10 @@ struct MenuBarViewModel: Equatable {
     }
 
     private static func scheduleStatusDetail(state: BrightnessState, schedule: [ScheduleEntry]) -> String {
-        if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
-            return "Next boundary \(timeLabel(for: resumeMinute))"
-        }
         guard !SettingsSnapshot.sortedSchedule(schedule).isEmpty else {
             return "No schedule configured"
         }
-        return "Schedule rows below"
+        return ""
     }
 
     private static func shortcutRows(for shortcuts: [ShortcutBinding]) -> [ShortcutSummaryRow] {
@@ -1139,9 +1134,9 @@ struct MenuBarViewModel: Equatable {
         case .brightnessDown:
             return "Brightness down"
         case .blueReductionUp:
-            return "Blue reduction up"
+            return "Warmth up"
         case .blueReductionDown:
-            return "Blue reduction down"
+            return "Warmth down"
         case .quickDisableOverlay:
             return "Quick disable"
         case .restorePreviousDimming:
@@ -1287,6 +1282,7 @@ final class MenuBarPopoverView: NSView {
         blueReductionWarningLabel.isHidden = viewModel.blueReductionWarning == nil
         automationLabel.stringValue = viewModel.automationTitle
         scheduleStatusDetailLabel.stringValue = viewModel.scheduleStatusDetail
+        scheduleStatusDetailLabel.isHidden = viewModel.scheduleStatusDetail.isEmpty
         automationActionCommand = viewModel.automationActionCommand
         automationActionButton?.title = viewModel.automationActionTitle
         commandButtons[.pauseAutomation] = nil
@@ -1362,7 +1358,7 @@ final class MenuBarPopoverView: NSView {
             scheduleStatusDetailLabel,
             diagnosticsSummaryLabel
         ].forEach(Self.configureWrappingLabel)
-        automationLabel.font = InnosDesignTokens.Font.bodySmallStrong
+        automationLabel.font = InnosDesignTokens.Font.popoverButton
         automationLabel.textColor = .labelColor
         scheduleStatusDetailLabel.textColor = .secondaryLabelColor
         blueReductionWarningLabel.textColor = PopoverPalette.warningColor(for: effectiveAppearance)
@@ -1385,14 +1381,14 @@ final class MenuBarPopoverView: NSView {
                 ),
                 makeSeparator(),
                 makeControlGroup(
-                    title: "Blue reduction",
+                    title: "Warmth",
                     iconSystemName: "thermometer.medium",
                     iconFallback: "🌡",
                     iconColor: NSColor(calibratedRed: 0.94, green: 0.58, blue: 0.16, alpha: 1),
                     valueLabel: blueReductionValueLabel,
                     trackView: blueReductionTrackView,
-                    decrement: compactButton("-", accessibilityLabel: "Blue reduction down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
-                    increment: compactButton("+", accessibilityLabel: "Blue reduction up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
+                    decrement: compactButton("-", accessibilityLabel: "Warmth down", command: .blueReductionDown, action: #selector(blueReductionDownPressed)),
+                    increment: compactButton("+", accessibilityLabel: "Warmth up", command: .blueReductionUp, action: #selector(blueReductionUpPressed))
                 ),
                 blueReductionWarningLabel,
                 makeActionRow([
@@ -1408,10 +1404,10 @@ final class MenuBarPopoverView: NSView {
             self?.actions.perform(.setBlueReduction(Self.percent(from: fraction)))
         }
         brightnessTrackView.setAccessibilityLabel("Brightness percentage")
-        blueReductionTrackView.setAccessibilityLabel("Blue reduction percentage")
+        blueReductionTrackView.setAccessibilityLabel("Warmth percentage")
 
         let automationActionButton = button(
-            "Pause automation",
+            "Pause schedule",
             command: .pauseAutomation,
             action: #selector(automationActionPressed)
         )
@@ -1480,7 +1476,7 @@ final class MenuBarPopoverView: NSView {
 
     private func makeHeader() -> NSView {
         let title = NSTextField(labelWithString: "InnosDimmer")
-        title.font = InnosDesignTokens.Font.appTitle
+        title.font = InnosDesignTokens.Font.popoverTitle
         title.textColor = .labelColor
 
         let topRow = NSStackView(views: [title, modeBadge])
@@ -1539,12 +1535,12 @@ final class MenuBarPopoverView: NSView {
             systemSymbolName: iconSystemName,
             fallback: iconFallback,
             iconColor: iconColor,
-            font: InnosDesignTokens.Font.controlLabel,
+            font: InnosDesignTokens.Font.popoverLabel,
             textColor: .labelColor
         )
         titleView.setContentHuggingPriority(.required, for: .horizontal)
 
-        valueLabel.font = InnosDesignTokens.Font.controlValue
+        valueLabel.font = InnosDesignTokens.Font.popoverValue
         valueLabel.alignment = .right
         valueLabel.textColor = .labelColor
         valueLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -1602,7 +1598,7 @@ final class MenuBarPopoverView: NSView {
 
     private func sectionLabel(_ title: String) -> NSTextField {
         let label = NSTextField(labelWithString: title.uppercased())
-        label.font = InnosDesignTokens.Font.sectionLabel
+        label.font = InnosDesignTokens.Font.popoverSectionLabel
         label.textColor = .secondaryLabelColor
         return label
     }
