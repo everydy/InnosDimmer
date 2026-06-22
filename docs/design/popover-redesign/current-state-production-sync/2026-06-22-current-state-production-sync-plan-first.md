@@ -279,16 +279,16 @@ private static func scheduleStatusDetail(state: BrightnessState, schedule: [Sche
 ```swift
 static var popoverTitle: NSFont { app(ofSize: 17, weight: .bold) }
 static var popoverSectionLabel: NSFont { app(ofSize: 12, weight: .semibold) }
-static var popoverLabel: NSFont { app(ofSize: 13, weight: .medium) }
+static var popoverLabel: NSFont { app(ofSize: 13, weight: .semibold) }
 static var popoverValue: NSFont { app(ofSize: 18, weight: .bold) }
-static var popoverButton: NSFont { app(ofSize: 12, weight: .medium) }
-static var popoverBadge: NSFont { app(ofSize: 12, weight: .medium) }
-static var popoverBadgeCompact: NSFont { app(ofSize: 9, weight: .medium) }
+static var popoverButton: NSFont { app(ofSize: 12, weight: .semibold) }
+static var popoverBadge: NSFont { app(ofSize: 12, weight: .semibold) }
+static var popoverBadgeCompact: NSFont { app(ofSize: 9, weight: .semibold) }
 static var popoverShortcutName: NSFont { app(ofSize: 13, weight: .semibold) }
 static var popoverShortcutDirection: NSFont { app(ofSize: 12, weight: .medium) }
-static var popoverShortcutToken: NSFont { app(ofSize: 13, weight: .medium) }
+static var popoverShortcutToken: NSFont { app(ofSize: 13, weight: .semibold) }
 static var popoverShortcutSeparator: NSFont { app(ofSize: 9, weight: .regular) }
-static var popoverShortcutOff: NSFont { app(ofSize: 12, weight: .medium) }
+static var popoverShortcutOff: NSFont { app(ofSize: 12, weight: .semibold) }
 ```
 
   - Proposed visible label update:
