@@ -130,8 +130,8 @@ private final class BadgePillView: NSView {
 
         addSubview(label)
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: compact ? 4 : 8),
-            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: compact ? -4 : -8),
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: compact ? 5 : 8),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: compact ? -5 : -8),
             label.topAnchor.constraint(equalTo: topAnchor, constant: compact ? 2 : 4),
             label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: compact ? -2 : -4)
         ])
@@ -154,7 +154,7 @@ private final class BadgePillView: NSView {
     override var intrinsicContentSize: NSSize {
         let size = label.intrinsicContentSize
         if compact {
-            return NSSize(width: size.width + 8, height: max(16, size.height + 4))
+            return NSSize(width: size.width + 10, height: max(18, size.height + 4))
         }
         return NSSize(width: size.width + 16, height: max(24, size.height + 8))
     }

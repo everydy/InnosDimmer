@@ -56,7 +56,7 @@ enum InnosDesignTokens {
         static var popoverButton: NSFont { app(ofSize: 12, weight: .semibold) }
         static var popoverStepperButton: NSFont { app(ofSize: 15, weight: .bold) }
         static var popoverBadge: NSFont { app(ofSize: 12, weight: .semibold) }
-        static var popoverBadgeCompact: NSFont { app(ofSize: 9, weight: .semibold) }
+        static var popoverBadgeCompact: NSFont { app(ofSize: 10, weight: .semibold) }
         static var popoverShortcutName: NSFont { app(ofSize: 13, weight: .semibold) }
         static var popoverShortcutDirection: NSFont { app(ofSize: 12, weight: .medium) }
         static var popoverShortcutToken: NSFont { app(ofSize: 13, weight: .semibold) }
