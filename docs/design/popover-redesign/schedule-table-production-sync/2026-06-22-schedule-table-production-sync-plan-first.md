@@ -1,0 +1,324 @@
+# Schedule Table Production Sync Plan First
+
+## Goal
+
+Move the approved `mockup-current.html` schedule table treatment into the production AppKit menu bar popover and strengthen the top-level popover section title weight.
+
+## Requested Outcome
+
+- Production popover `Schedule` rows render as one compact table-like block, not three separate card boxes.
+- Schedule times render as plain aligned text, not badge/pill boxes.
+- Schedule row values remain evenly distributed across three columns and slightly shifted left, matching the current mockup.
+- `Quick controls`, `Schedule`, and `Shortcuts` section labels use a stronger weight.
+- Existing schedule sorting, automation state, command routing, shortcut rendering, and copy remain unchanged.
+
+## Codebase Evidence
+
+- `Confirmed`:
+  - `ScheduleSummaryRowsView` currently renders each schedule entry as its own `PopoverContainerView(style: .subtle)`.
+  - Time uses `pillLabel(...)`, which creates a `BadgePillView`.
+  - Section labels use `InnosDesignTokens.Font.popoverSectionLabel`.
+  - `mockup-current.html` now uses `.schedule-table` and equal three-column `.schedule-row` layout.
+- `Inferred`:
+  - The production schedule summary should become one container with internal row dividers, mirroring the shortcut table and mockup schedule table.
+  - Bumping `popoverSectionLabel` to `.bold` is the safest single-point typography change for the three top-level section labels.
+- `Unverified`:
+  - Exact visual weight of `.bold` in Pretendard inside AppKit must be confirmed through regenerated `actual-dark.png` and `actual-light.png`.
+
+## System Visualization
+
+```mermaid
+flowchart LR
+    Controller["MenuBarController"] --> Popover["MenuBarPopoverView"]
+    Popover --> ViewModel["MenuBarViewModel"]
+    Popover --> Section["makeSection + sectionLabel"]
+    Section --> FontToken["InnosDesignTokens.Font.popoverSectionLabel"]
+    Popover --> ScheduleRows["ScheduleSummaryRowsView"]
+    ScheduleRows --> Sort["SettingsSnapshot.sortedSchedule"]
+    ScheduleRows --> Table["single subtle table container + row dividers"]
+    Popover --> Tests["MenuBarStateTests + actual captures"]
+```
+
+- changed nodes: `FontToken`, `ScheduleRows`, `Table`, `Tests`
+- preserved nodes: `Controller`, `ViewModel`, `Sort`, command routing
+- diagram notes: the change is visual/layout only and should not alter state derivation or side effects.
+
+## Related Files
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/MenuBarPopoverView.swift`: owns production popover sections and `ScheduleSummaryRowsView`.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`: owns popover font roles.
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`: owns popover behavior, layout, and capture tests.
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/mockup-current.html`: approved current-state reference.
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures/actual-dark.png`: production dark capture to refresh.
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures/actual-light.png`: production light capture to refresh.
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/schedule-table-production-sync/research.md`: evidence basis for this plan.
+
+## Current Behavior
+
+Production schedule rows are visually heavier than the approved mockup because every row is a separate subtle card and the time value is another badge-like pill inside that card.
+
+Production section headers are generated correctly through one helper, but the current `popoverSectionLabel` weight is too light for the reviewed hierarchy.
+
+## Change Map
+
+- likely files to edit:
+  - `InnosDimmer/UI/MenuBarPopoverView.swift`
+  - `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
+  - `InnosDimmerTests/MenuBarStateTests.swift`
+  - `docs/design/popover-redesign/captures/actual-dark.png`
+  - `docs/design/popover-redesign/captures/actual-light.png`
+- likely functions/components/hooks/stores/routes to touch:
+  - `ScheduleSummaryRowsView.update(schedule:)`
+  - `ScheduleSummaryRowsView.rowView(for:)`
+  - `ScheduleSummaryRowsView.metricView(...)`
+  - `ScheduleSummaryRowsView.pillLabel(...)` should become unused or be removed if no longer needed.
+  - `MenuBarPopoverView.sectionLabel(_:)` only indirectly through token update.
+  - `InnosDesignTokens.Font.popoverSectionLabel`
+- state/data/content dependencies:
+  - `SettingsSnapshot.sortedSchedule(schedule)` must remain the source of row order.
+  - `plainSummary` must remain unchanged.
+- side effects/integrations to preserve or adjust:
+  - Command routing and action buttons must remain untouched.
+  - Snapshot capture output should be refreshed after visual changes.
+- likely new files:
+  - None for production implementation.
+- remaining narrow unknowns before patch:
+  - Whether AppKit `.bold` renders slightly too heavy; verify through captures.
+
+## Planned Changes
+
+- expected behavior changes:
+  - The schedule summary becomes one table-like visual container.
+  - Time values are text cells rather than pill badges.
+  - Section labels are visibly stronger.
+- constraints to preserve:
+  - No command routing changes.
+  - No schedule editing changes.
+  - No shortcut table behavior changes.
+  - No persisted data shape changes.
+- execution order:
+  1. Add or update tests/identifiers to define the intended schedule table structure.
+  2. Implement table-like schedule rows and section label token weight.
+  3. Regenerate captures and run focused tests.
+
+## Review Notes
+
+- risks:
+  - Table row dividers may add height and create bottom slack or clipping.
+  - Section label `.bold` may overpower badges.
+  - Private view structure may be hard to assert without adding identifiers.
+- assumptions:
+  - The current mockup is the approved visual target.
+  - The user wants this exact schedule table direction in production.
+- unanswered questions:
+  - None blocking. Weight can be tuned after capture review.
+
+## Plan Quality Check
+
+- Alternative considered:
+  - Keep each schedule row as a separate `PopoverContainerView` and only remove the time pill. Rejected because the user approved the compact table-like grouping.
+  - Use `NSGridView`. Rejected for this small popover because current layout already uses `NSStackView`; stack-based rows reduce AppKit complexity.
+- Why this plan:
+  - It changes only the owner components and token already responsible for the visual behavior.
+- Tradeoff:
+  - A single table container gives the desired compactness, but requires careful divider and constraints work. This is acceptable because it avoids side effects outside the popover.
+- What this plan may still miss:
+  - The exact visual center after AppKit rendering may differ slightly from CSS. Captures must be checked.
+- When to stop and revise:
+  - Stop if popover fit tests fail, row content clips, or captures show section headers overpowering the layout.
+
+## Skill Routing Manifest
+
+| Phase | Required skills | Optional skills | Evidence |
+| --- | --- | --- | --- |
+| Commit 1: Define production schedule table contract | `구현커밋` | `review-all-in-one` | Tests should define the new AppKit structure before visual code changes. |
+| Commit 2: Implement schedule table and section title weight | `구현커밋` | `디자인올인원` | Production files are `MenuBarPopoverView.swift` and `InnosDesignTokens.swift`; approved visual target is `mockup-current.html`. |
+| Commit 3: Refresh captures and docs sync | `구현커밋` | `테스트` | Snapshot files and docs must match the production change. |
+| Final Gate | `review-all-in-one`, `qa-gate` | `review-swarm`, `테스트` | Final pass should inspect layout regression, tests, and capture output. |
+
+## Implementation Plan
+
+### Commit 1: Define production schedule table contract
+
+- target files:
+  - `InnosDimmerTests/MenuBarStateTests.swift`
+  - `InnosDimmer/UI/MenuBarPopoverView.swift` if accessibility identifiers are needed for reliable tests
+- changes:
+  - Add a narrow popover test that can verify schedule rows are rendered as one table group instead of independent row cards.
+  - Prefer identifiers such as `popover-schedule-table` and `popover-schedule-row` if existing structure introspection cannot observe the change.
+- code snippets:
+  - Proposed identifier shape:
+
+```swift
+tableContainer.setAccessibilityIdentifier("popover-schedule-table")
+row.setAccessibilityIdentifier("popover-schedule-row")
+```
+
+- tradeoff:
+  - chosen: add lightweight identifiers only where tests need structural evidence.
+  - alternative: rely only on PNG captures.
+  - cost/risk: identifiers add minor test-only surface to production views.
+  - why acceptable: they improve regression detection without changing user-visible behavior.
+  - revisit when: if existing test helpers can prove the structure without identifiers.
+- verification:
+  - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests/testMenuBarPopoverScheduleRowsUseTableLayout`: verifies structural contract.
+- success criteria:
+  - Test fails before implementation and passes after implementation.
+  - No unrelated app-window dirty files are staged.
+- stop conditions:
+  - Stop if reliable structure assertion requires broad production API changes.
+
+### Commit 2: Implement schedule table and section title weight
+
+- target files:
+  - `InnosDimmer/UI/MenuBarPopoverView.swift`
+  - `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
+- changes:
+  - Replace per-row `PopoverContainerView(style: .subtle)` schedule rendering with one subtle table container.
+  - Render internal rows with three equal-width cells.
+  - Remove schedule time `BadgePillView` usage and render time as plain secondary text.
+  - Add row dividers between rows inside the table.
+  - Change `popoverSectionLabel` from `.semibold` to `.bold`.
+- code snippets:
+  - Proposed token change:
+
+```swift
+static var popoverSectionLabel: NSFont { app(ofSize: 12, weight: .bold) }
+```
+
+  - Proposed schedule row direction:
+
+```swift
+let row = NSStackView(views: [timeCell, brightnessCell, warmthCell])
+row.orientation = .horizontal
+row.alignment = .centerY
+row.distribution = .fillEqually
+row.spacing = 0
+```
+
+  - Proposed table direction:
+
+```swift
+let rows = NSStackView()
+rows.orientation = .vertical
+rows.spacing = 0
+rows.addArrangedSubview(row)
+rows.addArrangedSubview(separator)
+return PopoverContainerView(style: .subtle, content: rows)
+```
+
+- tradeoff:
+  - chosen: stack-based table using existing `PopoverContainerView`.
+  - alternative: new custom `NSView.draw(_:)` table.
+  - cost/risk: stack/divider constraints can be slightly more verbose.
+  - why acceptable: this stays aligned with existing AppKit layout patterns.
+  - revisit when: if row height or divider constraints break preferred content fit.
+- verification:
+  - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests -only-testing:InnosDimmerTests/HotkeyBindingTests`: ensures popover behavior and hotkeys still pass.
+  - `git diff --check`: ensures no whitespace errors.
+- success criteria:
+  - Schedule table visually matches the mockup direction.
+  - Section labels are visibly stronger without layout clipping.
+  - Existing automation and command tests still pass.
+- stop conditions:
+  - Stop if the popover preferred fit test fails or row values clip at normal width.
+
+### Commit 3: Refresh captures and docs sync
+
+- target files:
+  - `docs/design/popover-redesign/captures/actual-dark.png`
+  - `docs/design/popover-redesign/captures/actual-light.png`
+  - `docs/design/popover-redesign/schedule-table-production-sync/research.md` if implementation evidence changes
+  - this plan document if implementation scope changes
+- changes:
+  - Regenerate actual popover captures through the existing snapshot test path.
+  - Inspect capture diffs for schedule row table grouping and section title weight.
+  - Update docs only if the implementation diverges from this plan.
+- code snippets:
+  - Not needed; this phase is capture/doc sync.
+- tradeoff:
+  - chosen: use existing capture path.
+  - alternative: create a new screenshot harness.
+  - cost/risk: snapshot tests can rewrite app-window captures if broad tests are run.
+  - why acceptable: focused popover tests already write `actual-dark.png` and `actual-light.png`.
+  - revisit when: if capture regeneration dirties unrelated files.
+- verification:
+  - Confirm `actual-dark.png` and `actual-light.png` changed only as expected.
+  - Re-run focused tests after capture refresh.
+- success criteria:
+  - Updated captures show table-like schedule rows.
+  - No unrelated dirty files are staged.
+- stop conditions:
+  - Stop if capture changes include unrelated dashboard/app-window output.
+
+## Operator 결정 필요 사항
+
+- 상태: 없음
+- 결정 1: Section title weight default
+  - 맥락: user requested stronger top-level section title weight.
+  - A: `.bold` at 12pt. Stronger and scoped to the existing token.
+  - B: `.semibold` at 13pt. Larger but changes vertical rhythm.
+  - C: keep `.semibold` and only update mockup. Does not satisfy production request.
+  - 추천안: A. It is the smallest production change that directly addresses weight.
+  - 기본값: A. It is scoped, reversible, and testable through captures.
+  - 보류 시 영향: Section labels may continue to look too thin after schedule table implementation.
+
+## 검토용 결과물
+
+- HTML: [current popover mockup](../mockup-current.html)
+- 테스트 링크:
+  - Localhost: not required. The review artifact is a static local file.
+  - Deploy: unavailable. No remote/deploy target is configured.
+- 상태: implemented mockup, production implementation planned
+- 실제 동작:
+  - Production app still uses the old schedule card structure until `구현커밋` executes this plan.
+- Mock:
+  - `mockup-current.html` contains the approved table-like schedule row layout and current visual direction.
+
+## 후행 실행
+
+- 기본 실행: 구현커밋
+- 계획 경로 처리: 구현커밋이 직전 대화, 계획 링크, active plan context에서 자동 탐지
+- 모호할 때: 후보 목록을 보여주고 Operator에게 선택 요청
+
+## HTML 생략 보고서
+
+- 판정: 생략 가능
+- 생략 사유:
+  - A review HTML already exists and is the direct source of truth: `docs/design/popover-redesign/mockup-current.html`.
+  - This plan is for production implementation of that approved mockup, not creation of a new visual direction.
+- 대체 검토물:
+  - [current popover mockup](../mockup-current.html)
+- 테스트 링크:
+  - Localhost: not required; static file review.
+  - Deploy: unavailable; no remote/deploy target configured.
+- 사용자가 바로 열어볼 링크:
+  - `/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/mockup-current.html`
+
+## 구현 후 검토 리스트
+
+- 회귀 확인:
+  - Popover opens and fits preferred content size.
+  - `Quick disable`, `Restore previous`, `Edit schedule`, `Resume schedule`, `Edit Shortcuts`, and `Open Control Window` still route correctly.
+  - `plainSummary` remains unchanged for schedule summaries.
+- 검증 확인:
+  - Focused `xcodebuild` test command passes.
+  - `git diff --check` passes.
+  - `actual-dark.png` and `actual-light.png` are refreshed and visually inspected.
+- 리뷰 관점:
+  - `review-all-in-one`: check for layout regressions, hidden side effects, and test gaps.
+  - `review-swarm`: optional visual/code risk pass if the AppKit table implementation is larger than expected.
+  - `qa-gate`: final focused test and capture verification.
+- Operator 재확인:
+  - User should visually confirm the production popover schedule table and section title weight in the generated captures or running app.
+
+## Validation
+
+- manual checks:
+  - Open `docs/design/popover-redesign/mockup-current.html` and compare the production capture after implementation.
+- lint/build/test scope:
+  - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests -only-testing:InnosDimmerTests/HotkeyBindingTests`
+  - `git diff --check`
+- scenario-to-surface checks:
+  - Schedule table visual: `actual-dark.png`, `actual-light.png`
+  - Section title weight: same captures plus direct code token check.
