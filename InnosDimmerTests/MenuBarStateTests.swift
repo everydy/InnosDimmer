@@ -247,6 +247,14 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarPopoverExposesScheduleStructureForTesting() {
+        let view = MenuBarPopoverView(state: .defaultState())
+
+        XCTAssertEqual(view.scheduleSummaryForTesting(), "09:00 · ☀ 80% · 🌡 12%\n19:00 · ☀ 45% · 🌡 32%\n23:00 · ☀ 25% · 🌡 58%")
+        XCTAssertEqual(view.popoverScheduleTableIdentifiersForTesting(), [])
+    }
+
+    @MainActor
     func testMenuBarPopoverTracksRouteAbsolutePercentageCommands() {
         var routedCommands: [MenuBarCommand] = []
         let view = MenuBarPopoverView(

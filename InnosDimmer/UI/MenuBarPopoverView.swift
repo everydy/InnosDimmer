@@ -1337,6 +1337,10 @@ final class MenuBarPopoverView: NSView {
         scheduleSummaryRowsView.plainSummary
     }
 
+    func popoverScheduleTableIdentifiersForTesting() -> [String] {
+        scheduleSummaryRowsView.flattenedAccessibilityIdentifiersForTesting()
+    }
+
     func scheduleStatusForTesting() -> String {
         [automationLabel.stringValue, scheduleStatusDetailLabel.stringValue]
             .filter { !$0.isEmpty }
@@ -1703,6 +1707,20 @@ final class MenuBarPopoverView: NSView {
 
     @objc private func openSettingsPressed() {
         actions.perform(.openSettings)
+    }
+}
+
+private extension NSView {
+    func flattenedAccessibilityIdentifiersForTesting() -> [String] {
+        var identifiers: [String] = []
+        let identifier = accessibilityIdentifier()
+        if !identifier.isEmpty {
+            identifiers.append(identifier)
+        }
+        for subview in subviews {
+            identifiers.append(contentsOf: subview.flattenedAccessibilityIdentifiersForTesting())
+        }
+        return identifiers
     }
 }
 
