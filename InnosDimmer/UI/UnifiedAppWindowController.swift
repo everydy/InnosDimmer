@@ -145,8 +145,6 @@ final class UnifiedAppWindowController: NSWindowController {
         static let sidebarWidth: CGFloat = 244
         static let sidebarButtonHeight: CGFloat = 58
         static let contentMinimumWidth: CGFloat = 560
-        static let detailSidebarWidth: CGFloat = 256
-        static let detailMinimumPrimaryWidth: CGFloat = 360
         static let tokenRowHeight: CGFloat = 34
         static let windowContentSize = NSSize(width: 900, height: 640)
     }
@@ -174,6 +172,8 @@ final class UnifiedAppWindowController: NSWindowController {
     private let actions: MenuBarActions
     private let scheduleActions: ScheduleEditorActions
     private let settingsActions: SettingsActions
+    private let headerStack = NSStackView()
+    private let headerSpacer = NSView()
     private let titleLabel = NSTextField(labelWithString: "")
     private let contentPane = NSView()
     private let statusLabel = NSTextField(labelWithString: "")
@@ -188,6 +188,8 @@ final class UnifiedAppWindowController: NSWindowController {
     private let blueReductionTrackView = ProgressTrackView()
     private let brightnessValueLabel = NSTextField(labelWithString: "")
     private let blueReductionValueLabel = NSTextField(labelWithString: "")
+    private var toastView: AppWindowToastView?
+    private var toastDismissWorkItem: DispatchWorkItem?
     private weak var homeQuickActionsSection: NSView?
     private weak var homeNextActionsSection: NSView?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
@@ -296,6 +298,18 @@ final class UnifiedAppWindowController: NSWindowController {
 
     func windowContentSizeForTesting() -> NSSize? {
         window?.contentView?.frame.size
+    }
+
+    func toastMessageForTesting() -> String? {
+        toastView?.message
+    }
+
+    func hasInlineStatusForTesting() -> Bool {
+        !statusLabel.isHidden
+    }
+
+    func copyDiagnosticsLogForTesting() {
+        copyDiagnosticsLogPressed()
     }
 
     func sidebarNavigationForTesting() -> [String] {
@@ -470,20 +484,22 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func makeHeader() -> NSView {
-        let header = NSStackView(views: [
+        headerStack.setViews([
             titleLabel,
-            spacer(),
+            headerSpacer,
             modeChip,
             loginChip
-        ])
-        header.orientation = .horizontal
-        header.alignment = .centerY
-        header.spacing = 10
-        return header
+        ], in: .leading)
+        headerStack.orientation = .horizontal
+        headerStack.alignment = .centerY
+        headerStack.spacing = 10
+        headerSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return headerStack
     }
 
     private func renderActivePage() {
-        titleLabel.stringValue = "InnosDimmer"
+        titleLabel.stringValue = activePage.title
+        syncHeaderChipsForActivePage()
         commandButtons.removeAll(keepingCapacity: true)
         pageButtons.removeAll(keepingCapacity: true)
         contentPane.subviews.forEach { $0.removeFromSuperview() }
@@ -565,36 +581,33 @@ final class UnifiedAppWindowController: NSWindowController {
         renderDisplayPicker()
         let resolvedDisplay = resolvedTargetDisplay()
         let resolvedTone: InnosDesignTokens.Tone = resolvedDisplay == nil ? .warning : .ready
-        let split = makeDetailSplit(
-            sidebar: makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
+        return makeDetailPage(
+            title: "Display",
+            content: verticalStack([
+            makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
                 makeSummaryRow(title: "Display", value: currentDisplaySummary()),
                 makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
                 makeSummaryRow(title: "Blue", value: "\(state.targetBlueReduction)%")
             ]),
-            primary: verticalStack([
-                makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
-                    displayPicker,
-                    makeSummaryRow(title: "Selection rule", value: targetDisplayRuleSummary()),
-                    makeSummaryRow(title: "Active target", value: resolvedDisplaySummary(resolvedDisplay)),
-                    makeSummaryRow(title: "Safety scope", value: targetDisplayScopeSummary(resolvedDisplay)),
-                    makeSummaryRow(title: "Blue reduction", value: gammaTableSummary(resolvedDisplay))
-                ]),
-                makeSection(title: "Saved selection", views: [
-                    makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
-                    makeActionRow([
-                        PopoverCommandButton(
-                            title: "Save display",
-                            style: .primary,
-                            target: self,
-                            action: #selector(saveDisplayPressed)
-                        )
-                    ])
+            makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
+                displayPicker,
+                makeSummaryRow(title: "Selection rule", value: targetDisplayRuleSummary()),
+                makeSummaryRow(title: "Active target", value: resolvedDisplaySummary(resolvedDisplay)),
+                makeSummaryRow(title: "Safety scope", value: targetDisplayScopeSummary(resolvedDisplay)),
+                makeSummaryRow(title: "Blue reduction", value: gammaTableSummary(resolvedDisplay))
+            ]),
+            makeSection(title: "Saved selection", views: [
+                makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
+                makeActionRow([
+                    PopoverCommandButton(
+                        title: "Save display",
+                        style: .primary,
+                        target: self,
+                        action: #selector(saveDisplayPressed)
+                    )
                 ])
             ])
-        )
-        return makeDetailPage(
-            title: "Display",
-            content: split
+            ])
         )
     }
 
@@ -658,11 +671,16 @@ final class UnifiedAppWindowController: NSWindowController {
     private func makeDiagnosticsPage() -> NSView {
         let content = verticalStack([
             makeSection(title: "Verification matrix", views: [
-                makeTokenRow(title: "Summary", value: diagnosticsMatrixSummary()),
-                makeTokenRow(title: "Overlay", value: verificationCheckmark()),
-                makeTokenRow(title: "Gamma", value: verificationCheckmark()),
-                makeTokenRow(title: "Hotkeys", value: verificationCheckmark()),
-                makeTokenRow(title: "Login item", value: verificationCheckmark())
+                makeSummaryTable(
+                    identifier: "Verification matrix",
+                    rows: [
+                        .init(title: "Summary", value: diagnosticsMatrixSummary()),
+                        .init(title: "Overlay", value: verificationCheckmark()),
+                        .init(title: "Gamma", value: verificationCheckmark()),
+                        .init(title: "Hotkeys", value: verificationCheckmark()),
+                        .init(title: "Login item", value: verificationCheckmark())
+                    ]
+                )
             ]),
             makeSection(title: "Recent diagnostics log", trailing: PopoverCommandButton(title: "Copy log", style: .normal, target: self, action: #selector(copyDiagnosticsLogPressed)), views: [
                 makeDiagnosticsCodeLogView()
@@ -683,12 +701,13 @@ final class UnifiedAppWindowController: NSWindowController {
         trailingActions: [NSView] = [],
         content: NSView
     ) -> NSView {
-        let pageTitle = NSTextField(labelWithString: title)
-        pageTitle.font = InnosDesignTokens.Font.app(ofSize: 22, weight: .bold)
-        pageTitle.textColor = .labelColor
-        pageTitle.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        _ = title
 
-        let header = NSStackView(views: [pageTitle, spacer()] + trailingActions)
+        guard !trailingActions.isEmpty else {
+            return content
+        }
+
+        let header = NSStackView(views: [spacer()] + trailingActions)
         header.identifier = NSUserInterfaceItemIdentifier("app-window-page-header")
         header.orientation = .horizontal
         header.alignment = .centerY
@@ -716,20 +735,6 @@ final class UnifiedAppWindowController: NSWindowController {
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
         return stack
-    }
-
-    private func makeDetailSplit(sidebar: NSView, primary: NSView) -> NSStackView {
-        let split = NSStackView(views: [sidebar, primary])
-        split.identifier = NSUserInterfaceItemIdentifier("app-window-detail-split")
-        split.orientation = .horizontal
-        split.alignment = .top
-        split.distribution = .fill
-        split.spacing = 12
-        sidebar.translatesAutoresizingMaskIntoConstraints = false
-        primary.translatesAutoresizingMaskIntoConstraints = false
-        sidebar.widthAnchor.constraint(equalToConstant: Layout.detailSidebarWidth).isActive = true
-        primary.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.detailMinimumPrimaryWidth).isActive = true
-        return split
     }
 
     private func makeTokenRow(title: String, value: String) -> NSView {
@@ -780,7 +785,7 @@ final class UnifiedAppWindowController: NSWindowController {
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
         scrollView.documentView = diagnosticsTextView
-        scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 220).isActive = true
+        scrollView.heightAnchor.constraint(equalToConstant: 150).isActive = true
         return scrollView
     }
 
@@ -955,6 +960,26 @@ final class UnifiedAppWindowController: NSWindowController {
             title: "Login item \(loginItemStatus == .enabled ? "on" : "off")",
             tone: loginItemStatus == .enabled ? .ready : .neutral
         )
+        syncHeaderChipsForActivePage()
+    }
+
+    private func syncHeaderChipsForActivePage() {
+        let isOverview = activePage == .home
+        if isOverview {
+            for chip in [modeChip, loginChip] where chip.superview == nil {
+                headerStack.addArrangedSubview(chip)
+            }
+            modeChip.isHidden = false
+            loginChip.isHidden = false
+            return
+        }
+
+        for chip in [modeChip, loginChip] {
+            if headerStack.arrangedSubviews.contains(chip) {
+                headerStack.removeArrangedSubview(chip)
+            }
+            chip.removeFromSuperview()
+        }
     }
 
     private func saveScheduleFromEditor(reportsStatus: Bool) -> Result<SettingsSnapshot, Error> {
@@ -1040,9 +1065,37 @@ final class UnifiedAppWindowController: NSWindowController {
     }
 
     private func report(_ message: String, isError: Bool = false) {
-        statusLabel.stringValue = message
-        statusLabel.textColor = isError ? .systemRed : .secondaryLabelColor
-        statusLabel.isHidden = false
+        statusLabel.isHidden = true
+        showToast(message, isError: isError)
+    }
+
+    private func showToast(_ message: String, isError: Bool = false) {
+        toastDismissWorkItem?.cancel()
+        toastView?.removeFromSuperview()
+
+        guard let contentView = window?.contentView else {
+            return
+        }
+
+        let toast = AppWindowToastView(message: message, isError: isError)
+        toast.identifier = NSUserInterfaceItemIdentifier("app-window-toast")
+        toast.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(toast)
+        NSLayoutConstraint.activate([
+            toast.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -InnosDesignTokens.Spacing.surfacePadding),
+            toast.topAnchor.constraint(equalTo: contentView.topAnchor, constant: InnosDesignTokens.Spacing.surfacePadding),
+            toast.widthAnchor.constraint(lessThanOrEqualToConstant: 360)
+        ])
+        toastView = toast
+
+        let dismissWorkItem = DispatchWorkItem { [weak self, weak toast] in
+            guard let self, self.toastView === toast else { return }
+            toast?.removeFromSuperview()
+            self.toastView = nil
+            self.toastDismissWorkItem = nil
+        }
+        toastDismissWorkItem = dismissWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4, execute: dismissWorkItem)
     }
 
     private func makeActionRow(_ buttons: [NSButton]) -> NSStackView {
@@ -1414,6 +1467,54 @@ final class UnifiedAppWindowController: NSWindowController {
         pasteboard.clearContents()
         pasteboard.setString(diagnosticsLogText(), forType: .string)
         report("Diagnostics log copied.")
+    }
+}
+
+@MainActor
+private final class AppWindowToastView: NSView {
+    let message: String
+    private let isError: Bool
+    private let label = NSTextField(labelWithString: "")
+
+    init(message: String, isError: Bool) {
+        self.message = message
+        self.isError = isError
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.cornerRadius = InnosDesignTokens.Radius.section
+        layer?.borderWidth = 1
+
+        label.stringValue = message
+        label.font = InnosDesignTokens.Font.bodyEmphasis
+        label.lineBreakMode = .byWordWrapping
+        label.maximumNumberOfLines = 2
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 10),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -10)
+        ])
+        setAccessibilityLabel(message)
+        updateColors()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
+    }
+
+    private func updateColors() {
+        let tone: InnosDesignTokens.Tone = isError ? .danger : .ready
+        label.textColor = InnosDesignTokens.foreground(for: tone, appearance: effectiveAppearance)
+        layer?.backgroundColor = InnosDesignTokens.background(for: tone, appearance: effectiveAppearance).cgColor
+        layer?.borderColor = InnosDesignTokens.border(for: tone, appearance: effectiveAppearance).cgColor
     }
 }
 

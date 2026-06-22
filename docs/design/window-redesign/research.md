@@ -1421,3 +1421,119 @@ xcodebuild test -scheme InnosDimmer -only-testing:InnosDimmerTests/MenuBarStateT
 ```
 
 Result: passed, 60 tests, 0 failures.
+
+## 2026-06-22 Detail Page Density And Toast Research
+
+## Goal
+
+Refine the unified native app window so detail page navigation feels stable inside the fixed window. The target is not only a fixed outer frame, but also consistent internal content density, page-specific headers, compact display/diagnostics layouts, and transient popup-style feedback for save/copy/export actions.
+
+## Scope And Entry Points
+
+- `UnifiedAppWindowController` detail pages:
+  - `renderActivePage()`
+  - `makeHeader()`
+  - `makeDisplayPage()`
+  - `makeDiagnosticsPage()`
+  - `makeDiagnosticsCodeLogView()`
+  - `report(_:, isError:)`
+- Component system:
+  - `InnosComponentFactory.summaryTable(entries:identifier:)`
+  - `InnosSummaryTableView`
+- Tests:
+  - `MenuBarStateTests` app-window structure and rendered-text tests
+
+## Relevant Files
+
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift`
+- `/Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift`
+- `/Users/moonsoo/projects/InnosDimmer/docs/design/window-redesign/app-window-componentized-mockup.html`
+
+## Current Behavior
+
+Confirmed facts:
+
+- The outer app window content size is fixed at `900x640` and tests already verify stable content size across pages.
+- `renderActivePage()` still sets `titleLabel.stringValue = "InnosDimmer"` every time, so the global header does not reflect the selected sidebar page.
+- `makeHeader()` always includes `modeChip` and `loginChip`, so detail pages show overview-level operational badges.
+- `makeDisplayPage()` still uses `makeDetailSplit(sidebar:primary:)`, creating a horizontal two-column layout even though the current content does not require it.
+- `makeDiagnosticsPage()` uses stacked token-row boxes for matrix details and a diagnostics log scroll view with `heightAnchor.constraint(greaterThanOrEqualToConstant: 220)`, which can make the page visually heavier than needed.
+- `report(_:, isError:)` writes inline feedback into `statusLabel`, which is inserted into `contentStack` above the page content.
+
+## Data Flow And Control Flow
+
+Navigation flow:
+
+1. Sidebar button calls `pageButtonPressed(_:)`.
+2. `activePage` changes.
+3. `renderActivePage()` clears `contentPane`, rebuilds the active page, updates sidebar selection, and updates live controls.
+4. The global header remains installed outside `contentPane`, so any always-visible header title/chip state affects every page.
+
+Feedback flow:
+
+1. Save/copy/export actions call `report(_:, isError:)`.
+2. `report` updates `statusLabel`.
+3. `statusLabel` becomes visible inside the main vertical stack.
+4. This inline label occupies layout space and can contribute to perceived vertical jumping after actions.
+
+## Existing Abstractions And Boundaries
+
+- Do not bypass `SettingsActions`, `ScheduleEditorActions`, or `MenuBarActions`; they own side effects.
+- Reuse `InnosComponentFactory.summaryTable` for compact row-based tables instead of creating new box-list variants.
+- Keep `diagnosticsTextView` selectable and copyable; it is the existing diagnostics log surface.
+- Keep `pageStructureForTesting(focus:)` as the native UI contract surface for tests.
+
+## Side Effects And Integration Points
+
+- Header title changes are visible across all app-window pages and should be asserted in tests.
+- Removing always-visible chips from detail pages should not remove the chips from the Overview page, because the user still wants that operational summary there.
+- Replacing inline feedback with a transient overlay must not block save/copy/export actions.
+- Diagnostics log height reduction must preserve scrollability and copyability.
+
+## Risk To Surrounding Systems
+
+- If `report` stops updating any visible surface and no toast is installed, save/copy/export feedback may disappear entirely.
+- If the toast overlay is added to `contentPane`, it may be removed during page navigation; it should be attached to the window content root or intentionally dismissed on render.
+- If `makeDisplayPage()` loses `displayPicker`, display saving tests can regress.
+- If diagnostics matrix rows are changed too broadly, existing tests that count checkmarks and identifiers may fail.
+
+## Do Not Duplicate Or Bypass
+
+- Do not create another display picker or settings store path.
+- Do not create another diagnostics exporter.
+- Do not create a separate app-window controller for this patch.
+- Do not duplicate table styling when `InnosSummaryTableView` already exists.
+
+## Open Questions
+
+- Whether users should be able to manually resize the app window in the future. Current implementation intentionally locks min/max size; this research keeps that constraint.
+- Whether toast duration should be configurable. Default plan uses a fixed short duration because the app is personal-use and the user asked for auto-dismiss.
+
+## Plan Implications
+
+- Update `renderActivePage()` so the header title is `activePage.title`.
+- Hide `modeChip` and `loginChip` for detail pages; keep them visible only for `.home`.
+- Convert Display from split layout to vertical sections: Current state, Target display, Saved selection.
+- Convert Diagnostics matrix to `summaryTable` and reduce diagnostics log height to a fixed compact scroll area.
+- Replace `statusLabel` inline feedback with an overlay toast that auto-dismisses after a short delay.
+- Update `MenuBarStateTests` to lock these contracts.
+
+## Source Evaluation
+
+- Strongest source: local code and focused UI tests in the InnosDimmer repo.
+- External sources: not needed for this pass. The issue is current AppKit view composition and a user-specific UX preference, not a fast-changing external API.
+- Adoption decision: Adopt local-evidence implementation. Watch future need for a more native notification/toast abstraction only if more windows need the same behavior.
+
+## Evidence
+
+Commands run:
+
+```bash
+rg -n "report\\(|statusLabel|modeChip|loginChip|makeHeader|makeDetailSplit|makeSummaryTable|diagnosticsMatrixSummary|copyDiagnosticsLogPressed|saveDisplayPressed|saveSchedulePressed|saveShortcutsPressed|loginItemToggled|exportDiagnosticsPressed" /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift /Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift
+sed -n '360,760p' /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift
+sed -n '760,1160p' /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift
+sed -n '1220,1425p' /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/UnifiedAppWindowController.swift
+sed -n '220,430p' /Users/moonsoo/projects/InnosDimmer/InnosDimmer/UI/DesignSystem/InnosDesignComponents.swift
+sed -n '620,960p' /Users/moonsoo/projects/InnosDimmer/InnosDimmerTests/MenuBarStateTests.swift
+```

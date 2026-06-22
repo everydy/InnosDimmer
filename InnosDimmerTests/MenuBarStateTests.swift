@@ -692,7 +692,8 @@ final class MenuBarStateTests: XCTestCase {
             "Quick actions",
             "Disable",
             "Restore",
-            "Open app window"
+            "Open app window",
+            "Login item on"
         ])
     }
 
@@ -739,10 +740,10 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testUnifiedAppWindowDisplayUsesSplitLayoutButSettingsStaysSinglePurpose() {
+    func testUnifiedAppWindowDisplayAndSettingsStaySingleColumn() {
         let controller = makeMockupAcceptanceController()
 
-        XCTAssertTrue(controller.pageStructureForTesting(focus: .display).usesSplitLayout)
+        XCTAssertFalse(controller.pageStructureForTesting(focus: .display).usesSplitLayout)
         XCTAssertFalse(controller.pageStructureForTesting(focus: .settings).usesSplitLayout)
         XCTAssertFalse(controller.pageStructureForTesting(focus: .schedule).usesSplitLayout)
     }
@@ -842,10 +843,24 @@ final class MenuBarStateTests: XCTestCase {
         ])
         XCTAssertEqual(structure.visibleText.filter { $0 == "✓" }.count, 4)
         XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-stack"))
+        XCTAssertTrue(structure.containsIdentifier("app-window-summary-table:Verification matrix"))
+        XCTAssertTrue(structure.containsIdentifier("app-window-summary-table:Verification matrix:Summary"))
         XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-code-log"))
         XCTAssertTrue(structure.containsIdentifier("app-window-diagnostics-code-log-text"))
         XCTAssertTrue(structure.compactActionLabels.contains("Export diagnostics"))
         XCTAssertTrue(structure.compactActionLabels.contains("Copy log"))
+    }
+
+    @MainActor
+    func testUnifiedAppWindowUsesToastFeedbackInsteadOfInlineStatus() throws {
+        let controller = makeMockupAcceptanceController()
+
+        controller.focus(.diagnostics)
+        controller.copyDiagnosticsLogForTesting()
+
+        XCTAssertEqual(controller.toastMessageForTesting(), "Diagnostics log copied.")
+        XCTAssertFalse(controller.hasInlineStatusForTesting())
+        XCTAssertTrue(controller.pageStructureForTesting(focus: .diagnostics).containsIdentifier("app-window-toast"))
     }
 
     @MainActor
@@ -858,7 +873,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Overview"))
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Current status"))
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
-        XCTAssertTrue(current.containsIdentifier("app-window-page-header"))
+        XCTAssertFalse(current.containsIdentifier("app-window-page-header"))
         XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
         XCTAssertTrue(current.containsIdentifier("app-window-command:Open popover"))
         XCTAssertTrue(current.containsIdentifier("app-window-command:Resume automation"))
@@ -870,7 +885,8 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertFalse(current.containsText("Rows and pause state."))
 
         let display = controller.pageStructureForTesting(focus: .display)
-        XCTAssertTrue(display.containsIdentifier("app-window-detail-split"))
+        XCTAssertFalse(display.containsIdentifier("app-window-detail-split"))
+        XCTAssertTrue(display.containsIdentifier("app-window-section:Current state"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Target display"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Saved selection"))
         XCTAssertFalse(display.containsText("Refresh displays"))
