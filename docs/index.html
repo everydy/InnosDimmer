@@ -432,6 +432,13 @@
       align-items: start;
     }
 
+    .shortcut-layout h2 {
+      max-width: 16ch;
+      font-size: clamp(2rem, 3.2vw, 3.2rem);
+      line-height: 1.08;
+      overflow-wrap: anywhere;
+    }
+
     .shortcut-note {
       border-left: 4px solid var(--teal);
       padding: 2px 0 2px 18px;
@@ -783,7 +790,7 @@
       <div class="shell shortcut-layout">
         <div>
           <p class="kicker">Shortcuts</p>
-          <h2>Custom shortcuts, not native key interception.</h2>
+          <h2>Custom shortcuts, not native brightness keys.</h2>
           <p class="shortcut-note">InnosDimmer avoids native brightness/media key interception. The defaults use Option + Shift combinations for explicit app-level control.</p>
         </div>
         <table class="shortcut-table">
