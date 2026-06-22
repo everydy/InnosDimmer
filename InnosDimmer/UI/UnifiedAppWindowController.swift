@@ -194,6 +194,7 @@ final class UnifiedAppWindowController: NSWindowController {
     private var toastDismissWorkItem: DispatchWorkItem?
     private weak var homeQuickActionsSection: NSView?
     private weak var homeNextActionsSection: NSView?
+    private weak var sidebarOpenPopoverButton: NSButton?
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var pageButtons: [UnifiedAppWindowPage: NSButton] = [:]
     private var sidebarButtons: [UnifiedAppWindowPage: AppWindowSidebarButton] = [:]
@@ -264,6 +265,10 @@ final class UnifiedAppWindowController: NSWindowController {
 
     func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
         commandButtons[command]
+    }
+
+    func sidebarOpenPopoverButtonForTesting() -> NSButton? {
+        sidebarOpenPopoverButton
     }
 
     func activePageForTesting() -> String {
@@ -464,12 +469,12 @@ final class UnifiedAppWindowController: NSWindowController {
             return button
         }
         let buttonViews: [NSView] = buttons
+        let navigationStack = NSStackView(views: buttonViews)
+        navigationStack.orientation = .vertical
+        navigationStack.alignment = .width
+        navigationStack.spacing = 8
+        navigationStack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar")
 
-        let stack = NSStackView(views: buttonViews + [spacer()])
-        stack.orientation = .vertical
-        stack.alignment = .width
-        stack.spacing = 8
-        stack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar")
         let openPopoverButton = PopoverCommandButton(
             title: "Open popover",
             style: .primary,
@@ -478,13 +483,29 @@ final class UnifiedAppWindowController: NSWindowController {
         )
         openPopoverButton.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-action:Open popover")
         openPopoverButton.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
-        stack.addArrangedSubview(openPopoverButton)
+        sidebarOpenPopoverButton = openPopoverButton
+
+        let actionZone = NSStackView(views: [openPopoverButton])
+        actionZone.orientation = .vertical
+        actionZone.alignment = .width
+        actionZone.spacing = 8
+        actionZone.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-action-zone")
+
+        let stack = NSStackView(views: [navigationStack, verticalSpacer(), actionZone])
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 12
+        stack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-container-stack")
+        navigationStack.translatesAutoresizingMaskIntoConstraints = false
+        navigationStack.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        actionZone.translatesAutoresizingMaskIntoConstraints = false
+        actionZone.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         buttonViews.forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
-            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            view.widthAnchor.constraint(equalTo: navigationStack.widthAnchor).isActive = true
         }
         openPopoverButton.translatesAutoresizingMaskIntoConstraints = false
-        openPopoverButton.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        openPopoverButton.widthAnchor.constraint(equalTo: actionZone.widthAnchor).isActive = true
 
         let container = SidebarContainerView(content: stack)
         container.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-container")
@@ -1149,6 +1170,13 @@ final class UnifiedAppWindowController: NSWindowController {
     private func spacer() -> NSView {
         let view = NSView()
         view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        return view
+    }
+
+    private func verticalSpacer() -> NSView {
+        let view = NSView()
+        view.setContentHuggingPriority(.defaultLow, for: .vertical)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         return view
     }
 

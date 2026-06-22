@@ -664,6 +664,32 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testUnifiedAppWindowSidebarOpenPopoverButtonRoutesCommand() throws {
+        var routedCommands: [MenuBarCommand] = []
+        let controller = UnifiedAppWindowController(
+            actions: MenuBarActions { command in
+                routedCommands.append(command)
+            }
+        )
+        controller.update(
+            state: .defaultState(),
+            schedule: ScheduleEntry.defaultSchedule,
+            shortcuts: ShortcutBinding.defaultBindings,
+            events: []
+        )
+
+        let structure = controller.pageStructureForTesting(focus: .home)
+        XCTAssertTrue(structure.containsIdentifier("app-window-sidebar-action-zone"))
+        XCTAssertTrue(structure.containsIdentifier("app-window-sidebar-action:Open popover"))
+
+        let button = try XCTUnwrap(controller.sidebarOpenPopoverButtonForTesting())
+        XCTAssertEqual(button.title, "Open popover")
+        button.performClick(nil)
+
+        XCTAssertEqual(routedCommands, [.openPopover])
+    }
+
+    @MainActor
     func testUnifiedAppWindowKeepsStableContentSizeAcrossDetailPages() throws {
         let controller = makeMockupAcceptanceController()
         controller.focus(.home)
@@ -884,6 +910,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
         XCTAssertFalse(current.containsIdentifier("app-window-page-header"))
         XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-action-zone"))
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-action:Open popover"))
         XCTAssertFalse(current.containsIdentifier("app-window-command:Open popover"))
         XCTAssertFalse(current.containsIdentifier("app-window-command:Resume automation"))
