@@ -175,6 +175,8 @@ final class UnifiedAppWindowController: NSWindowController {
     private let headerStack = NSStackView()
     private let headerSpacer = NSView()
     private let titleLabel = NSTextField(labelWithString: "")
+    private let scheduleNextChip = InnosStatusChipView(title: "Next 09:00", tone: .warning)
+    private let exportDiagnosticsHeaderButton = PopoverCommandButton(title: "Export diagnostics", style: .primary, target: nil, action: nil)
     private let contentPane = NSView()
     private let statusLabel = NSTextField(labelWithString: "")
     private let modeChip = InnosStatusChipView(title: "Software dimming ready", tone: .neutral)
@@ -400,6 +402,9 @@ final class UnifiedAppWindowController: NSWindowController {
         diagnosticsTextView.isSelectable = true
         diagnosticsTextView.font = InnosDesignTokens.Font.app(ofSize: 12)
         diagnosticsTextView.drawsBackground = true
+        exportDiagnosticsHeaderButton.target = self
+        exportDiagnosticsHeaderButton.action = #selector(exportDiagnosticsPressed)
+        exportDiagnosticsHeaderButton.identifier = NSUserInterfaceItemIdentifier("app-window-header-action:Export diagnostics")
         brightnessTrackView.onUserFractionChange = { [weak self] fraction in
             self?.actions.perform(.setBrightness(Self.percent(from: fraction)))
         }
@@ -465,10 +470,21 @@ final class UnifiedAppWindowController: NSWindowController {
         stack.alignment = .width
         stack.spacing = 8
         stack.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar")
+        let openPopoverButton = PopoverCommandButton(
+            title: "Open popover",
+            style: .primary,
+            target: self,
+            action: #selector(openPopoverPressed)
+        )
+        openPopoverButton.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-action:Open popover")
+        openPopoverButton.heightAnchor.constraint(greaterThanOrEqualToConstant: PopoverCommandButton.minimumHeight).isActive = true
+        stack.addArrangedSubview(openPopoverButton)
         buttonViews.forEach { view in
             view.translatesAutoresizingMaskIntoConstraints = false
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
+        openPopoverButton.translatesAutoresizingMaskIntoConstraints = false
+        openPopoverButton.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         let container = SidebarContainerView(content: stack)
         container.identifier = NSUserInterfaceItemIdentifier("app-window-sidebar-container")
@@ -491,7 +507,7 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func renderActivePage() {
         titleLabel.stringValue = activePage.title
-        syncHeaderChipsForActivePage()
+        syncHeaderForActivePage()
         commandButtons.removeAll(keepingCapacity: true)
         pageButtons.removeAll(keepingCapacity: true)
         contentPane.subviews.forEach { $0.removeFromSuperview() }
@@ -550,20 +566,8 @@ final class UnifiedAppWindowController: NSWindowController {
         makeDetailPage(
             title: "Current status",
             content: verticalStack([
-                makeSection(title: "Snapshot lines", trailing: makeChip("Live", tone: .neutral), views: [
-                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
-                makeSummaryRow(title: "Mode", value: displayModeSummary()),
-                makeSummaryRow(
-                    title: "Brightness",
-                    value: "Brightness: \(state.targetBrightness)% / Warmth: \(state.targetBlueReduction)%"
-                ),
-                makeSummaryRow(title: "Automation", value: automationSummary())
-                ]),
-                makeSection(title: "Commands", views: [
-                    makeActionRow([
-                        button("Open popover", command: .openPopover, action: #selector(openPopoverPressed), style: .primary),
-                        button(automationActionTitle(), command: automationActionCommand, action: #selector(automationActionPressed))
-                    ])
+                makeSection(title: "Current state", trailing: makeChip("Live", tone: .neutral), views: [
+                    makeCurrentStateTable(identifier: "Current status")
                 ])
             ])
         )
@@ -577,9 +581,7 @@ final class UnifiedAppWindowController: NSWindowController {
             title: "Display",
             content: verticalStack([
             makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
-                makeSummaryRow(title: "Display", value: currentDisplaySummary()),
-                makeSummaryRow(title: "Brightness", value: "\(state.targetBrightness)%"),
-                makeSummaryRow(title: "Warmth", value: "\(state.targetBlueReduction)%")
+                makeCurrentStateTable(identifier: "Display current state")
             ]),
             makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
                 displayPicker,
@@ -611,9 +613,6 @@ final class UnifiedAppWindowController: NSWindowController {
         controls.identifier = NSUserInterfaceItemIdentifier("app-window-schedule-actions")
         return makeDetailPage(
             title: "Schedule",
-            trailingActions: [
-                makeChip(nextScheduleBadgeText(), tone: .warning)
-            ],
             content: verticalStack([
                 makeSection(title: "Schedule", views: [
                     makeSummaryTable(
@@ -681,40 +680,16 @@ final class UnifiedAppWindowController: NSWindowController {
         content.identifier = NSUserInterfaceItemIdentifier("app-window-diagnostics-stack")
         return makeDetailPage(
             title: "Diagnostics",
-            trailingActions: [
-                PopoverCommandButton(title: "Export diagnostics", style: .primary, target: self, action: #selector(exportDiagnosticsPressed))
-            ],
             content: content
         )
     }
 
     private func makeDetailPage(
         title: String,
-        trailingActions: [NSView] = [],
         content: NSView
     ) -> NSView {
         _ = title
-
-        guard !trailingActions.isEmpty else {
-            return content
-        }
-
-        let header = NSStackView(views: [spacer()] + trailingActions)
-        header.identifier = NSUserInterfaceItemIdentifier("app-window-page-header")
-        header.orientation = .horizontal
-        header.alignment = .centerY
-        header.spacing = 12
-        trailingActions.forEach { $0.setContentHuggingPriority(.required, for: .horizontal) }
-
-        let stack = NSStackView(views: [header, content])
-        stack.orientation = .vertical
-        stack.alignment = .width
-        stack.spacing = 12
-        [header, content].forEach { view in
-            view.translatesAutoresizingMaskIntoConstraints = false
-            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        }
-        return stack
+        return content
     }
 
     private func verticalStack(_ views: [NSView], spacing: CGFloat = 12) -> NSStackView {
@@ -755,6 +730,19 @@ final class UnifiedAppWindowController: NSWindowController {
 
     private func makeSummaryTable(identifier: String, rows: [InnosSummaryTableEntry]) -> NSView {
         InnosComponentFactory.summaryTable(entries: rows, identifier: identifier)
+    }
+
+    private func makeCurrentStateTable(identifier: String) -> NSView {
+        makeSummaryTable(
+            identifier: identifier,
+            rows: [
+                .init(title: "Display", value: currentDisplaySummary()),
+                .init(title: "Mode", value: displayModeSummary()),
+                .init(title: "Brightness", value: "\(state.targetBrightness)%"),
+                .init(title: "Warmth", value: "\(state.targetBlueReduction)%"),
+                .init(title: "Automation", value: automationSummary())
+            ]
+        )
     }
 
     private func makeDiagnosticsCodeLogView() -> NSView {
@@ -949,26 +937,24 @@ final class UnifiedAppWindowController: NSWindowController {
             title: "Login item \(loginItemStatus == .enabled ? "on" : "off")",
             tone: loginItemStatus == .enabled ? .ready : .neutral
         )
-        syncHeaderChipsForActivePage()
+        syncHeaderForActivePage()
     }
 
-    private func syncHeaderChipsForActivePage() {
-        let isOverview = activePage == .home
-        if isOverview {
-            for chip in [modeChip, loginChip] where chip.superview == nil {
-                headerStack.addArrangedSubview(chip)
-            }
-            modeChip.isHidden = false
-            loginChip.isHidden = false
-            return
+    private func syncHeaderForActivePage() {
+        scheduleNextChip.update(title: nextScheduleBadgeText(), tone: .warning)
+        let trailingViews: [NSView]
+        switch activePage {
+        case .home:
+            trailingViews = [modeChip, loginChip]
+        case .schedule:
+            trailingViews = [scheduleNextChip]
+        case .diagnostics:
+            trailingViews = [exportDiagnosticsHeaderButton]
+        case .current, .display, .shortcuts, .settings:
+            trailingViews = []
         }
-
-        for chip in [modeChip, loginChip] {
-            if headerStack.arrangedSubviews.contains(chip) {
-                headerStack.removeArrangedSubview(chip)
-            }
-            chip.removeFromSuperview()
-        }
+        headerStack.setViews([titleLabel, headerSpacer] + trailingViews, in: .leading)
+        trailingViews.forEach { $0.setContentHuggingPriority(.required, for: .horizontal) }
     }
 
     private func saveScheduleFromEditor(reportsStatus: Bool) -> Result<SettingsSnapshot, Error> {

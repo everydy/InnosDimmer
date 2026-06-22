@@ -684,7 +684,7 @@ final class MenuBarStateTests: XCTestCase {
 
         assert(text, contains: [
             "Current status",
-            "Snapshot lines",
+            "Current state",
             "Display",
             "INNOS 27QA100M",
             "Mode",
@@ -692,16 +692,16 @@ final class MenuBarStateTests: XCTestCase {
             "Brightness",
             "Warmth",
             "Automation",
-            "Paused until 19:00",
-            "Commands",
-            "Open popover",
-            "Resume automation"
+            "Paused until 19:00"
         ])
         assert(text, doesNotContain: [
             "Quick actions",
+            "Commands",
             "Disable",
             "Restore",
             "Open app window",
+            "Pause automation",
+            "Resume automation",
             "Login item on"
         ])
     }
@@ -715,8 +715,12 @@ final class MenuBarStateTests: XCTestCase {
             "Display",
             "Current state",
             "INNOS 27QA100M",
+            "Mode",
+            "Overlay active",
             "Brightness",
             "Warmth",
+            "Automation",
+            "Paused until 19:00",
             "Target display",
             "Selection rule",
             "Automatic external display, preferring a non-main monitor",
@@ -727,8 +731,6 @@ final class MenuBarStateTests: XCTestCase {
             "Save display"
         ])
         assert(text, doesNotContain: [
-            "Mode",
-            "Software overlay",
             "Main display",
             "Refresh displays",
             "Use automatic"
@@ -882,11 +884,13 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
         XCTAssertFalse(current.containsIdentifier("app-window-page-header"))
         XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
-        XCTAssertTrue(current.containsIdentifier("app-window-command:Open popover"))
-        XCTAssertTrue(current.containsIdentifier("app-window-command:Resume automation"))
+        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-action:Open popover"))
+        XCTAssertFalse(current.containsIdentifier("app-window-command:Open popover"))
+        XCTAssertFalse(current.containsIdentifier("app-window-command:Resume automation"))
         XCTAssertFalse(current.containsIdentifier("app-window-command:Settings"))
-        XCTAssertTrue(current.containsIdentifier("app-window-section:Snapshot lines"))
-        XCTAssertTrue(current.containsIdentifier("app-window-section:Commands"))
+        XCTAssertTrue(current.containsIdentifier("app-window-section:Current state"))
+        XCTAssertTrue(current.containsIdentifier("app-window-summary-table:Current status"))
+        XCTAssertFalse(current.containsIdentifier("app-window-section:Commands"))
         XCTAssertFalse(current.containsText("Quick controls and status."))
         XCTAssertFalse(current.containsText("Target monitor."))
         XCTAssertFalse(current.containsText("Rows and pause state."))
@@ -894,6 +898,7 @@ final class MenuBarStateTests: XCTestCase {
         let display = controller.pageStructureForTesting(focus: .display)
         XCTAssertFalse(display.containsIdentifier("app-window-detail-split"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Current state"))
+        XCTAssertTrue(display.containsIdentifier("app-window-summary-table:Display current state"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Target display"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Saved selection"))
         XCTAssertFalse(display.containsText("Refresh displays"))
@@ -918,6 +923,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Status"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Current"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Shortcuts"))
+        XCTAssertTrue(schedule.containsText("Next 19:00"))
         XCTAssertTrue(schedule.containsText("Resume automation"))
         XCTAssertTrue(schedule.containsText("Save schedule"))
         XCTAssertFalse(schedule.containsText("Remove"))
@@ -932,6 +938,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-stack"))
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Verification matrix"))
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-section:Recent diagnostics log"))
+        XCTAssertTrue(diagnostics.containsIdentifier("app-window-header-action:Export diagnostics"))
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-code-log"))
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-code-log-text"))
         XCTAssertTrue(diagnostics.containsText("Copy log"))
