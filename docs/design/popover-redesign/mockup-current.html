@@ -391,31 +391,30 @@
       line-height: 1.35;
     }
 
-    .schedule-rows {
-      display: grid;
-      gap: 6px;
+    .schedule-table {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--subtle);
     }
 
     .schedule-row {
       display: grid;
-      grid-template-columns: 60px max-content max-content 1fr;
+      grid-template-columns: 62px 54px 1fr;
       gap: 10px;
       align-items: center;
       min-height: 34px;
+      padding: 0 8px;
+      background: var(--subtle);
     }
 
-    .time-pill {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 60px;
-      min-height: 24px;
-      padding: 4px 8px;
-      border: 1px solid var(--control-border);
-      border-radius: 8px;
-      background: var(--section);
+    .schedule-row + .schedule-row {
+      border-top: 1px solid var(--border);
+    }
+
+    .schedule-time {
       color: var(--secondary);
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 560;
       line-height: 1;
       font-variant-numeric: tabular-nums;
@@ -587,24 +586,21 @@
           <p class="status-title" data-automation-title>Paused until 19:00</p>
         </div>
 
-        <div class="schedule-rows">
-          <div class="subtle-card schedule-row">
-            <span class="time-pill">09:00</span>
+        <div class="schedule-table">
+          <div class="schedule-row">
+            <span class="schedule-time">09:00</span>
             <span class="metric"><span class="metric-icon sun">☀</span><span>80%</span></span>
             <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>12%</span></span>
-            <span></span>
           </div>
-          <div class="subtle-card schedule-row">
-            <span class="time-pill">19:00</span>
+          <div class="schedule-row">
+            <span class="schedule-time">19:00</span>
             <span class="metric"><span class="metric-icon sun">☀</span><span>45%</span></span>
             <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>32%</span></span>
-            <span></span>
           </div>
-          <div class="subtle-card schedule-row">
-            <span class="time-pill">23:00</span>
+          <div class="schedule-row">
+            <span class="schedule-time">23:00</span>
             <span class="metric"><span class="metric-icon sun">☀</span><span>25%</span></span>
             <span class="metric"><span class="metric-icon thermo" aria-hidden="true"></span><span>58%</span></span>
-            <span></span>
           </div>
         </div>
 
