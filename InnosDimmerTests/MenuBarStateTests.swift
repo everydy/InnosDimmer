@@ -1101,12 +1101,13 @@ final class MenuBarStateTests: XCTestCase {
     @MainActor
     func testMenuBarPopoverUsesContentFitSizeWithoutBottomSlack() {
         let view = MenuBarPopoverView(state: .defaultState())
+        let fittedSize = view.fittedContentSizeForPopover()
 
-        XCTAssertEqual(view.frame.size.width, MenuBarPopoverView.preferredContentSize.width)
-        XCTAssertEqual(view.frame.size.height, MenuBarPopoverView.preferredContentSize.height)
+        XCTAssertEqual(view.frame.size.width, fittedSize.width)
+        XCTAssertEqual(view.frame.size.height, fittedSize.height, accuracy: 1)
         XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.width, 420)
-        XCTAssertGreaterThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 745)
-        XCTAssertLessThanOrEqual(MenuBarPopoverView.preferredContentSize.height, 755)
+        XCTAssertLessThan(view.frame.size.height, MenuBarPopoverView.preferredContentSize.height)
+        XCTAssertEqual(view.popoverBottomInsetForTesting(), 16, accuracy: 1)
     }
 
     @MainActor
@@ -1123,6 +1124,8 @@ final class MenuBarStateTests: XCTestCase {
 
             XCTAssertLessThanOrEqual(view.fittingSize.width, MenuBarPopoverView.preferredContentSize.width)
             XCTAssertLessThanOrEqual(view.fittingSize.height, MenuBarPopoverView.preferredContentSize.height)
+            XCTAssertEqual(view.frame.size.height, view.fittedContentSizeForPopover().height, accuracy: 1)
+            XCTAssertEqual(view.popoverBottomInsetForTesting(), 16, accuracy: 1)
         }
     }
 

@@ -80,9 +80,8 @@ final class MenuBarController: NSObject {
         statusItem.button?.action = #selector(togglePopover)
         popover.behavior = .transient
         popover.delegate = self
-        popover.contentSize = MenuBarPopoverView.preferredContentSize
         popover.contentViewController = NSViewController()
-        popover.contentViewController?.view = MenuBarPopoverView(
+        let popoverView = MenuBarPopoverView(
             state: initialState,
             schedule: scheduleEntries,
             shortcuts: shortcutBindings,
@@ -91,6 +90,8 @@ final class MenuBarController: NSObject {
                 self?.perform(command)
             }
         )
+        popover.contentViewController?.view = popoverView
+        popover.contentSize = popoverView.frame.size
         registerPopoverDismissObservers()
         if registersHotkeysOnStart {
             registerHotkeys()
@@ -551,6 +552,7 @@ final class MenuBarController: NSObject {
             shortcuts: shortcutBindings,
             latestDiagnosticEvent: diagnosticsStore.latestEvent
         )
+        popover.contentSize = view.frame.size
     }
 
     private func refreshAppWindow() {

@@ -1287,6 +1287,10 @@ struct MenuBarViewModel: Equatable {
 
 final class MenuBarPopoverView: NSView {
     static let preferredContentSize = NSSize(width: 428, height: 749)
+    private enum Layout {
+        static let contentWidth: CGFloat = 428
+        static let outerInset: CGFloat = 16
+    }
 
     private let modeBadge: BadgePillView
     private let quickControlsBadge: BadgePillView
@@ -1305,6 +1309,7 @@ final class MenuBarPopoverView: NSView {
     private var commandButtons: [MenuBarCommand: NSButton] = [:]
     private var automationActionCommand: MenuBarCommand = .pauseAutomation
     private weak var automationActionButton: NSButton?
+    private weak var contentStack: NSStackView?
 
     init(
         state: BrightnessState,
@@ -1365,6 +1370,28 @@ final class MenuBarPopoverView: NSView {
         diagnosticsSummaryLabel.stringValue = viewModel.diagnosticsSummary
         brightnessTrackView.fraction = CGFloat(state.targetBrightness) / 100
         blueReductionTrackView.fraction = CGFloat(state.targetBlueReduction) / 100
+        applyFittingContentSizeForPopover()
+    }
+
+    @discardableResult
+    func applyFittingContentSizeForPopover() -> NSSize {
+        let size = fittedContentSizeForPopover()
+        setFrameSize(size)
+        needsLayout = true
+        layoutSubtreeIfNeeded()
+        return size
+    }
+
+    func fittedContentSizeForPopover() -> NSSize {
+        if frame.width != Layout.contentWidth {
+            setFrameSize(NSSize(width: Layout.contentWidth, height: max(frame.height, 1)))
+        }
+        needsLayout = true
+        layoutSubtreeIfNeeded()
+
+        let contentHeight = contentStack?.fittingSize.height ?? fittingSize.height
+        let height = ceil(contentHeight + (Layout.outerInset * 2))
+        return NSSize(width: Layout.contentWidth, height: height)
     }
 
     func commandButtonForTesting(_ command: MenuBarCommand) -> NSButton? {
@@ -1405,6 +1432,14 @@ final class MenuBarPopoverView: NSView {
 
     func popoverScheduleRowHeightsForTesting() -> [CGFloat] {
         scheduleSummaryRowsView.rowHeightsForTesting()
+    }
+
+    func popoverBottomInsetForTesting() -> CGFloat {
+        layoutSubtreeIfNeeded()
+        guard let contentStack else {
+            return 0
+        }
+        return contentStack.frame.minY - bounds.minY
     }
 
     func popoverVisibleTextForTesting() -> String {
@@ -1533,6 +1568,7 @@ final class MenuBarPopoverView: NSView {
         stack.alignment = .width
         stack.spacing = 12
         stack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack = stack
 
         addSubview(stack)
         arrangedSubviews.forEach { view in
