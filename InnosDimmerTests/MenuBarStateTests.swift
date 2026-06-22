@@ -251,7 +251,22 @@ final class MenuBarStateTests: XCTestCase {
         let view = MenuBarPopoverView(state: .defaultState())
 
         XCTAssertEqual(view.scheduleSummaryForTesting(), "09:00 · ☀ 80% · 🌡 12%\n19:00 · ☀ 45% · 🌡 32%\n23:00 · ☀ 25% · 🌡 58%")
-        XCTAssertEqual(view.popoverScheduleTableIdentifiersForTesting(), [])
+        let identifiers = view.popoverScheduleTableIdentifiersForTesting()
+        XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-table" }.count, 1)
+        XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-row" }.count, 3)
+        XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-time" }.count, 3)
+        XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-divider" }.count, 2)
+
+        let visibleText = view.popoverVisibleTextForTesting()
+        XCTAssertTrue(visibleText.contains("AUTO"))
+        XCTAssertFalse(visibleText.contains("ENABLED"))
+
+        var pausedState = BrightnessState.defaultState()
+        pausedState.automationPausedUntilNextBoundary = true
+        let pausedView = MenuBarPopoverView(state: pausedState)
+        let pausedVisibleText = pausedView.popoverVisibleTextForTesting()
+        XCTAssertTrue(pausedVisibleText.contains("MANUAL"))
+        XCTAssertFalse(pausedVisibleText.contains("ENABLED"))
     }
 
     @MainActor

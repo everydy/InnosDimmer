@@ -434,9 +434,14 @@ private final class ScheduleSummaryRowsView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.cornerRadius = 7
+        layer?.borderWidth = 1
+        layer?.masksToBounds = true
+        setAccessibilityIdentifier("popover-schedule-table")
         stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 6
+        stack.alignment = .width
+        stack.spacing = 0
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         NSLayoutConstraint.activate([
@@ -445,10 +450,16 @@ private final class ScheduleSummaryRowsView: NSView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
+        updateColors()
     }
 
     required init?(coder: NSCoder) {
         nil
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateColors()
     }
 
     func update(schedule: [ScheduleEntry]) {
@@ -469,15 +480,20 @@ private final class ScheduleSummaryRowsView: NSView {
         plainSummary = entries.map { entry in
             "\(Self.timeLabel(for: entry.minuteOfDay)) · ☀ \(entry.brightness)% · 🌡 \(entry.blueReduction)%"
         }.joined(separator: "\n")
-        entries.map(Self.rowView(for:)).forEach { row in
+        entries.enumerated().forEach { index, entry in
+            let row = Self.rowView(for: entry)
             stack.addArrangedSubview(row)
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            if index < entries.count - 1 {
+                let divider = Self.dividerView()
+                stack.addArrangedSubview(divider)
+                divider.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            }
         }
     }
 
     private static func rowView(for entry: ScheduleEntry) -> NSView {
-        let time = pillLabel(timeLabel(for: entry.minuteOfDay))
-        time.widthAnchor.constraint(equalToConstant: 60).isActive = true
-
+        let time = timeView(timeLabel(for: entry.minuteOfDay))
         let brightness = metricView(
             systemSymbolName: "sun.max.fill",
             fallback: "☀",
@@ -491,14 +507,40 @@ private final class ScheduleSummaryRowsView: NSView {
             iconColor: PopoverPalette.warningColor(for: NSApp.effectiveAppearance)
         )
 
-        let row = NSStackView(views: [time, brightness, warmth, spacer()])
+        let row = NSStackView(views: [
+            centeredCell(time),
+            centeredCell(brightness),
+            centeredCell(warmth)
+        ])
         row.orientation = .horizontal
         row.alignment = .centerY
-        row.spacing = 10
+        row.distribution = .fillEqually
+        row.spacing = 0
         row.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let container = PopoverContainerView(style: .subtle, content: row)
+        let container = NSView()
+        container.setAccessibilityIdentifier("popover-schedule-row")
+        container.addSubview(row)
+        row.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            row.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
+            row.topAnchor.constraint(equalTo: container.topAnchor),
+            row.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 34)
+        ])
         return container
+    }
+
+    private static func timeView(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .medium)
+        label.textColor = .secondaryLabelColor
+        label.alignment = .center
+        label.setAccessibilityIdentifier("popover-schedule-time")
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
+        return label
     }
 
     private static func metricView(
@@ -522,6 +564,26 @@ private final class ScheduleSummaryRowsView: NSView {
         stack.setContentHuggingPriority(.required, for: .horizontal)
         stack.setContentCompressionResistancePriority(.required, for: .horizontal)
         return stack
+    }
+
+    private static func centeredCell(_ view: NSView) -> NSView {
+        let cell = NSView()
+        cell.addSubview(view)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            view.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
+            view.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            view.leadingAnchor.constraint(greaterThanOrEqualTo: cell.leadingAnchor),
+            view.trailingAnchor.constraint(lessThanOrEqualTo: cell.trailingAnchor)
+        ])
+        return cell
+    }
+
+    private static func dividerView() -> NSView {
+        let divider = NSBox()
+        divider.boxType = .separator
+        divider.setAccessibilityIdentifier("popover-schedule-divider")
+        return divider
     }
 
     private static func metricIcon(
@@ -548,23 +610,14 @@ private final class ScheduleSummaryRowsView: NSView {
         return iconView
     }
 
-    private static func pillLabel(_ title: String) -> NSView {
-        let label = BadgePillView(title: title, tone: .neutral)
-        label.setContentHuggingPriority(.required, for: .horizontal)
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
-        return label
-    }
-
-    private static func spacer() -> NSView {
-        let view = NSView()
-        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        return view
-    }
-
     private static func timeLabel(for minuteOfDay: Int) -> String {
         let minute = max(0, min(1_439, minuteOfDay))
         return String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+
+    private func updateColors() {
+        layer?.backgroundColor = PopoverPalette.subtleBackground(for: effectiveAppearance).cgColor
+        layer?.borderColor = PopoverPalette.border(for: effectiveAppearance).cgColor
     }
 }
 
@@ -1341,6 +1394,10 @@ final class MenuBarPopoverView: NSView {
         scheduleSummaryRowsView.flattenedAccessibilityIdentifiersForTesting()
     }
 
+    func popoverVisibleTextForTesting() -> String {
+        flattenedVisibleTextForTesting().joined(separator: "\n")
+    }
+
     func scheduleStatusForTesting() -> String {
         [automationLabel.stringValue, scheduleStatusDetailLabel.stringValue]
             .filter { !$0.isEmpty }
@@ -1442,7 +1499,7 @@ final class MenuBarPopoverView: NSView {
         )
         let shortcuts = makeSection(
             title: "Shortcuts",
-            trailing: pillBadge("ENABLED", tone: .neutral, compact: true),
+            trailing: nil,
             views: [
                 shortcutSummaryRowsView,
                 makeActionRow([
@@ -1721,6 +1778,19 @@ private extension NSView {
             identifiers.append(contentsOf: subview.flattenedAccessibilityIdentifiersForTesting())
         }
         return identifiers
+    }
+
+    func flattenedVisibleTextForTesting() -> [String] {
+        var texts: [String] = []
+        if let textField = self as? NSTextField, !textField.stringValue.isEmpty {
+            texts.append(textField.stringValue)
+        } else if let button = self as? NSButton, !button.title.isEmpty {
+            texts.append(button.title)
+        }
+        for subview in subviews {
+            texts.append(contentsOf: subview.flattenedVisibleTextForTesting())
+        }
+        return texts
     }
 }
 
