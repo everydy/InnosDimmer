@@ -42,7 +42,6 @@ struct AppWindowPageStructure: Equatable {
 
 enum UnifiedAppWindowPage: CaseIterable {
     case home
-    case current
     case display
     case schedule
     case shortcuts
@@ -54,7 +53,7 @@ enum UnifiedAppWindowPage: CaseIterable {
         case .none, .home:
             self = .home
         case .current:
-            self = .current
+            self = .home
         case .display:
             self = .display
         case .schedule:
@@ -72,8 +71,6 @@ enum UnifiedAppWindowPage: CaseIterable {
         switch self {
         case .home:
             return "Overview"
-        case .current:
-            return "Current status"
         case .display:
             return "Display"
         case .schedule:
@@ -100,8 +97,6 @@ enum UnifiedAppWindowPage: CaseIterable {
         switch self {
         case .home:
             return "Quick controls and status."
-        case .current:
-            return "State and commands."
         case .display:
             return "Target monitor."
         case .schedule:
@@ -119,8 +114,6 @@ enum UnifiedAppWindowPage: CaseIterable {
         switch self {
         case .home:
             return "house"
-        case .current:
-            return "slider.horizontal.3"
         case .display:
             return "display"
         case .schedule:
@@ -292,7 +285,7 @@ final class UnifiedAppWindowController: NSWindowController {
         window?.contentView?.layoutSubtreeIfNeeded()
         guard let quickActions = homeQuickActionsSection,
               let nextActions = homeNextActionsSection,
-              let firstTile = sidebarButtons[.current] else {
+              let firstTile = sidebarButtons[.display] else {
             return nil
         }
         return (
@@ -537,8 +530,6 @@ final class UnifiedAppWindowController: NSWindowController {
         switch activePage {
         case .home:
             content = makeHomePage()
-        case .current:
-            content = makeCurrentPage()
         case .display:
             content = makeDisplayPage()
         case .schedule:
@@ -581,17 +572,6 @@ final class UnifiedAppWindowController: NSWindowController {
         nextActions.widthAnchor.constraint(equalTo: left.widthAnchor).isActive = true
 
         return left
-    }
-
-    private func makeCurrentPage() -> NSView {
-        makeDetailPage(
-            title: "Current status",
-            content: verticalStack([
-                makeSection(title: "Current state", trailing: makeChip("Live", tone: .neutral), views: [
-                    makeCurrentStateTable(identifier: "Current status")
-                ])
-            ])
-        )
     }
 
     private func makeDisplayPage() -> NSView {
@@ -971,7 +951,7 @@ final class UnifiedAppWindowController: NSWindowController {
             trailingViews = [scheduleNextChip]
         case .diagnostics:
             trailingViews = [exportDiagnosticsHeaderButton]
-        case .current, .display, .shortcuts, .settings:
+        case .display, .shortcuts, .settings:
             trailingViews = []
         }
         headerStack.setViews([titleLabel, headerSpacer] + trailingViews, in: .leading)

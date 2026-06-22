@@ -650,13 +650,14 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(metrics.firstTileHeight, 54)
         XCTAssertEqual(
             controller.sidebarNavigationForTesting(),
-            ["Overview", "Current status", "Display", "Schedule", "Shortcuts", "Settings", "Diagnostics"]
+            ["Overview", "Display", "Schedule", "Shortcuts", "Settings", "Diagnostics"]
         )
 
         let home = controller.pageStructureForTesting(focus: .home)
         XCTAssertEqual(home.pageTitle, "Overview")
         XCTAssertFalse(home.containsText("Navigation"))
         XCTAssertFalse(home.containsText("InnosDimmer"))
+        XCTAssertFalse(home.containsIdentifier("app-window-sidebar-page:Current status"))
         XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status"))
         XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status:Schedule"))
         XCTAssertTrue(home.containsIdentifier("app-window-summary-table:Overview status:Diagnostics"))
@@ -704,31 +705,27 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testUnifiedAppWindowCurrentStatusPageDefinesReadOnlyDetailContract() throws {
+    func testUnifiedAppWindowCurrentFocusFallsBackToOverview() throws {
         let controller = makeMockupAcceptanceController()
         let text = try renderedAppWindowText(controller, focus: .current)
+        let structure = controller.pageStructureForTesting(focus: .current)
 
         assert(text, contains: [
-            "Current status",
-            "Current state",
-            "Display",
-            "INNOS 27QA100M",
-            "Mode",
-            "Overlay active",
             "Brightness",
             "Warmth",
-            "Automation",
-            "Paused until 19:00"
+            "Status",
+            "Schedule",
+            "Diagnostics",
+            "Shortcuts"
         ])
+        XCTAssertEqual(structure.pageTitle, "Overview")
+        XCTAssertTrue(structure.containsIdentifier("app-window-summary-table:Overview status"))
+        XCTAssertFalse(structure.containsIdentifier("app-window-sidebar-page:Current status"))
         assert(text, doesNotContain: [
-            "Quick actions",
+            "Current status",
+            "Current state",
             "Commands",
-            "Disable",
-            "Restore",
-            "Open app window",
-            "Pause automation",
-            "Resume automation",
-            "Login item on"
+            "Open app window"
         ])
     }
 
@@ -767,7 +764,7 @@ final class MenuBarStateTests: XCTestCase {
     func testUnifiedAppWindowDetailPagesUsePersistentSidebarInsteadOfBackControls() {
         let controller = makeMockupAcceptanceController()
 
-        for target in [AppDashboardFocusTarget.current, .display, .schedule, .shortcuts, .settings, .diagnostics] {
+        for target in [AppDashboardFocusTarget.display, .schedule, .shortcuts, .settings, .diagnostics] {
             let structure = controller.pageStructureForTesting(focus: target)
             XCTAssertTrue(structure.containsIdentifier("app-window-sidebar-container"), "Expected persistent sidebar for \(target).")
             XCTAssertTrue(structure.containsIdentifier("app-window-sidebar"), "Expected sidebar navigation for \(target).")
@@ -902,27 +899,15 @@ final class MenuBarStateTests: XCTestCase {
     func testUnifiedAppWindowDetailPagesExposeMockupStructureIdentifiers() throws {
         let controller = makeMockupAcceptanceController()
 
-        let current = controller.pageStructureForTesting(focus: .current)
-        XCTAssertEqual(current.pageTitle, "Current status")
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-container"))
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Overview"))
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Current status"))
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-page:Schedule"))
-        XCTAssertFalse(current.containsIdentifier("app-window-page-header"))
-        XCTAssertFalse(current.containsIdentifier("app-window-header-action:Back"))
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-action-zone"))
-        XCTAssertTrue(current.containsIdentifier("app-window-sidebar-action:Open popover"))
-        XCTAssertFalse(current.containsIdentifier("app-window-command:Open popover"))
-        XCTAssertFalse(current.containsIdentifier("app-window-command:Resume automation"))
-        XCTAssertFalse(current.containsIdentifier("app-window-command:Settings"))
-        XCTAssertTrue(current.containsIdentifier("app-window-section:Current state"))
-        XCTAssertTrue(current.containsIdentifier("app-window-summary-table:Current status"))
-        XCTAssertFalse(current.containsIdentifier("app-window-section:Commands"))
-        XCTAssertFalse(current.containsText("Quick controls and status."))
-        XCTAssertFalse(current.containsText("Target monitor."))
-        XCTAssertFalse(current.containsText("Rows and pause state."))
-
         let display = controller.pageStructureForTesting(focus: .display)
+        XCTAssertTrue(display.containsIdentifier("app-window-sidebar-container"))
+        XCTAssertTrue(display.containsIdentifier("app-window-sidebar-page:Overview"))
+        XCTAssertFalse(display.containsIdentifier("app-window-sidebar-page:Current status"))
+        XCTAssertTrue(display.containsIdentifier("app-window-sidebar-page:Schedule"))
+        XCTAssertFalse(display.containsIdentifier("app-window-page-header"))
+        XCTAssertFalse(display.containsIdentifier("app-window-header-action:Back"))
+        XCTAssertTrue(display.containsIdentifier("app-window-sidebar-action-zone"))
+        XCTAssertTrue(display.containsIdentifier("app-window-sidebar-action:Open popover"))
         XCTAssertFalse(display.containsIdentifier("app-window-detail-split"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Current state"))
         XCTAssertTrue(display.containsIdentifier("app-window-summary-table:Display current state"))
@@ -1336,7 +1321,6 @@ final class MenuBarStateTests: XCTestCase {
 
         let pages: [(String, AppDashboardFocusTarget?)] = [
             ("home", .home),
-            ("current", .current),
             ("display", .display),
             ("schedule", .schedule),
             ("shortcuts", .shortcuts),
