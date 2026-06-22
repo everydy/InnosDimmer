@@ -492,6 +492,13 @@ private final class ScheduleSummaryRowsView: NSView {
         }
     }
 
+    func rowHeightsForTesting() -> [CGFloat] {
+        layoutSubtreeIfNeeded()
+        return stack.arrangedSubviews
+            .filter { $0.accessibilityIdentifier() == "popover-schedule-row" }
+            .map(\.frame.height)
+    }
+
     private static func rowView(for entry: ScheduleEntry) -> NSView {
         let time = timeView(timeLabel(for: entry.minuteOfDay))
         let brightness = metricView(
@@ -527,8 +534,10 @@ private final class ScheduleSummaryRowsView: NSView {
             row.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -18),
             row.topAnchor.constraint(equalTo: container.topAnchor),
             row.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 34)
+            container.heightAnchor.constraint(equalToConstant: 34)
         ])
+        container.setContentHuggingPriority(.required, for: .vertical)
+        container.setContentCompressionResistancePriority(.required, for: .vertical)
         return container
     }
 
@@ -1392,6 +1401,10 @@ final class MenuBarPopoverView: NSView {
 
     func popoverScheduleTableIdentifiersForTesting() -> [String] {
         scheduleSummaryRowsView.flattenedAccessibilityIdentifiersForTesting()
+    }
+
+    func popoverScheduleRowHeightsForTesting() -> [CGFloat] {
+        scheduleSummaryRowsView.rowHeightsForTesting()
     }
 
     func popoverVisibleTextForTesting() -> String {

@@ -256,6 +256,12 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-row" }.count, 3)
         XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-time" }.count, 3)
         XCTAssertEqual(identifiers.filter { $0 == "popover-schedule-divider" }.count, 2)
+        view.layoutSubtreeIfNeeded()
+        let rowHeights = view.popoverScheduleRowHeightsForTesting()
+        XCTAssertEqual(rowHeights.count, 3)
+        rowHeights.forEach { height in
+            XCTAssertEqual(height, 34, accuracy: 1)
+        }
 
         let visibleText = view.popoverVisibleTextForTesting()
         XCTAssertTrue(visibleText.contains("AUTO"))
