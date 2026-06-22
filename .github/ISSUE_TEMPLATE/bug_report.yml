@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a focused InnosDimmer bug with enough local context to reproduce it.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue. Do not include private diagnostics, local paths, display serial numbers, or crash dumps in public issues.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List exact actions, focused app, display state, and whether the menu bar popover or app window was open.
+      placeholder: |
+        1. Launch InnosDimmer.
+        2. Select ...
+        3. Press ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "Example: macOS 15.5"
+    validations:
+      required: true
+  - type: input
+    id: display
+    attributes:
+      label: Display setup
+      description: Keep this generic. Do not include serial numbers or private identifiers.
+      placeholder: "Example: M1 Mac, HDMI, INNOS 27QA100M secondary display"
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Affected surface
+      options:
+        - Overlay dimming
+        - Blue reduction / gamma restore
+        - Schedule automation
+        - Global shortcuts
+        - Settings / diagnostics
+        - Menu bar popover
+        - App window
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Add non-sensitive notes only. For security issues, use SECURITY.md instead.

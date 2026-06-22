@@ -1,8 +1,28 @@
 # InnosDimmer
 
-InnosDimmer is a personal macOS menu bar utility for a secondary INNOS 27QA100M display on an M1 Mac connected by direct HDMI.
+![Platform](https://img.shields.io/badge/platform-macOS-111827)
+![Swift](https://img.shields.io/badge/Swift-AppKit-f97316)
+![Dependencies](https://img.shields.io/badge/dependencies-none-16a34a)
+![Status](https://img.shields.io/badge/status-personal%20utility-2563eb)
 
-The current app reduces perceived brightness with click-through overlay windows and reduces blue output with a CoreGraphics gamma table on the selected external display. It does not attempt hardware DDC/CI monitor brightness control in normal operation.
+InnosDimmer is a personal macOS menu bar utility for software-based dimming on an external INNOS 27QA100M display.
+
+It reduces perceived brightness with click-through overlay windows and reduces blue output with a CoreGraphics gamma table on the selected external display. It does not attempt hardware DDC/CI monitor brightness control in normal operation.
+
+<p align="center">
+  <img src="docs/assets/innos-dimmer-app-icon-v5-source.png" alt="InnosDimmer app icon" width="128">
+</p>
+
+## Highlights
+
+- Native macOS menu bar app built with AppKit and Swift.
+- Software-only brightness command routing.
+- Click-through overlay dimming for perceived brightness.
+- Gamma-based blue reduction with restore safeguards.
+- Display identity and selected-target persistence.
+- Time-table schedule engine with manual override until the next schedule boundary.
+- Custom global shortcut validation and Carbon `EventHotKey` registration.
+- Diagnostics events, snapshots, Settings-window JSON export, and verification matrix guardrails.
 
 ## Dimming Modes
 
@@ -12,17 +32,6 @@ The current app reduces perceived brightness with click-through overlay windows 
 - `Platform blocked`: macOS or the target surface prevents reliable dimming. This is a disclosed limitation, not success.
 
 Historical DDC/CI probe notes are archived in [docs/ddc-probe-notes.md](docs/ddc-probe-notes.md). They are not part of the current user-facing runtime.
-
-## Implemented Scope
-
-- Native macOS menu bar app shell.
-- Display identity and target selection persistence.
-- Software-only brightness command routing.
-- Click-through overlay brightness dimming plus gamma-based blue reduction.
-- Time-table schedule engine with manual override until the next schedule boundary.
-- Custom global shortcut defaults, validation, conflict detection, and Carbon EventHotKey registration backend.
-- Login item wrapper using `SMAppService` where available.
-- Diagnostics events, snapshots, Settings-window JSON export, and verification matrix guardrails.
 
 ## Current Limitations
 
@@ -44,16 +53,28 @@ xcodebuild -scheme InnosDimmer -configuration Release build CODE_SIGNING_ALLOWED
 
 Use the Debug command after implementation changes. Use the Release command before launching the local app for manual QA.
 
-## QA Handoff
+## Manual QA
 
 Use [docs/qa-matrix.md](docs/qa-matrix.md) as the manual QA checklist. Use [docs/operator-guide.md](docs/operator-guide.md) for local operation notes.
 
 Diagnostics export lives in `Settings` under the `Diagnostics` section as `Export diagnostics`. Use it after a successful dimming command and after any observed blocked/failed scenario.
 
-## Planning References
+## Repository Map
 
-- Software-only implementation plan: [docs/2026-06-18-software-only-dimming-plan.md](docs/2026-06-18-software-only-dimming-plan.md)
-- Overlay reliability plan: [docs/2026-06-19-overlay-reliability-plan-first.md](docs/2026-06-19-overlay-reliability-plan-first.md)
-- Software-only research basis: [research.md](research.md)
-- Archived DDC/CI reference: [docs/ddc-probe-notes.md](docs/ddc-probe-notes.md)
-- Full-context manual evidence checklist: [docs/qa-matrix.md](docs/qa-matrix.md)
+- [DESIGN.md](DESIGN.md): current product and UI design contract.
+- [docs/operator-guide.md](docs/operator-guide.md): local operation policy and shortcuts.
+- [docs/qa-matrix.md](docs/qa-matrix.md): manual scenario checklist.
+- [research.md](research.md): software-only dimming research basis.
+- [docs/ddc-probe-notes.md](docs/ddc-probe-notes.md): archived hardware probing notes.
+
+## Security
+
+Please read [SECURITY.md](SECURITY.md) before reporting vulnerabilities or sharing diagnostics. Do not post private diagnostics, display identifiers, local paths, or crash data in public issues.
+
+## Contributing
+
+This is a personal utility with a narrow hardware target. Small issues, documentation fixes, and careful bug reports are welcome, but broad product expansion is intentionally out of scope. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+No open-source license is currently granted. All rights are reserved unless a license file is added later.
