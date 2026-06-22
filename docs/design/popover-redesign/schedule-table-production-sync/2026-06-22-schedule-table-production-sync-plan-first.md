@@ -10,6 +10,7 @@ Move the approved `mockup-current.html` schedule table treatment into the produc
 - Schedule times render as plain aligned text, not badge/pill boxes.
 - Schedule row values remain evenly distributed across three columns and slightly shifted left, matching the current mockup.
 - `Quick controls`, `Schedule`, and `Shortcuts` section labels use a stronger weight.
+- The static `ENABLED` badge is removed from the `Shortcuts` section header.
 - Existing schedule sorting, automation state, command routing, shortcut rendering, and copy remain unchanged.
 
 ## Codebase Evidence
@@ -59,6 +60,8 @@ Production schedule rows are visually heavier than the approved mockup because e
 
 Production section headers are generated correctly through one helper, but the current `popoverSectionLabel` weight is too light for the reviewed hierarchy.
 
+The `Shortcuts` section also currently carries a trailing compact `ENABLED` badge. Latest review feedback says this badge can be removed because it adds visual noise without changing the shortcut table's meaning.
+
 ## Change Map
 
 - likely files to edit:
@@ -73,6 +76,7 @@ Production section headers are generated correctly through one helper, but the c
   - `ScheduleSummaryRowsView.metricView(...)`
   - `ScheduleSummaryRowsView.pillLabel(...)` should become unused or be removed if no longer needed.
   - `MenuBarPopoverView.sectionLabel(_:)` only indirectly through token update.
+  - `MenuBarPopoverView.buildLayout()` `Shortcuts` section trailing badge argument.
   - `InnosDesignTokens.Font.popoverSectionLabel`
 - state/data/content dependencies:
   - `SettingsSnapshot.sortedSchedule(schedule)` must remain the source of row order.
@@ -91,6 +95,7 @@ Production section headers are generated correctly through one helper, but the c
   - The schedule summary becomes one table-like visual container.
   - Time values are text cells rather than pill badges.
   - Section labels are visibly stronger.
+  - The `Shortcuts` section title has no trailing `ENABLED` badge.
 - constraints to preserve:
   - No command routing changes.
   - No schedule editing changes.
@@ -106,6 +111,7 @@ Production section headers are generated correctly through one helper, but the c
 - risks:
   - Table row dividers may add height and create bottom slack or clipping.
   - Section label `.bold` may overpower badges.
+  - Removing `ENABLED` may make shortcut enablement less explicit, but the table itself remains visible and actionable.
   - Private view structure may be hard to assert without adding identifiers.
 - assumptions:
   - The current mockup is the approved visual target.
@@ -132,7 +138,7 @@ Production section headers are generated correctly through one helper, but the c
 | Phase | Required skills | Optional skills | Evidence |
 | --- | --- | --- | --- |
 | Commit 1: Define production schedule table contract | `구현커밋` | `review-all-in-one` | Tests should define the new AppKit structure before visual code changes. |
-| Commit 2: Implement schedule table and section title weight | `구현커밋` | `디자인올인원` | Production files are `MenuBarPopoverView.swift` and `InnosDesignTokens.swift`; approved visual target is `mockup-current.html`. |
+| Commit 2: Implement schedule table, shortcuts header cleanup, and section title weight | `구현커밋` | `디자인올인원` | Production files are `MenuBarPopoverView.swift` and `InnosDesignTokens.swift`; approved visual target is `mockup-current.html`; latest comment removes the static `ENABLED` badge. |
 | Commit 3: Refresh captures and docs sync | `구현커밋` | `테스트` | Snapshot files and docs must match the production change. |
 | Final Gate | `review-all-in-one`, `qa-gate` | `review-swarm`, `테스트` | Final pass should inspect layout regression, tests, and capture output. |
 
@@ -168,22 +174,34 @@ row.setAccessibilityIdentifier("popover-schedule-row")
 - stop conditions:
   - Stop if reliable structure assertion requires broad production API changes.
 
-### Commit 2: Implement schedule table and section title weight
+### Commit 2: Implement schedule table, shortcuts header cleanup, and section title weight
 
 - target files:
   - `InnosDimmer/UI/MenuBarPopoverView.swift`
   - `InnosDimmer/UI/DesignSystem/InnosDesignTokens.swift`
+  - `docs/design/popover-redesign/mockup-current.html`
 - changes:
   - Replace per-row `PopoverContainerView(style: .subtle)` schedule rendering with one subtle table container.
   - Render internal rows with three equal-width cells.
   - Remove schedule time `BadgePillView` usage and render time as plain secondary text.
   - Add row dividers between rows inside the table.
+  - Remove the `Shortcuts` section trailing `ENABLED` badge in production and the current-state mockup.
   - Change `popoverSectionLabel` from `.semibold` to `.bold`.
 - code snippets:
   - Proposed token change:
 
 ```swift
 static var popoverSectionLabel: NSFont { app(ofSize: 12, weight: .bold) }
+```
+
+  - Proposed shortcuts section cleanup:
+
+```swift
+let shortcuts = makeSection(
+    title: "Shortcuts",
+    trailing: nil,
+    views: [...]
+)
 ```
 
   - Proposed schedule row direction:
@@ -219,6 +237,7 @@ return PopoverContainerView(style: .subtle, content: rows)
 - success criteria:
   - Schedule table visually matches the mockup direction.
   - Section labels are visibly stronger without layout clipping.
+  - `Shortcuts` no longer shows the static `ENABLED` badge.
   - Existing automation and command tests still pass.
 - stop conditions:
   - Stop if the popover preferred fit test fails or row values clip at normal width.
@@ -301,6 +320,7 @@ return PopoverContainerView(style: .subtle, content: rows)
   - Popover opens and fits preferred content size.
   - `Quick disable`, `Restore previous`, `Edit schedule`, `Resume schedule`, `Edit Shortcuts`, and `Open Control Window` still route correctly.
   - `plainSummary` remains unchanged for schedule summaries.
+  - `MANUAL` / `AUTO` badge remains in Quick controls; only the static `Shortcuts` `ENABLED` badge is removed.
 - 검증 확인:
   - Focused `xcodebuild` test command passes.
   - `git diff --check` passes.

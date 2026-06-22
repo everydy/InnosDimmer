@@ -10,6 +10,7 @@ The target production changes are:
 - Remove the boxed time pill treatment from schedule rows and render time as a plain aligned table cell.
 - Preserve equal distribution of the three row values while shifting the group slightly left, as approved in the mockup.
 - Increase the weight of the top-level popover section labels: `Quick controls`, `Schedule`, and `Shortcuts`.
+- Remove the `ENABLED` badge from the `Shortcuts` section header if the implementation follows the latest comment feedback.
 
 Mode: `research` / Pre-Plan Research Gate.
 
@@ -50,6 +51,18 @@ Out of scope:
 - `Shortcuts`
 
 The section title is created by `sectionLabel(_:)`, uppercased, and styled with `InnosDesignTokens.Font.popoverSectionLabel`.
+
+The `Shortcuts` section currently passes a trailing compact badge:
+
+```swift
+let shortcuts = makeSection(
+    title: "Shortcuts",
+    trailing: pillBadge("ENABLED", tone: .neutral, compact: true),
+    views: [...]
+)
+```
+
+The latest review comment on `mockup-current.html` says this `ENABLED` badge can likely be removed. The badge is informational only; it does not appear to carry an action, state transition, or command-routing responsibility.
 
 Current token:
 
@@ -154,6 +167,7 @@ This production change should only affect step 4 section title font and step 6 s
 - If the new table view bypasses `SettingsSnapshot.sortedSchedule(schedule)`, row order can regress.
 - If `plainSummary` changes, existing accessibility/testing summaries may regress.
 - If `popoverSectionLabel` is made too heavy globally, headers can become visually dominant relative to badges and body labels.
+- If the `Shortcuts` `ENABLED` badge is removed, any tests or captures that assume the badge text appears must be updated deliberately rather than failing incidentally.
 - If row dividers are implemented as full `NSBox` separators without careful constraints, the table can gain extra height and break the preferred popover fit.
 
 ## Do Not Duplicate Or Bypass
@@ -164,11 +178,13 @@ This production change should only affect step 4 section title font and step 6 s
 - Do not change `MenuBarCommand`, `ShortcutAction`, or controller routing for this visual update.
 - Do not duplicate top-level section rendering; use `makeSection(...)` and `sectionLabel(_:)`.
 - Do not create separate font literals in the view when `InnosDesignTokens.Font.popoverSectionLabel` is the existing abstraction.
+- Do not remove the `MANUAL` / `AUTO` quick controls badge as part of the `Shortcuts` badge cleanup; that badge communicates automation state and has a different purpose.
 
 ## Open Questions
 
 - No blocking product decision remains. The mockup has approved the table-like schedule row direction.
 - The exact title weight may need a visual pass after implementation. Recommended default is `bold` at the existing `12pt` size because the user described the current title layer as too thin and asked for a mockup-level stronger weight.
+- The latest comment says the `Shortcuts` `ENABLED` badge can be removed. Recommended default is to remove it from both production and the current-state mockup during implementation, because the badge duplicates static enablement information and competes with the stronger section label.
 - The row divider color should start with existing `PopoverPalette.border(for:)`; revise only if the capture looks too strong.
 
 ## Plan Implications
@@ -180,6 +196,7 @@ This production change should only affect step 4 section title font and step 6 s
 - Use equal-width row cells to match `repeat(3, minmax(0, 1fr))`.
 - Apply the left shift by asymmetrical row content constraints, matching the mockup intent of `padding: 0 18px 0 0`.
 - Increase `popoverSectionLabel` from `.semibold` to `.bold` rather than changing each label manually.
+- Remove the `Shortcuts` trailing `ENABLED` badge by passing `trailing: nil` for that section, and remove the matching badge from `mockup-current.html` if production sync also updates the review artifact.
 - Add or update tests that can catch the new structural intent, then regenerate `actual-dark.png` and `actual-light.png`.
 
 ## Source Evaluation
