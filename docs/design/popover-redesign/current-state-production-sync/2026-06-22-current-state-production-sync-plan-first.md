@@ -13,8 +13,8 @@ Primary target: make production `MenuBarPopoverView` match the current-state rev
 - The production popover header shows only display and dimming mode: `27QA100M · software dimming`.
 - The Quick controls chip continues to switch `MANUAL` / `AUTO`.
 - The Schedule section uses one status line:
-  - paused: `Schedule paused until 19:00`
-  - active: `Schedule active`
+  - paused: `Paused until 19:00`
+  - active: `Active`
 - The schedule action button uses:
   - paused: `Resume schedule`
   - active: `Pause schedule`
@@ -89,8 +89,8 @@ Production currently differs from the reviewed current-state mockup in these way
 | Area | Current production | Reviewed current-state mockup |
 | --- | --- | --- |
 | Header paused state | `27QA100M · software dimming · automation paused until 19:00` | `27QA100M · software dimming` |
-| Schedule status | `Automation paused until 19:00` + `Next boundary 19:00` | `Schedule paused until 19:00` only |
-| Schedule active status | `Automation active` + `Schedule rows below` | `Schedule active` only |
+| Schedule status | `Automation paused until 19:00` + `Next boundary 19:00` | `Paused until 19:00` only |
+| Schedule active status | `Automation active` + `Schedule rows below` | `Active` only |
 | Schedule action | `Resume automation` / `Pause automation` | `Resume schedule` / `Pause schedule` |
 | Control label | `Blue reduction` | `Warmth` |
 | Shortcut group | `Blue reduction` | `Warmth` |
@@ -158,13 +158,13 @@ Production currently differs from the reviewed current-state mockup in these way
   - `Warmth` is a visible UI label only; `blueReduction` remains the technical model name.
 - unanswered questions:
   - App-wide naming audit remains separate.
-  - Whether active schedule card should disappear instead of showing `Schedule active` remains out of scope; the current mockup keeps `Schedule active`.
+  - Whether active schedule card should disappear instead of showing `Active` remains out of scope; the current mockup keeps `Active`.
 
 ## Plan Quality Check
 
 - Alternative considered:
   - Rename `blueReduction` everywhere to `warmth`. Rejected because it would touch persistence, shortcuts, tests, and domain semantics beyond this compact popover pass.
-  - Keep `Automation paused` wording. Rejected because the reviewed mockup and Schedule section context favor `Schedule paused`.
+  - Keep `Automation paused` wording. Rejected because the reviewed mockup and Schedule section context favor the shorter `Paused until ...` copy.
   - Globally reduce all shared font token weights. Rejected as first move because it risks app-window and editor regressions.
 - Why this plan:
   - It uses the reviewed mockup and the local research artifact as evidence.
@@ -200,8 +200,8 @@ Production currently differs from the reviewed current-state mockup in these way
 - changes:
   - Update `MenuBarViewModel.displaySummary` so paused schedule text is not appended to the header.
   - Update `MenuBarViewModel.automationTitle`:
-    - paused: `Schedule paused until HH:mm`
-    - active: `Schedule active`
+    - paused: `Paused until HH:mm`
+    - active: `Active`
   - Update `MenuBarViewModel.automationActionTitle`:
     - paused: `Resume schedule`
     - active: `Pause schedule`
@@ -219,11 +219,11 @@ displaySummary = state.display.map { display in
 } ?? "No display selected"
 
 if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
-    automationTitle = "Schedule paused until \(Self.timeLabel(for: resumeMinute))"
+    automationTitle = "Paused until \(Self.timeLabel(for: resumeMinute))"
 } else if state.automationPausedUntilNextBoundary {
-    automationTitle = "Schedule paused"
+    automationTitle = "Paused"
 } else {
-    automationTitle = "Schedule active"
+    automationTitle = "Active"
 }
 
 automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume schedule" : "Pause schedule"
@@ -251,7 +251,7 @@ private static func scheduleStatusDetail(state: BrightnessState, schedule: [Sche
   - `rg -n "Automation paused|Next boundary|Resume automation|Pause automation" InnosDimmerTests/MenuBarStateTests.swift InnosDimmer/UI/MenuBarPopoverView.swift`: confirms old popover-only copy is removed or intentionally limited to non-popover surfaces.
 - success criteria:
   - Header display summary stays `27QA100M · software dimming` while paused.
-  - Schedule status testing returns `Schedule paused until 19:00` without a second `Next boundary` line.
+  - Schedule status testing returns `Paused until 19:00` without a second `Next boundary` line.
   - The action button title is `Resume schedule` / `Pause schedule`.
   - `.pauseAutomation` / `.resumeAutomation` command registration remains intact.
 - stop conditions:
@@ -359,7 +359,7 @@ ShortcutSummaryGroup(
 - verification:
   - `xcodebuild -project InnosDimmer.xcodeproj -scheme InnosDimmer -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO test -only-testing:InnosDimmerTests/MenuBarStateTests -only-testing:InnosDimmerTests/HotkeyBindingTests`: focused regression.
   - `git diff --check`: whitespace/path sanity.
-  - native visual check: no clipping; `Warmth`, `Schedule paused until 19:00`, `Resume schedule`, `MANUAL` / `AUTO` visible as expected.
+  - native visual check: no clipping; `Warmth`, `Paused until 19:00`, `Resume schedule`, `MANUAL` / `AUTO` visible as expected.
 - success criteria:
   - Focused tests pass.
   - Native popover visually matches the reviewed current-state mockup closely enough for the next feedback round.
@@ -432,7 +432,7 @@ ShortcutSummaryGroup(
   - Native popover shows:
     - `27QA100M · software dimming`
     - `Warmth`
-    - `Schedule paused until 19:00`
+    - `Paused until 19:00`
     - `Resume schedule`
     - no `Next boundary` second line in the status card
   - `MANUAL` / `AUTO` badge still tracks paused schedule state.
@@ -449,14 +449,14 @@ ShortcutSummaryGroup(
 - implementation result:
   - Status: implemented in production `MenuBarPopoverView`.
   - Header display summary no longer appends paused schedule text.
-  - Schedule status is now one line: `Schedule paused until HH:mm` or `Schedule active`.
+  - Schedule status is now one line inside the `Schedule` section: `Paused until HH:mm` or `Active`.
   - Schedule action copy is now `Resume schedule` / `Pause schedule`, while commands remain `.resumeAutomation` / `.pauseAutomation`.
   - Compact popover visible copy now uses `Warmth`; internal `blueReduction` names remain unchanged.
   - Popover-specific Pretendard font aliases are used instead of weakening global font roles.
   - Popover actual captures were regenerated through `MenuBarStateTests`.
 - manual checks:
   - Open [mockup-current.html](/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/mockup-current.html).
-  - Click `Resume schedule` and confirm the badge changes from `MANUAL` to `AUTO` and copy changes to `Schedule active` / `Pause schedule`.
+  - Click `Resume schedule` and confirm the badge changes from `MANUAL` to `AUTO` and copy changes to `Active` / `Pause schedule`.
   - Open [mockup-compare.html](/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/mockup-compare.html) and compare current/ideal surfaces.
 - lint/build/test scope:
   - Plan document validation:
@@ -484,7 +484,7 @@ git diff --check
     - passed with no output
 
 - scenario-to-surface checks:
-  - paused schedule state maps to `MANUAL`, `Schedule paused until 19:00`, `Resume schedule`
-  - active schedule state maps to `AUTO`, `Schedule active`, `Pause schedule`
+  - paused schedule state maps to `MANUAL`, `Paused until 19:00`, `Resume schedule`
+  - active schedule state maps to `AUTO`, `Active`, `Pause schedule`
   - compact warmth control maps to `Warmth`, `32%`, `Warmth down`, `Warmth up`
   - shortcut summary maps to `Brightness` and `Warmth`

@@ -576,7 +576,7 @@
         </div>
 
         <div class="subtle-card">
-          <p class="status-title" data-automation-title>Schedule paused until 19:00</p>
+          <p class="status-title" data-automation-title>Paused until 19:00</p>
         </div>
 
         <div class="schedule-rows">
@@ -672,8 +672,8 @@
     function renderAutomationState() {
       automationBadge.textContent = automationPaused ? "MANUAL" : "AUTO";
       automationTitle.textContent = automationPaused
-        ? "Schedule paused until 19:00"
-        : "Schedule active";
+        ? "Paused until 19:00"
+        : "Active";
       automationAction.textContent = automationPaused
         ? "Resume schedule"
         : "Pause schedule";

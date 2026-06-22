@@ -38,7 +38,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(viewModel.brightnessLabel, "45%")
         XCTAssertEqual(viewModel.blueReductionLabel, "32%")
         XCTAssertNil(viewModel.blueReductionWarning)
-        XCTAssertEqual(viewModel.automationTitle, "Schedule paused until 19:00")
+        XCTAssertEqual(viewModel.automationTitle, "Paused until 19:00")
         XCTAssertEqual(viewModel.automationActionTitle, "Resume schedule")
         XCTAssertEqual(viewModel.automationActionCommand, .resumeAutomation)
         XCTAssertEqual(viewModel.quickControlsBadgeTitle, "MANUAL")
@@ -1320,7 +1320,7 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertEqual(view.brightnessTrackFractionForTesting(), 0.45, accuracy: 0.001)
         XCTAssertEqual(view.blueReductionTrackFractionForTesting(), 0.32, accuracy: 0.001)
         XCTAssertEqual(view.scheduleSummaryForTesting(), "10:15 · ☀ 66% · 🌡 21%")
-        XCTAssertEqual(view.scheduleStatusForTesting(), "Schedule active")
+        XCTAssertEqual(view.scheduleStatusForTesting(), "Active")
         XCTAssertFalse(view.scheduleStatusForTesting().contains("Current"))
         XCTAssertEqual(
             view.shortcutSummaryForTesting(),

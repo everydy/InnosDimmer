@@ -1070,11 +1070,11 @@ struct MenuBarViewModel: Equatable {
         blueReductionLabel = "\(state.targetBlueReduction)%"
         blueReductionWarning = BlueReductionWarning.popoverMessage(for: state.targetBlueReduction)
         if state.automationPausedUntilNextBoundary, let resumeMinute = state.automationResumeMinuteOfDay {
-            automationTitle = "Schedule paused until \(Self.timeLabel(for: resumeMinute))"
+            automationTitle = "Paused until \(Self.timeLabel(for: resumeMinute))"
         } else if state.automationPausedUntilNextBoundary {
-            automationTitle = "Schedule paused"
+            automationTitle = "Paused"
         } else {
-            automationTitle = "Schedule active"
+            automationTitle = "Active"
         }
         automationActionTitle = state.automationPausedUntilNextBoundary ? "Resume schedule" : "Pause schedule"
         automationActionCommand = state.automationPausedUntilNextBoundary ? .resumeAutomation : .pauseAutomation

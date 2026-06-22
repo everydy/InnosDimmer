@@ -67,7 +67,7 @@ The current-state review mockup now represents the desired production direction:
 
 - Header display summary is only `27QA100M · software dimming`.
 - `MANUAL` / `AUTO` badge is shown in Quick controls and toggles with schedule state.
-- Schedule card uses one status line: `Schedule paused until 19:00`.
+- Schedule card uses one status line inside the `Schedule` section: `Paused until 19:00`.
 - The secondary `Next boundary 19:00` line is removed.
 - Schedule action is `Resume schedule` / `Pause schedule`.
 - Visible user-facing dimming temperature label is `Warmth`.
@@ -159,7 +159,7 @@ Runtime integration points that must be preserved:
 
 - Should the production accessibility labels use `Warmth` everywhere, or keep `Blue reduction` for technical precision? Recommendation: use `Warmth` for user-facing accessibility labels because the visible label is `Warmth`.
 - Should other app surfaces also move from `Blue reduction` to `Warmth`, or only the compact menu bar popover? Recommendation: this pass should target only the menu bar popover and follow up with a separate app-wide naming audit.
-- Should the schedule section use `Schedule active`, or should the active state card disappear entirely when automatic schedule is active? Current mockup keeps `Schedule active`.
+- Should the schedule section use `Active`, or should the active state card disappear entirely when automatic schedule is active? Current mockup keeps `Active`.
 - Should the blue/warmth icon color remain orange everywhere? Current mockup and production both lean orange/thermometer for the warmth control, but the ideal mockup still has blue-oriented styling.
 - Should `BlueReductionWarning.message` become `High warmth may shift colors.`? Recommendation: if the visible control label is `Warmth`, the warning should also say `Warmth` when it appears.
 
@@ -169,8 +169,8 @@ Recommended implementation order:
 
 1. Add or update tests first for the new popover copy:
    - header display summary excludes automation pause text
-   - paused schedule state is `Schedule paused until 19:00`
-   - active schedule state is `Schedule active`
+   - paused schedule state is `Paused until 19:00`
+   - active schedule state is `Active`
    - action button is `Resume schedule` / `Pause schedule`
    - visible shortcut/control labels are `Warmth`
    - shortcut summary no longer contains `Blue reduction`
