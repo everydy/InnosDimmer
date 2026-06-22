@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InnosDimmer Control Window Replica</title>
+  <style>
+    :root {
+      --root: #161616;
+      --section: #1f1f22;
+      --subtle: #18181b;
+      --control: #303036;
+      --border: #3b3b40;
+      --control-border: #4b4b52;
+      --accent: #5aa7ff;
+      --primary: #1f7bd9;
+      --ready: #75d99b;
+      --warning: #f1c45f;
+      --danger: #ff6b6b;
+      --text: rgba(255, 255, 255, 0.92);
+      --secondary: rgba(255, 255, 255, 0.62);
+      --muted: rgba(255, 255, 255, 0.42);
+      --surface-padding: 16px;
+      --section-padding: 12px;
+      --section-gap: 12px;
+      --row-gap: 8px;
+      --sidebar-width: 244px;
+      --radius-section: 8px;
+      --radius-control: 7px;
+      --window-width: 900px;
+      --window-height: 640px;
+      --titlebar-height: 50px;
+      color-scheme: dark;
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #0d0d0f;
+      color: var(--text);
+    }
+
+    .window {
+      width: var(--window-width);
+      height: var(--window-height);
+      overflow: hidden;
+      background: var(--root);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.42),
+        0 0 0 1px rgba(255, 255, 255, 0.025);
+    }
+
+    .titlebar {
+      height: var(--titlebar-height);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: #242426;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f57; }
+    .dot.yellow { background: #febc2e; }
+    .dot.green { background: #28c840; }
+
+    .window-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-left: 6px;
+    }
+
+    .app-body {
+      height: calc(var(--window-height) - var(--titlebar-height));
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      background: var(--root);
+    }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      padding: var(--surface-padding);
+      background: var(--subtle);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-button {
+      width: 100%;
+      min-height: 54px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-section);
+      background: var(--section);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .nav-button.active {
+      background: rgba(90, 167, 255, 0.18);
+      border-color: rgba(90, 167, 255, 0.50);
+    }
+
+    .nav-button.active .iconbox {
+      background: rgba(90, 167, 255, 0.22);
+      border-color: rgba(90, 167, 255, 0.42);
+    }
+
+    .iconbox {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--control);
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+    }
+
+    .iconbox svg {
+      width: 17px;
+      height: 17px;
+      stroke: currentColor;
+      stroke-width: 2.1;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-spacer {
+      flex: 1;
+    }
+
+    .content-wrap {
+      padding: var(--surface-padding);
+      min-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .header {
+      min-height: 26px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .header-spacer {
+      flex: 1;
+    }
+
+    .page {
+      display: none;
+      min-height: 420px;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section {
+      background: var(--section);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-section);
+      padding: var(--section-padding);
+    }
+
+    .section-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 24px;
+    }
+
+    .section-title {
+      color: var(--secondary);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    .chip {
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--control-border);
+      background: var(--control);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+    }
+
+    .chip.ready {
+      color: var(--ready);
+      background: rgba(117, 217, 155, 0.12);
+      border-color: rgba(117, 217, 155, 0.44);
+    }
+
+    .chip.warning {
+      color: var(--warning);
+      background: rgba(241, 196, 95, 0.12);
+      border-color: rgba(241, 196, 95, 0.44);
+    }
+
+    .control-row {
+      min-height: 30px;
+      display: grid;
+      grid-template-columns: 116px 60px 1fr 32px 32px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .control-label {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .control-value {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: right;
+      line-height: 1;
+    }
+
+    .track {
+      height: 18px;
+      position: relative;
+    }
+
+    .track::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 5px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(59, 59, 64, 0.70);
+    }
+
+    .track-fill {
+      position: absolute;
+      left: 0;
+      top: 5px;
+      height: 8px;
+      width: var(--value);
+      min-width: 8px;
+      max-width: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .track-thumb {
+      position: absolute;
+      top: 2px;
+      left: calc(var(--value) - 7px);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 1px solid var(--section);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    .button-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .button {
+      min-height: 30px;
+      border: 1px solid var(--control-border);
+      border-radius: var(--radius-control);
+      background: var(--control);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .button.primary {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .button.warning {
+      color: var(--warning);
+      background: rgba(241, 196, 95, 0.12);
+      border-color: rgba(241, 196, 95, 0.46);
+    }
+
+    .button.icon {
+      width: 32px;
+      padding: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .sidebar .button {
+      width: 100%;
+    }
+
+    .summary-table {
+      overflow: hidden;
+      border-radius: var(--radius-control);
+      border: 1px solid var(--border);
+      background: var(--subtle);
+    }
+
+    .summary-row {
+      min-height: 34px;
+      display: grid;
+      grid-template-columns: 108px 1fr;
+      gap: 8px;
+      align-items: baseline;
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .summary-row:first-child {
+      border-top: 0;
+    }
+
+    .summary-key {
+      color: var(--secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .summary-value {
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .native-select,
+    .native-input {
+      width: 100%;
+      min-height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--control-border);
+      background: var(--control);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      padding: 0 10px;
+    }
+
+    .schedule-table {
+      overflow: hidden;
+      border-radius: var(--radius-control);
+      border: 1px solid var(--border);
+      background: var(--subtle);
+    }
+
+    .schedule-head,
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 66px 1fr 1fr;
+    }
+
+    .schedule-head {
+      height: 34px;
+      align-items: center;
+      color: var(--secondary);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .schedule-head > div,
+    .schedule-row > div {
+      border-left: 1px solid var(--border);
+      padding: 0 12px;
+    }
+
+    .schedule-head > div:first-child,
+    .schedule-row > div:first-child {
+      border-left: 0;
+    }
+
+    .schedule-row {
+      min-height: 54px;
+      align-items: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .time-cell {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mini-control {
+      display: grid;
+      grid-template-columns: 54px 1fr 58px;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stepper {
+      height: 30px;
+      display: grid;
+      grid-template-columns: 30px 1fr 30px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--control);
+    }
+
+    .stepper span {
+      display: grid;
+      place-items: center;
+      border-left: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .stepper span:first-child {
+      border-left: 0;
+    }
+
+    .shortcut-table {
+      display: grid;
+      gap: 6px;
+    }
+
+    .shortcut-row {
+      min-height: 30px;
+      display: grid;
+      grid-template-columns: 150px 34px 42px 42px 42px 42px 70px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .shortcut-head {
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .checkbox {
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--control-border);
+      border-radius: 3px;
+      background: var(--control);
+      display: inline-grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .code-log {
+      height: 150px;
+      overflow: auto;
+      border-radius: var(--radius-control);
+      border: 1px solid var(--border);
+      background: var(--subtle);
+      color: var(--text);
+      padding: 10px 12px;
+      white-space: pre;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      user-select: text;
+    }
+
+    .page-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <main class="window" aria-label="InnosDimmer control window replica">
+    <div class="titlebar">
+      <div class="traffic" aria-hidden="true">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+      </div>
+      <div class="window-name">InnosDimmer</div>
+    </div>
+
+    <div class="app-body">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Settings">
+          <button class="nav-button active" data-page="overview">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path></svg></span>
+            <span class="nav-title">Overview</span>
+          </button>
+          <button class="nav-button" data-page="display">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"></rect><path d="M9 20h6"></path><path d="M12 16v4"></path></svg></span>
+            <span class="nav-title">Display</span>
+          </button>
+          <button class="nav-button" data-page="schedule">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg></span>
+            <span class="nav-title">Schedule</span>
+          </button>
+          <button class="nav-button" data-page="shortcuts">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"></rect><path d="M7 10h2M11 10h2M15 10h2M7 14h10"></path></svg></span>
+            <span class="nav-title">Shortcuts</span>
+          </button>
+          <button class="nav-button" data-page="settings">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 8.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7Z"></path><path d="M4 12h2M18 12h2M12 4v2M12 18v2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M17.7 6.3l-1.4 1.4M7.7 16.3l-1.4 1.4"></path></svg></span>
+            <span class="nav-title">Settings</span>
+          </button>
+          <button class="nav-button" data-page="diagnostics">
+            <span class="iconbox" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h4l2-6 4 12 2-6h4"></path></svg></span>
+            <span class="nav-title">Diagnostics</span>
+          </button>
+        </nav>
+        <div class="sidebar-spacer"></div>
+        <div>
+          <button class="button primary">Open popover</button>
+        </div>
+      </aside>
+
+      <section class="content-wrap">
+        <header class="header">
+          <h1 id="pageTitle">Overview</h1>
+          <span class="header-spacer"></span>
+          <span class="chip ready header-chip home-only">Overlay active</span>
+          <span class="chip ready header-chip home-only">Login item on</span>
+          <span class="chip warning header-chip schedule-only" hidden>Next 09:00</span>
+          <button class="button primary header-chip diagnostics-only" hidden>Export diagnostics</button>
+        </header>
+
+        <section class="page active" data-panel="overview">
+          <div class="stack">
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Quick actions</div>
+                  <span class="spacer"></span>
+                  <span class="chip ready">Automation active</span>
+                </div>
+                <div class="control-row">
+                  <div class="control-label">Brightness</div>
+                  <div class="control-value">100%</div>
+                  <div class="track" style="--value: 100%"><span class="track-fill"></span><span class="track-thumb"></span></div>
+                  <button class="button icon">-</button>
+                  <button class="button icon">+</button>
+                </div>
+                <div class="divider"></div>
+                <div class="control-row">
+                  <div class="control-label">Warmth</div>
+                  <div class="control-value">0%</div>
+                  <div class="track" style="--value: 0%"><span class="track-fill"></span><span class="track-thumb"></span></div>
+                  <button class="button icon">-</button>
+                  <button class="button icon">+</button>
+                </div>
+                <div class="button-row">
+                  <button class="button warning">Disable</button>
+                  <button class="button">Restore</button>
+                  <button class="button">Pause automation</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Status</div>
+                </div>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Schedule</div><div class="summary-value">09:00 · 100% / warmth 0%</div></div>
+                  <div class="summary-row"><div class="summary-key">Diagnostics</div><div class="summary-value">1 warning(s)</div></div>
+                  <div class="summary-row"><div class="summary-key">Shortcuts</div><div class="summary-value">7 enabled</div></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" data-panel="display">
+          <div class="stack">
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Current state</div>
+                  <span class="spacer"></span>
+                  <span class="chip ready">Ready</span>
+                </div>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Display</div><div class="summary-value">27QA100M</div></div>
+                  <div class="summary-row"><div class="summary-key">Brightness</div><div class="summary-value">100%</div></div>
+                  <div class="summary-row"><div class="summary-key">Warmth</div><div class="summary-value">0%</div></div>
+                  <div class="summary-row"><div class="summary-key">Automation</div><div class="summary-value">Active</div></div>
+                </div>
+              </div>
+            </section>
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Target display</div>
+                  <span class="spacer"></span>
+                  <span class="chip ready">Resolved</span>
+                </div>
+                <select class="native-select"><option>Automatic external display</option><option>27QA100M</option></select>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Selection rule</div><div class="summary-value">Automatic external display, preferring a non-main monitor</div></div>
+                  <div class="summary-row"><div class="summary-key">Active target</div><div class="summary-value">27QA100M - Display 2</div></div>
+                  <div class="summary-row"><div class="summary-key">Safety scope</div><div class="summary-value">External display only</div></div>
+                  <div class="summary-row"><div class="summary-key">Warmth</div><div class="summary-value">Supported for warmth</div></div>
+                </div>
+              </div>
+            </section>
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row"><div class="section-title">Saved selection</div></div>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Saved</div><div class="summary-value">Automatic external display</div></div>
+                </div>
+                <div class="button-row"><button class="button primary">Save display</button></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" data-panel="schedule">
+          <div class="stack">
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Schedule</div>
+                  <span class="spacer"></span>
+                  <span class="chip warning">Next 09:00</span>
+                </div>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Status</div><div class="summary-value">Active</div></div>
+                  <div class="summary-row"><div class="summary-key">Current</div><div class="summary-value">09:00 · 80% / warmth 12%, 19:00 · 45% / warmth 32%, 23:00 · 25% / warmth 58%</div></div>
+                  <div class="summary-row"><div class="summary-key">Shortcuts</div><div class="summary-value">Option + Shift controls</div></div>
+                </div>
+              </div>
+            </section>
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row"><div class="section-title">Schedule rows</div></div>
+                <div class="schedule-table">
+                  <div class="schedule-head"><div>Time</div><div>Bright</div><div>Warmth</div></div>
+                  <div class="schedule-row">
+                    <div class="time-cell">09:00</div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>80%</span><span>+</span></div><div class="track" style="--value: 80%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>12%</span><span>+</span></div><div class="track" style="--value: 12%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                  </div>
+                  <div class="schedule-row">
+                    <div class="time-cell">19:00</div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>45%</span><span>+</span></div><div class="track" style="--value: 45%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>32%</span><span>+</span></div><div class="track" style="--value: 32%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                  </div>
+                  <div class="schedule-row">
+                    <div class="time-cell">23:00</div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>25%</span><span>+</span></div><div class="track" style="--value: 25%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                    <div class="mini-control"><div class="stepper"><span>-</span><span>58%</span><span>+</span></div><div class="track" style="--value: 58%"><span class="track-fill"></span><span class="track-thumb"></span></div></div>
+                  </div>
+                </div>
+                <div class="page-actions">
+                  <button class="button">Pause automation</button>
+                  <button class="button primary">Save schedule</button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" data-panel="shortcuts">
+          <div class="section">
+            <div class="section-inner">
+              <div class="section-title-row"><div class="section-title">Shortcut rows</div></div>
+              <div class="summary-table">
+                <div class="summary-row"><div class="summary-key">Global shortcuts</div><div class="summary-value">7 enabled</div></div>
+              </div>
+              <div class="shortcut-table">
+                <div class="shortcut-row shortcut-head"><div>Action</div><div>On</div><div>Opt</div><div>Shift</div><div>Ctrl</div><div>Cmd</div><div>Key</div></div>
+                <div class="shortcut-row"><div>Brightness up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="126"></div>
+                <div class="shortcut-row"><div>Brightness down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="125"></div>
+                <div class="shortcut-row"><div>Warmth up</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="124"></div>
+                <div class="shortcut-row"><div>Warmth down</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="123"></div>
+                <div class="shortcut-row"><div>Quick disable overlay</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="29"></div>
+                <div class="shortcut-row"><div>Restore previous dimming</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="15"></div>
+                <div class="shortcut-row"><div>Open popover</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox">✓</div><div class="checkbox"></div><div class="checkbox"></div><input class="native-input" value="35"></div>
+              </div>
+              <div class="button-row"><button class="button primary">Save shortcuts</button><button class="button">Reset shortcuts</button></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-panel="settings">
+          <div class="section">
+            <div class="section-inner">
+              <div class="section-title-row">
+                <div class="section-title">Launch at login</div>
+                <span class="spacer"></span>
+                <span class="chip ready">Enabled</span>
+              </div>
+              <label class="summary-value"><span class="checkbox">✓</span> Launch at login</label>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" data-panel="diagnostics">
+          <div class="stack">
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row"><div class="section-title">Verification matrix</div></div>
+                <div class="summary-table">
+                  <div class="summary-row"><div class="summary-key">Summary</div><div class="summary-value">8 handled - 0 blocked - 0 missing · handled checks · 0 blocked</div></div>
+                  <div class="summary-row"><div class="summary-key">Overlay</div><div class="summary-value">✓</div></div>
+                  <div class="summary-row"><div class="summary-key">Gamma</div><div class="summary-value">✓</div></div>
+                  <div class="summary-row"><div class="summary-key">Hotkeys</div><div class="summary-value">✓</div></div>
+                  <div class="summary-row"><div class="summary-key">Login item</div><div class="summary-value">✓</div></div>
+                </div>
+              </div>
+            </section>
+            <section class="section">
+              <div class="section-inner">
+                <div class="section-title-row">
+                  <div class="section-title">Recent diagnostics log</div>
+                  <span class="spacer"></span>
+                  <button class="button">Copy log</button>
+                </div>
+                <div class="code-log">[18:54:11] INFO settings: Settings saved.
+[18:53:58] INFO gamma: Gamma table restored before applying new warmth.
+[18:53:14] WARNING automation: Automation paused until 19:00.
+[18:52:41] INFO shortcuts: Shortcut monitor registered 7 bindings.</div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const titles = {
+      overview: "Overview",
+      display: "Display",
+      schedule: "Schedule",
+      shortcuts: "Shortcuts",
+      settings: "Settings",
+      diagnostics: "Diagnostics"
+    };
+
+    const buttons = [...document.querySelectorAll(".nav-button")];
+    const pages = [...document.querySelectorAll(".page")];
+    const pageTitle = document.getElementById("pageTitle");
+    const homeChips = [...document.querySelectorAll(".home-only")];
+    const scheduleChips = [...document.querySelectorAll(".schedule-only")];
+    const diagnosticsChips = [...document.querySelectorAll(".diagnostics-only")];
+
+    function setPage(page) {
+      buttons.forEach(button => button.classList.toggle("active", button.dataset.page === page));
+      pages.forEach(panel => panel.classList.toggle("active", panel.dataset.panel === page));
+      pageTitle.textContent = titles[page] || "Overview";
+      homeChips.forEach(chip => chip.hidden = page !== "overview");
+      scheduleChips.forEach(chip => chip.hidden = page !== "schedule");
+      diagnosticsChips.forEach(chip => chip.hidden = page !== "diagnostics");
+    }
+
+    buttons.forEach(button => {
+      button.addEventListener("click", () => setPage(button.dataset.page));
+    });
+  </script>
+</body>
+</html>
