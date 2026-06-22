@@ -795,6 +795,7 @@ private final class ShortcutPairRowView: NSView {
         static let horizontalPadding: CGFloat = 8
         static let actionLeading: CGFloat = 12
         static let actionSpacing: CGFloat = 10
+        static let compactActionSpacing: CGFloat = 12
     }
 
     init(group: ShortcutSummaryGroup) {
@@ -804,11 +805,14 @@ private final class ShortcutPairRowView: NSView {
 
         let title = Self.titleLabel(group.title)
         let actionGrid: NSStackView
+        let isCompressed: Bool
         if let compressed = group.compressedKeyDisplay {
+            isCompressed = true
             let direction = Self.directionLabel("Up / Down", width: 68)
             let key = ShortcutKeyChipView(compressed: compressed)
             actionGrid = NSStackView(views: [direction, key])
         } else {
+            isCompressed = false
             let upLabel = Self.directionLabel("Up")
             let upKey = ShortcutKeyChipView(title: group.upKeyLabel)
             let downLabel = Self.directionLabel("Down")
@@ -817,21 +821,31 @@ private final class ShortcutPairRowView: NSView {
         }
         actionGrid.orientation = .horizontal
         actionGrid.alignment = .centerY
-        actionGrid.spacing = Metrics.actionSpacing
+        actionGrid.spacing = isCompressed ? Metrics.compactActionSpacing : Metrics.actionSpacing
         actionGrid.translatesAutoresizingMaskIntoConstraints = false
 
         title.translatesAutoresizingMaskIntoConstraints = false
         addSubview(title)
         addSubview(actionGrid)
-        NSLayoutConstraint.activate([
+        var constraints = [
             heightAnchor.constraint(equalToConstant: Metrics.rowHeight),
             title.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Metrics.horizontalPadding),
             title.centerYAnchor.constraint(equalTo: centerYAnchor),
             title.widthAnchor.constraint(equalToConstant: Metrics.titleWidth),
-            actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: Metrics.actionLeading),
-            actionGrid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Metrics.horizontalPadding),
             actionGrid.centerYAnchor.constraint(equalTo: centerYAnchor)
-        ])
+        ]
+        if isCompressed {
+            constraints += [
+                actionGrid.leadingAnchor.constraint(greaterThanOrEqualTo: title.trailingAnchor, constant: Metrics.actionLeading),
+                actionGrid.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Metrics.horizontalPadding)
+            ]
+        } else {
+            constraints += [
+                actionGrid.leadingAnchor.constraint(equalTo: title.trailingAnchor, constant: Metrics.actionLeading),
+                actionGrid.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -Metrics.horizontalPadding)
+            ]
+        }
+        NSLayoutConstraint.activate(constraints)
     }
 
     required init?(coder: NSCoder) {
