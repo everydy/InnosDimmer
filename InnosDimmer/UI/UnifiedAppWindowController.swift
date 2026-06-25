@@ -131,15 +131,17 @@ enum UnifiedAppWindowPage: CaseIterable {
 @MainActor
 final class UnifiedAppWindowController: NSWindowController {
     private enum Layout {
-        static let shortcutActionWidth: CGFloat = 150
-        static let shortcutToggleWidth: CGFloat = 34
+        static let shortcutActionWidth: CGFloat = 178
+        static let shortcutToggleWidth: CGFloat = 42
         static let shortcutModifierWidth: CGFloat = 42
-        static let shortcutKeyWidth: CGFloat = 70
+        static let shortcutKeyWidth: CGFloat = 78
+        static let shortcutRowHeight: CGFloat = 32
         static let sidebarWidth: CGFloat = 244
         static let sidebarButtonHeight: CGFloat = 54
         static let contentMinimumWidth: CGFloat = 560
+        static let contentMinimumHeight: CGFloat = 380
         static let tokenRowHeight: CGFloat = 34
-        static let windowContentSize = NSSize(width: 900, height: 640)
+        static let windowContentSize = NSSize(width: 836, height: 460)
     }
 
     private struct ShortcutControls {
@@ -300,6 +302,14 @@ final class UnifiedAppWindowController: NSWindowController {
         window?.contentView?.frame.size
     }
 
+    func diagnosticsLogHeightForTesting() -> CGFloat? {
+        focus(.diagnostics)
+        window?.contentView?.layoutSubtreeIfNeeded()
+        return window?.contentView?
+            .appWindowViewForTesting(identifier: "app-window-diagnostics-code-log")?
+            .bounds.height
+    }
+
     func toastMessageForTesting() -> String? {
         toastView?.message
     }
@@ -448,7 +458,7 @@ final class UnifiedAppWindowController: NSWindowController {
             statusLabel.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
             contentPane.widthAnchor.constraint(equalTo: contentStack.widthAnchor),
             contentPane.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.contentMinimumWidth),
-            contentPane.heightAnchor.constraint(greaterThanOrEqualToConstant: 420)
+            contentPane.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.contentMinimumHeight)
         ])
         renderActivePage()
     }
@@ -581,26 +591,12 @@ final class UnifiedAppWindowController: NSWindowController {
         return makeDetailPage(
             title: "Display",
             content: verticalStack([
-            makeSection(title: "Current state", trailing: makeChip("Ready", tone: .ready), views: [
-                makeCurrentStateTable(identifier: "Display current state")
-            ]),
             makeSection(title: "Target display", trailing: makeChip(resolvedDisplay == nil ? "Unresolved" : "Resolved", tone: resolvedTone), views: [
                 displayPicker,
                 makeSummaryRow(title: "Selection rule", value: targetDisplayRuleSummary()),
                 makeSummaryRow(title: "Active target", value: resolvedDisplaySummary(resolvedDisplay)),
                 makeSummaryRow(title: "Safety scope", value: targetDisplayScopeSummary(resolvedDisplay)),
                 makeSummaryRow(title: "Warmth", value: gammaTableSummary(resolvedDisplay))
-            ]),
-            makeSection(title: "Saved selection", views: [
-                makeSummaryRow(title: "Saved", value: selectedDisplaySummary()),
-                makeActionRow([
-                    PopoverCommandButton(
-                        title: "Save display",
-                        style: .primary,
-                        target: self,
-                        action: #selector(saveDisplayPressed)
-                    )
-                ])
             ])
             ])
         )
@@ -615,15 +611,8 @@ final class UnifiedAppWindowController: NSWindowController {
         return makeDetailPage(
             title: "Schedule",
             content: verticalStack([
-                makeSection(title: "Schedule", views: [
-                    makeSummaryTable(
-                        identifier: "Schedule",
-                        rows: [
-                            .init(title: "Status", value: automationSummary()),
-                            .init(title: "Current", value: scheduleSummaryText()),
-                            .init(title: "Shortcuts", value: "Option + Shift controls")
-                        ]
-                    )
+                makeUntitledSection(identifier: "Schedule summary", views: [
+                    makeScheduleSummaryTable()
                 ]),
                 makeSection(title: "Schedule rows", views: [scheduleEditorView, scheduleStatusLabel, controls])
             ])
@@ -636,12 +625,11 @@ final class UnifiedAppWindowController: NSWindowController {
         return makeDetailPage(
             title: "Shortcuts",
             content: verticalStack([
-                makeSection(title: "Shortcut rows", views: [
-                    makeTokenRow(title: "Global shortcuts", value: "\(shortcuts.filter(\.isEnabled).count) enabled"),
+                makeSection(title: "Global shortcuts", views: [
                     makeShortcutStack(),
                     makeActionRow([
                         PopoverCommandButton(title: "Save shortcuts", style: .primary, target: self, action: #selector(saveShortcutsPressed)),
-                        PopoverCommandButton(title: "Reset shortcuts", style: .normal, target: self, action: #selector(resetShortcutsPressed))
+                        PopoverCommandButton(title: "Reset", style: .normal, target: self, action: #selector(resetShortcutsPressed))
                     ])
                 ])
             ])
@@ -733,6 +721,16 @@ final class UnifiedAppWindowController: NSWindowController {
         InnosComponentFactory.summaryTable(entries: rows, identifier: identifier)
     }
 
+    private func makeScheduleSummaryTable() -> NSView {
+        InnosComponentFactory.customSummaryTable(
+            entries: [
+                .init(title: "Status", value: makeSummaryValueLabel(automationSummary())),
+                .init(title: "Current", value: makeScheduleCurrentMetricsView())
+            ],
+            identifier: "Schedule"
+        )
+    }
+
     private func makeCurrentStateTable(identifier: String) -> NSView {
         makeSummaryTable(
             identifier: identifier,
@@ -766,7 +764,7 @@ final class UnifiedAppWindowController: NSWindowController {
         scrollView.autohidesScrollers = true
         scrollView.borderType = .noBorder
         scrollView.documentView = diagnosticsTextView
-        scrollView.heightAnchor.constraint(equalToConstant: 150).isActive = true
+        scrollView.heightAnchor.constraint(equalToConstant: InnosDesignTokens.Size.diagnosticsCodeLogHeight).isActive = true
         return scrollView
     }
 
@@ -815,6 +813,19 @@ final class UnifiedAppWindowController: NSWindowController {
         return PopoverContainerView(style: .section, content: content)
     }
 
+    private func makeUntitledSection(identifier: String, views: [NSView]) -> NSView {
+        let content = NSStackView(views: views)
+        content.identifier = NSUserInterfaceItemIdentifier("app-window-section:\(identifier)")
+        content.orientation = .vertical
+        content.alignment = .width
+        content.spacing = 10
+        views.forEach { view in
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.widthAnchor.constraint(equalTo: content.widthAnchor).isActive = true
+        }
+        return PopoverContainerView(style: .section, content: content)
+    }
+
     private func makeControlGroup(title: String, valueLabel: NSTextField, trackView: ProgressTrackView, decrement: NSButton, increment: NSButton) -> NSStackView {
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = InnosDesignTokens.Font.bodyEmphasis
@@ -839,13 +850,13 @@ final class UnifiedAppWindowController: NSWindowController {
         stack.alignment = .width
         stack.spacing = 6
         let header = NSStackView(views: [
-            fixedLabel("Action", width: Layout.shortcutActionWidth),
-            fixedLabel("On", width: Layout.shortcutToggleWidth),
-            fixedLabel("Opt", width: Layout.shortcutModifierWidth),
-            fixedLabel("Shift", width: Layout.shortcutModifierWidth),
-            fixedLabel("Ctrl", width: Layout.shortcutModifierWidth),
-            fixedLabel("Cmd", width: Layout.shortcutModifierWidth),
-            fixedLabel("Key", width: Layout.shortcutKeyWidth)
+            shortcutHeaderLabel("Action", width: Layout.shortcutActionWidth, alignment: .left),
+            shortcutHeaderLabel("On", width: Layout.shortcutToggleWidth),
+            shortcutHeaderLabel("Opt", width: Layout.shortcutModifierWidth),
+            shortcutHeaderLabel("Shift", width: Layout.shortcutModifierWidth),
+            shortcutHeaderLabel("Ctrl", width: Layout.shortcutModifierWidth),
+            shortcutHeaderLabel("Cmd", width: Layout.shortcutModifierWidth),
+            shortcutHeaderLabel("Key", width: Layout.shortcutKeyWidth)
         ])
         header.orientation = .horizontal
         header.alignment = .centerY
@@ -854,7 +865,7 @@ final class UnifiedAppWindowController: NSWindowController {
         for action in ShortcutAction.allCases {
             guard let controls = shortcutControls[action] else { continue }
             let row = NSStackView(views: [
-                fixedLabel(Self.shortcutActionLabel(for: action), width: Layout.shortcutActionWidth),
+                shortcutActionNameLabel(Self.shortcutActionLabel(for: action)),
                 controls.enabled,
                 controls.option,
                 controls.shift,
@@ -865,6 +876,7 @@ final class UnifiedAppWindowController: NSWindowController {
             row.orientation = .horizontal
             row.alignment = .centerY
             row.spacing = 6
+            row.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.shortcutRowHeight).isActive = true
             stack.addArrangedSubview(row)
             row.translatesAutoresizingMaskIntoConstraints = false
             row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
@@ -879,11 +891,13 @@ final class UnifiedAppWindowController: NSWindowController {
         guard shortcutControls.isEmpty else { return }
         for action in ShortcutAction.allCases {
             let keyField = ShortcutKeyField()
-            keyField.font = InnosDesignTokens.Font.body
+            keyField.font = InnosDesignTokens.Font.bodyEmphasis
+            keyField.alignment = .center
             keyField.target = self
             keyField.action = #selector(shortcutControlChanged)
             keyField.translatesAutoresizingMaskIntoConstraints = false
             keyField.widthAnchor.constraint(equalToConstant: Layout.shortcutKeyWidth).isActive = true
+            keyField.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.shortcutRowHeight - 2).isActive = true
             shortcutControls[action] = ShortcutControls(
                 enabled: checkbox(width: Layout.shortcutToggleWidth),
                 option: checkbox(width: Layout.shortcutModifierWidth),
@@ -1097,6 +1111,67 @@ final class UnifiedAppWindowController: NSWindowController {
         return row
     }
 
+    private func makeSummaryValueLabel(_ value: String) -> NSTextField {
+        let label = NSTextField(wrappingLabelWithString: value)
+        label.font = InnosDesignTokens.Font.bodyEmphasis
+        label.textColor = .labelColor
+        label.maximumNumberOfLines = 0
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return label
+    }
+
+    private func makeScheduleCurrentMetricsView() -> NSView {
+        guard let entry = activeScheduleEntry() else {
+            return makeSummaryValueLabel("not configured")
+        }
+
+        let appearance = window?.effectiveAppearance ?? NSApp.effectiveAppearance
+        let stack = NSStackView(views: [
+            makeInlineMetric(systemSymbolName: "clock", text: Self.timeLabel(for: entry.minuteOfDay), color: InnosDesignTokens.accent(for: appearance)),
+            makeInlineMetric(systemSymbolName: "sun.max.fill", text: "\(entry.brightness)%", color: InnosDesignTokens.accent(for: appearance)),
+            makeInlineMetric(
+                systemSymbolName: "thermometer.medium",
+                text: "warmth \(entry.blueReduction)%",
+                color: InnosDesignTokens.foreground(for: .warning, appearance: appearance)
+            )
+        ])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 14
+        stack.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        stack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        stack.setAccessibilityLabel(activeScheduleSummaryText())
+        return stack
+    }
+
+    private func makeInlineMetric(systemSymbolName: String, text: String, color: NSColor) -> NSStackView {
+        let imageView = NSImageView()
+        if let image = NSImage(systemSymbolName: systemSymbolName, accessibilityDescription: nil) {
+            imageView.image = image
+            imageView.contentTintColor = color
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        }
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.widthAnchor.constraint(equalToConstant: 14).isActive = true
+        imageView.heightAnchor.constraint(equalToConstant: 14).isActive = true
+        imageView.setContentHuggingPriority(.required, for: .horizontal)
+        imageView.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        let label = NSTextField(labelWithString: text)
+        label.font = InnosDesignTokens.Font.bodyEmphasis
+        label.textColor = .labelColor
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let stack = NSStackView(views: [imageView, label])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 6
+        stack.setAccessibilityLabel(text)
+        return stack
+    }
+
     private func makeChip(_ title: String, tone: InnosDesignTokens.Tone) -> InnosStatusChipView {
         InnosStatusChipView(title: title, tone: tone)
     }
@@ -1116,11 +1191,32 @@ final class UnifiedAppWindowController: NSWindowController {
         return label
     }
 
+    private func shortcutHeaderLabel(
+        _ title: String,
+        width: CGFloat,
+        alignment: NSTextAlignment = .center
+    ) -> NSTextField {
+        let label = fixedLabel(title, width: width)
+        label.font = InnosDesignTokens.Font.bodySmallStrong
+        label.textColor = .secondaryLabelColor
+        label.alignment = alignment
+        return label
+    }
+
+    private func shortcutActionNameLabel(_ title: String) -> NSTextField {
+        let label = fixedLabel(title, width: Layout.shortcutActionWidth)
+        label.font = InnosDesignTokens.Font.bodyEmphasis
+        label.lineBreakMode = .byTruncatingTail
+        label.maximumNumberOfLines = 1
+        return label
+    }
+
     private func checkbox(width: CGFloat) -> NSButton {
         let button = NSButton(checkboxWithTitle: "", target: self, action: #selector(shortcutControlChanged))
         button.font = InnosDesignTokens.Font.body
         button.translatesAutoresizingMaskIntoConstraints = false
         button.widthAnchor.constraint(equalToConstant: width).isActive = true
+        button.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.shortcutRowHeight - 2).isActive = true
         return button
     }
 
@@ -1245,6 +1341,20 @@ final class UnifiedAppWindowController: NSWindowController {
         SettingsSnapshot.sortedSchedule(schedule)
             .map { "\(Self.timeLabel(for: $0.minuteOfDay)) · \($0.brightness)% / warmth \($0.blueReduction)%" }
             .joined(separator: ", ")
+    }
+
+    private func activeScheduleSummaryText() -> String {
+        guard let entry = activeScheduleEntry() else { return "not configured" }
+        return "\(Self.timeLabel(for: entry.minuteOfDay)) · \(entry.brightness)% / warmth \(entry.blueReduction)%"
+    }
+
+    private func activeScheduleEntry() -> ScheduleEntry? {
+        let sortedSchedule = SettingsSnapshot.sortedSchedule(schedule)
+        if let resumeMinute = state.automationResumeMinuteOfDay,
+           let matchingEntry = sortedSchedule.first(where: { $0.minuteOfDay == resumeMinute }) {
+            return matchingEntry
+        }
+        return sortedSchedule.first
     }
 
     private func nextScheduleText() -> String {
@@ -1660,6 +1770,19 @@ private extension NSView {
             identifiers.append(contentsOf: subview.appWindowIdentifiersForTesting())
         }
         return identifiers
+    }
+
+    @MainActor
+    func appWindowViewForTesting(identifier target: String) -> NSView? {
+        if identifier?.rawValue == target {
+            return self
+        }
+        for subview in subviews {
+            if let match = subview.appWindowViewForTesting(identifier: target) {
+                return match
+            }
+        }
+        return nil
     }
 
     @MainActor

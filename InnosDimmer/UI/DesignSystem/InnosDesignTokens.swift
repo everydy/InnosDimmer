@@ -26,6 +26,21 @@ enum InnosDesignTokens {
         static let dimmingLabelWidth: CGFloat = 112
         static let dimmingValueWidth: CGFloat = 54
         static let summaryLabelWidth: CGFloat = 108
+        static let diagnosticsCodeLogHeight: CGFloat = 72
+    }
+
+    enum ScheduleRows {
+        static let timeColumnWidth: CGFloat = 64
+        static let valueFieldWidth: CGFloat = 44
+        static let trackWidth: CGFloat = 92
+        static let stepButtonWidth: CGFloat = 32
+        static let stepperPairWidth: CGFloat = stepButtonWidth * 2
+        static let fieldHeight: CGFloat = 32
+        static let columnGap: CGFloat = 12
+        static let rowGap: CGFloat = 10
+        static let controlGap: CGFloat = 6
+        static let metricColumnWidth: CGFloat = valueFieldWidth + trackWidth + stepperPairWidth + (controlGap * 2)
+        static let tableWidth: CGFloat = timeColumnWidth + (metricColumnWidth * 2) + (columnGap * 2)
     }
 
     enum Font {

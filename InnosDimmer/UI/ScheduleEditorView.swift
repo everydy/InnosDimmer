@@ -17,15 +17,16 @@ enum ScheduleEditorError: LocalizedError, Equatable {
 @MainActor
 final class ScheduleEditorView: NSView, NSTextFieldDelegate {
     private enum Layout {
-        static let timeFieldWidth: CGFloat = 64
-        static let metricCellMinWidth: CGFloat = 210
-        static let percentFieldWidth: CGFloat = 38
-        static let stepButtonWidth: CGFloat = 24
-        static let trackMinWidth: CGFloat = 86
-        static let rowSpacing: CGFloat = 8
-        static let columnSpacing: CGFloat = 10
-        static let controlSpacing: CGFloat = 0
-        static let fieldHeight: CGFloat = 26
+        static let timeFieldWidth = InnosDesignTokens.ScheduleRows.timeColumnWidth
+        static let metricCellWidth = InnosDesignTokens.ScheduleRows.metricColumnWidth
+        static let percentFieldWidth = InnosDesignTokens.ScheduleRows.valueFieldWidth
+        static let stepButtonWidth = InnosDesignTokens.ScheduleRows.stepButtonWidth
+        static let stepperPairWidth = InnosDesignTokens.ScheduleRows.stepperPairWidth
+        static let trackWidth = InnosDesignTokens.ScheduleRows.trackWidth
+        static let rowSpacing = InnosDesignTokens.ScheduleRows.rowGap
+        static let columnSpacing = InnosDesignTokens.ScheduleRows.columnGap
+        static let controlSpacing = InnosDesignTokens.ScheduleRows.controlGap
+        static let fieldHeight = InnosDesignTokens.ScheduleRows.fieldHeight
     }
 
     private enum MetricField {
@@ -39,6 +40,58 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             case .blueReduction:
                 return "Warmth"
             }
+        }
+    }
+
+    private final class CenteredScheduleTextFieldCell: NSTextFieldCell {
+        override func drawingRect(forBounds rect: NSRect) -> NSRect {
+            centeredTextRect(forBounds: rect)
+        }
+
+        override func edit(
+            withFrame cellFrame: NSRect,
+            in controlView: NSView,
+            editor textObj: NSText,
+            delegate: Any?,
+            event: NSEvent?
+        ) {
+            super.edit(
+                withFrame: centeredTextRect(forBounds: cellFrame),
+                in: controlView,
+                editor: textObj,
+                delegate: delegate,
+                event: event
+            )
+        }
+
+        override func select(
+            withFrame cellFrame: NSRect,
+            in controlView: NSView,
+            editor textObj: NSText,
+            delegate: Any?,
+            start selStart: Int,
+            length selLength: Int
+        ) {
+            super.select(
+                withFrame: centeredTextRect(forBounds: cellFrame),
+                in: controlView,
+                editor: textObj,
+                delegate: delegate,
+                start: selStart,
+                length: selLength
+            )
+        }
+
+        private func centeredTextRect(forBounds rect: NSRect) -> NSRect {
+            var textRect = super.drawingRect(forBounds: rect)
+            let textHeight = cellSize(forBounds: rect).height
+            guard textRect.height > textHeight else {
+                return textRect
+            }
+
+            textRect.origin.y += floor((textRect.height - textHeight) / 2)
+            textRect.size.height = textHeight
+            return textRect
         }
     }
 
@@ -157,9 +210,10 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             self.title = title
             self.target = target
             self.action = action
-            bezelStyle = .rounded
-            controlSize = .small
-            font = InnosDesignTokens.Font.buttonLabel
+            isBordered = false
+            bezelStyle = .regularSquare
+            controlSize = .regular
+            font = InnosDesignTokens.Font.popoverStepperButton
             setButtonType(.momentaryPushIn)
             translatesAutoresizingMaskIntoConstraints = false
             widthAnchor.constraint(equalToConstant: Layout.stepButtonWidth).isActive = true
@@ -169,6 +223,64 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
 
         required init?(coder: NSCoder) {
             nil
+        }
+    }
+
+    private final class ScheduleStepperPairView: NSView {
+        private var separator: NSView?
+
+        init(decrement: ScheduleStepButton, increment: ScheduleStepButton) {
+            super.init(frame: .zero)
+            wantsLayer = true
+            translatesAutoresizingMaskIntoConstraints = false
+            widthAnchor.constraint(equalToConstant: Layout.stepperPairWidth).isActive = true
+            heightAnchor.constraint(equalToConstant: Layout.fieldHeight).isActive = true
+
+            let stack = NSStackView(views: [decrement, increment])
+            stack.orientation = .horizontal
+            stack.alignment = .centerY
+            stack.spacing = 0
+            stack.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(stack)
+
+            let separator = NSView()
+            separator.translatesAutoresizingMaskIntoConstraints = false
+            separator.widthAnchor.constraint(equalToConstant: 1).isActive = true
+            addSubview(separator)
+            self.separator = separator
+
+            NSLayoutConstraint.activate([
+                stack.leadingAnchor.constraint(equalTo: leadingAnchor),
+                stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+                stack.topAnchor.constraint(equalTo: topAnchor),
+                stack.bottomAnchor.constraint(equalTo: bottomAnchor),
+                separator.centerXAnchor.constraint(equalTo: centerXAnchor),
+                separator.topAnchor.constraint(equalTo: topAnchor),
+                separator.bottomAnchor.constraint(equalTo: bottomAnchor)
+            ])
+
+            setContentHuggingPriority(.required, for: .horizontal)
+            setContentCompressionResistancePriority(.required, for: .horizontal)
+            applyAppearance()
+        }
+
+        required init?(coder: NSCoder) {
+            nil
+        }
+
+        override func viewDidChangeEffectiveAppearance() {
+            super.viewDidChangeEffectiveAppearance()
+            applyAppearance()
+        }
+
+        private func applyAppearance() {
+            layer?.cornerRadius = InnosDesignTokens.Radius.control
+            layer?.masksToBounds = true
+            layer?.backgroundColor = InnosDesignTokens.surfaceControl(for: effectiveAppearance).cgColor
+            layer?.borderWidth = 1
+            layer?.borderColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
+            separator?.wantsLayer = true
+            separator?.layer?.backgroundColor = InnosDesignTokens.border(for: effectiveAppearance).cgColor
         }
     }
 
@@ -277,15 +389,77 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         rows.count
     }
 
+    func layoutContractWidthForTesting() -> CGFloat {
+        InnosDesignTokens.ScheduleRows.tableWidth
+    }
+
+    func scheduleRowTokenMetricsForTesting() -> (
+        tableWidth: CGFloat,
+        metricColumnWidth: CGFloat,
+        valueFieldWidth: CGFloat,
+        trackWidth: CGFloat,
+        stepperPairWidth: CGFloat,
+        controlGap: CGFloat,
+        rowGap: CGFloat
+    ) {
+        (
+            InnosDesignTokens.ScheduleRows.tableWidth,
+            InnosDesignTokens.ScheduleRows.metricColumnWidth,
+            InnosDesignTokens.ScheduleRows.valueFieldWidth,
+            InnosDesignTokens.ScheduleRows.trackWidth,
+            InnosDesignTokens.ScheduleRows.stepperPairWidth,
+            InnosDesignTokens.ScheduleRows.controlGap,
+            InnosDesignTokens.ScheduleRows.rowGap
+        )
+    }
+
+    func fieldLayoutMetricsForTesting(index: Int) -> (
+        timeAlignment: NSTextAlignment,
+        brightnessAlignment: NSTextAlignment,
+        warmthAlignment: NSTextAlignment,
+        timeHeight: CGFloat,
+        brightnessHeight: CGFloat,
+        warmthHeight: CGFloat,
+        timeTextCenterDelta: CGFloat,
+        brightnessTextCenterDelta: CGFloat,
+        warmthTextCenterDelta: CGFloat
+    )? {
+        guard rows.indices.contains(index) else {
+            return nil
+        }
+        layoutSubtreeIfNeeded()
+
+        func textCenterDelta(for field: NSTextField) -> CGFloat {
+            guard let cell = field.cell else {
+                return CGFloat.greatestFiniteMagnitude
+            }
+            let textRect = cell.drawingRect(forBounds: field.bounds)
+            return abs(textRect.midY - field.bounds.midY)
+        }
+
+        let row = rows[index]
+        return (
+            row.time.alignment,
+            row.brightnessValue.alignment,
+            row.blueReductionValue.alignment,
+            row.time.bounds.height,
+            row.brightnessValue.bounds.height,
+            row.blueReductionValue.bounds.height,
+            textCenterDelta(for: row.time),
+            textCenterDelta(for: row.brightnessValue),
+            textCenterDelta(for: row.blueReductionValue)
+        )
+    }
+
     private func installContent() {
         let stack = NSStackView()
         stack.orientation = .vertical
-        stack.alignment = .width
+        stack.alignment = .leading
         stack.spacing = Layout.rowSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         let header = NSStackView(views: [
-            fixedLabel("Time", width: Layout.timeFieldWidth),
+            fixedLabel("Time", width: Layout.timeFieldWidth, alignment: .center),
             metricHeaderLabel("Bright"),
             metricHeaderLabel("Warmth")
         ])
@@ -294,7 +468,6 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         header.distribution = .fill
         header.spacing = Layout.columnSpacing
         stack.addArrangedSubview(header)
-        header.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
 
         for index in 0..<rowCount {
             let controls = RowControls(
@@ -330,22 +503,21 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             row.setAccessibilityLabel("Schedule row \(index + 1)")
             stack.addArrangedSubview(row)
             row.translatesAutoresizingMaskIntoConstraints = false
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-            brightnessCell.widthAnchor.constraint(equalTo: blueReductionCell.widthAnchor).isActive = true
         }
 
         addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
     }
 
-    private func fixedLabel(_ title: String, width: CGFloat) -> NSTextField {
+    private func fixedLabel(_ title: String, width: CGFloat, alignment: NSTextAlignment = .left) -> NSTextField {
         let label = NSTextField(labelWithString: title)
         label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
+        label.alignment = alignment
         label.translatesAutoresizingMaskIntoConstraints = false
         label.widthAnchor.constraint(equalToConstant: width).isActive = true
         return label
@@ -355,43 +527,69 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         let label = NSTextField(labelWithString: title)
         label.font = InnosDesignTokens.Font.app(ofSize: 12, weight: .semibold)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellMinWidth).isActive = true
-        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.widthAnchor.constraint(equalToConstant: Layout.metricCellWidth).isActive = true
+        label.setContentHuggingPriority(.required, for: .horizontal)
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }
 
     private func editableField(width: CGFloat) -> NSTextField {
         let field = NSTextField(string: "")
-        field.font = InnosDesignTokens.Font.app(ofSize: 13)
+        field.font = InnosDesignTokens.Font.app(ofSize: 14, weight: .semibold)
+        field.alignment = .center
+        useCenteredScheduleTextCell(for: field)
         field.translatesAutoresizingMaskIntoConstraints = false
         field.widthAnchor.constraint(equalToConstant: width).isActive = true
-        field.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.fieldHeight).isActive = true
+        field.heightAnchor.constraint(equalToConstant: Layout.fieldHeight).isActive = true
         field.setAccessibilityLabel("Schedule time")
         return field
     }
 
     private func percentField(rowIndex: Int, metric: MetricField) -> SchedulePercentField {
         let field = SchedulePercentField(rowIndex: rowIndex, metric: metric)
-        field.font = InnosDesignTokens.Font.app(ofSize: 13, weight: .semibold)
-        field.alignment = .right
+        field.font = InnosDesignTokens.Font.app(ofSize: 14, weight: .semibold)
+        field.alignment = .center
+        useCenteredScheduleTextCell(for: field)
         field.delegate = self
         field.target = self
         field.action = #selector(percentFieldChanged(_:))
         field.translatesAutoresizingMaskIntoConstraints = false
         field.widthAnchor.constraint(equalToConstant: Layout.percentFieldWidth).isActive = true
-        field.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.fieldHeight).isActive = true
+        field.heightAnchor.constraint(equalToConstant: Layout.fieldHeight).isActive = true
         field.setAccessibilityLabel("\(metric.accessibilityTitle) row \(rowIndex + 1) value")
         return field
+    }
+
+    private func useCenteredScheduleTextCell(for field: NSTextField) {
+        guard let currentCell = field.cell as? NSTextFieldCell else {
+            return
+        }
+
+        let centeredCell = CenteredScheduleTextFieldCell(textCell: field.stringValue)
+        centeredCell.isEditable = currentCell.isEditable
+        centeredCell.isSelectable = currentCell.isSelectable
+        centeredCell.isBordered = currentCell.isBordered
+        centeredCell.isBezeled = currentCell.isBezeled
+        centeredCell.bezelStyle = currentCell.bezelStyle
+        centeredCell.drawsBackground = currentCell.drawsBackground
+        centeredCell.backgroundColor = currentCell.backgroundColor
+        centeredCell.textColor = currentCell.textColor
+        centeredCell.font = field.font
+        centeredCell.alignment = field.alignment
+        centeredCell.controlSize = currentCell.controlSize
+        centeredCell.lineBreakMode = .byClipping
+        centeredCell.usesSingleLineMode = true
+        centeredCell.isScrollable = true
+        field.cell = centeredCell
     }
 
     private func percentTrack(rowIndex: Int, metric: MetricField) -> SchedulePercentTrackView {
         let track = SchedulePercentTrackView(frame: .zero)
         track.translatesAutoresizingMaskIntoConstraints = false
         track.heightAnchor.constraint(equalToConstant: InnosDesignTokens.Size.trackHeight).isActive = true
-        track.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.trackMinWidth).isActive = true
-        track.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        track.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        track.widthAnchor.constraint(equalToConstant: Layout.trackWidth).isActive = true
+        track.setContentHuggingPriority(.required, for: .horizontal)
+        track.setContentCompressionResistancePriority(.required, for: .horizontal)
         track.setAccessibilityLabel("\(metric.accessibilityTitle) row \(rowIndex + 1) track")
         track.onUserFractionChange = { [weak self] fraction in
             self?.setPercent(Self.percent(from: fraction), rowIndex: rowIndex, metric: metric)
@@ -421,9 +619,7 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
             target: self,
             action: #selector(stepButtonPressed(_:))
         )
-        let stepper = NSStackView(views: [decrement, increment])
-        stepper.orientation = .horizontal
-        stepper.spacing = Layout.controlSpacing
+        let stepper = ScheduleStepperPairView(decrement: decrement, increment: increment)
         stepper.setContentHuggingPriority(.required, for: .horizontal)
         stepper.setContentCompressionResistancePriority(.required, for: .horizontal)
 
@@ -432,9 +628,9 @@ final class ScheduleEditorView: NSView, NSTextFieldDelegate {
         cell.alignment = .centerY
         cell.spacing = Layout.controlSpacing
         cell.translatesAutoresizingMaskIntoConstraints = false
-        cell.widthAnchor.constraint(greaterThanOrEqualToConstant: Layout.metricCellMinWidth).isActive = true
-        cell.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        cell.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        cell.widthAnchor.constraint(equalToConstant: Layout.metricCellWidth).isActive = true
+        cell.setContentHuggingPriority(.required, for: .horizontal)
+        cell.setContentCompressionResistancePriority(.required, for: .horizontal)
         cell.setAccessibilityLabel("\(metric.accessibilityTitle) row \(rowIndex + 1)")
         return cell
     }

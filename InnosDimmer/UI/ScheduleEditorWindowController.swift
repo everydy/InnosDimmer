@@ -18,7 +18,7 @@ final class ScheduleEditorWindowController: NSWindowController {
     init(actions: ScheduleEditorActions = .noop) {
         self.actions = actions
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 360),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false

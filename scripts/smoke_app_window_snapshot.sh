@@ -16,8 +16,8 @@ xcodebuild \
   -only-testing:InnosDimmerTests/MenuBarStateTests/testUnifiedAppWindowSafeVisualSmokeRendersNonblankPages
 
 snapshot_count="$(find "$SAFE_SMOKE_DIR" -maxdepth 1 -type f -name 'safe-app-window-*.png' | wc -l | tr -d ' ')"
-if [[ "$snapshot_count" != "7" ]]; then
-  echo "Expected 7 safe app-window smoke snapshots, found $snapshot_count in $SAFE_SMOKE_DIR" >&2
+if [[ "$snapshot_count" != "6" ]]; then
+  echo "Expected 6 safe app-window smoke snapshots, found $snapshot_count in $SAFE_SMOKE_DIR" >&2
   exit 1
 fi
 

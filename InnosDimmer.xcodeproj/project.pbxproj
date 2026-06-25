@@ -517,7 +517,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = local.moonsoo.InnosDimmer;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.everydy.InnosDimmer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 6.0;
 			};
@@ -532,7 +532,7 @@
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = InnosDimmer/App/Info.plist;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = local.moonsoo.InnosDimmer;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.everydy.InnosDimmer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 6.0;
 			};
@@ -545,7 +545,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = local.moonsoo.InnosDimmerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.everydy.InnosDimmerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/InnosDimmer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/InnosDimmer";
@@ -559,7 +559,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = local.moonsoo.InnosDimmerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.everydy.InnosDimmerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 6.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/InnosDimmer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/InnosDimmer";

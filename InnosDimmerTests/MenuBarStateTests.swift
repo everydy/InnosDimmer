@@ -3,6 +3,14 @@ import XCTest
 @testable import InnosDimmer
 
 final class MenuBarStateTests: XCTestCase {
+    private func defaultPopoverCaptureDirectory() -> String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("docs/assets/screenshots/popover", isDirectory: true)
+            .path
+    }
+
     func testModeLabelsMatchReviewArtifactVocabulary() {
         XCTAssertEqual(ModeStatusLabel.title(for: .overlay), "Overlay active")
         XCTAssertEqual(ModeStatusLabel.title(for: .platformBlocked), "Platform blocked")
@@ -359,6 +367,35 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testScheduleEditorViewUsesCenteredFixedFieldLayout() throws {
+        let view = ScheduleEditorView()
+        view.frame = NSRect(x: 0, y: 0, width: 620, height: 160)
+        view.update(schedule: ScheduleEntry.defaultSchedule)
+        view.layoutSubtreeIfNeeded()
+
+        let tokens = view.scheduleRowTokenMetricsForTesting()
+        XCTAssertEqual(tokens.tableWidth, 512, accuracy: 0.5)
+        XCTAssertEqual(tokens.metricColumnWidth, 212, accuracy: 0.5)
+        XCTAssertEqual(tokens.valueFieldWidth, 44, accuracy: 0.5)
+        XCTAssertEqual(tokens.trackWidth, 92, accuracy: 0.5)
+        XCTAssertEqual(tokens.stepperPairWidth, 64, accuracy: 0.5)
+        XCTAssertEqual(tokens.controlGap, 6, accuracy: 0.5)
+        XCTAssertEqual(tokens.rowGap, 10, accuracy: 0.5)
+        XCTAssertLessThanOrEqual(view.layoutContractWidthForTesting(), 560)
+
+        let metrics = try XCTUnwrap(view.fieldLayoutMetricsForTesting(index: 0))
+        XCTAssertEqual(metrics.timeAlignment, .center)
+        XCTAssertEqual(metrics.brightnessAlignment, .center)
+        XCTAssertEqual(metrics.warmthAlignment, .center)
+        XCTAssertEqual(metrics.timeHeight, 32, accuracy: 0.5)
+        XCTAssertEqual(metrics.brightnessHeight, 32, accuracy: 0.5)
+        XCTAssertEqual(metrics.warmthHeight, 32, accuracy: 0.5)
+        XCTAssertLessThanOrEqual(metrics.timeTextCenterDelta, 1.0)
+        XCTAssertLessThanOrEqual(metrics.brightnessTextCenterDelta, 1.0)
+        XCTAssertLessThanOrEqual(metrics.warmthTextCenterDelta, 1.0)
+    }
+
+    @MainActor
     func testScheduleEditorViewAcceptsPercentSuffixInTableValueFields() throws {
         let view = ScheduleEditorView()
         view.setRowForTesting(index: 0, time: "08:15", brightness: "72%", blueReduction: "18%")
@@ -695,6 +732,8 @@ final class MenuBarStateTests: XCTestCase {
         let controller = makeMockupAcceptanceController()
         controller.focus(.home)
         let baselineSize = try XCTUnwrap(controller.windowContentSizeForTesting())
+        XCTAssertEqual(baselineSize.width, 836, accuracy: 0.5)
+        XCTAssertEqual(baselineSize.height, 460, accuracy: 0.5)
 
         for target in [AppDashboardFocusTarget.current, .display, .schedule, .shortcuts, .settings, .diagnostics, .home] {
             controller.focus(target)
@@ -736,24 +775,17 @@ final class MenuBarStateTests: XCTestCase {
 
         assert(text, contains: [
             "Display",
-            "Current state",
-            "INNOS 27QA100M",
-            "Mode",
-            "Overlay active",
-            "Brightness",
-            "Warmth",
-            "Automation",
-            "Paused until 19:00",
             "Target display",
             "Selection rule",
             "Automatic external display, preferring a non-main monitor",
             "Active target",
             "Safety scope",
-            "Warmth",
-            "Saved selection",
-            "Save display"
+            "Warmth"
         ])
         assert(text, doesNotContain: [
+            "Current state",
+            "Saved selection",
+            "Save display",
             "Main display",
             "Refresh displays",
             "Use automatic"
@@ -790,6 +822,10 @@ final class MenuBarStateTests: XCTestCase {
         assert(text, contains: [
             "Schedule",
             "Paused until 19:00",
+            "Current",
+            "19:00",
+            "45",
+            "warmth 32%",
             "Schedule rows",
             "Time",
             "Bright",
@@ -802,6 +838,10 @@ final class MenuBarStateTests: XCTestCase {
             "58",
             "Resume automation",
             "Save schedule"
+        ])
+        assert(text, doesNotContain: [
+            "Option + Shift controls",
+            "09:00 · 80% / warmth 12%, 19:00 · 45% / warmth 32%, 23:00 · 25% / warmth 58%"
         ])
     }
 
@@ -829,6 +869,11 @@ final class MenuBarStateTests: XCTestCase {
             "Open popover",
             "Save shortcuts",
             "Reset"
+        ])
+        assert(text, doesNotContain: [
+            "Shortcut rows",
+            "7 enabled",
+            "Reset shortcuts"
         ])
     }
 
@@ -909,10 +954,10 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(display.containsIdentifier("app-window-sidebar-action-zone"))
         XCTAssertTrue(display.containsIdentifier("app-window-sidebar-action:Open popover"))
         XCTAssertFalse(display.containsIdentifier("app-window-detail-split"))
-        XCTAssertTrue(display.containsIdentifier("app-window-section:Current state"))
-        XCTAssertTrue(display.containsIdentifier("app-window-summary-table:Display current state"))
         XCTAssertTrue(display.containsIdentifier("app-window-section:Target display"))
-        XCTAssertTrue(display.containsIdentifier("app-window-section:Saved selection"))
+        XCTAssertFalse(display.containsIdentifier("app-window-section:Current state"))
+        XCTAssertFalse(display.containsIdentifier("app-window-summary-table:Display current state"))
+        XCTAssertFalse(display.containsIdentifier("app-window-section:Saved selection"))
         XCTAssertFalse(display.containsText("Refresh displays"))
         XCTAssertFalse(display.containsText("Use automatic"))
 
@@ -927,17 +972,18 @@ final class MenuBarStateTests: XCTestCase {
         let controller = makeMockupAcceptanceController()
         let schedule = controller.pageStructureForTesting(focus: .schedule)
 
-        XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule"))
+        XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule summary"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-section:Schedule rows"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-table"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-schedule-actions"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Status"))
         XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Current"))
-        XCTAssertTrue(schedule.containsIdentifier("app-window-summary-table:Schedule:Shortcuts"))
+        XCTAssertFalse(schedule.containsIdentifier("app-window-summary-table:Schedule:Shortcuts"))
         XCTAssertTrue(schedule.containsText("Next 19:00"))
         XCTAssertTrue(schedule.containsText("Resume automation"))
         XCTAssertTrue(schedule.containsText("Save schedule"))
+        XCTAssertFalse(schedule.containsText("Option + Shift controls"))
         XCTAssertFalse(schedule.containsText("Remove"))
     }
 
@@ -955,6 +1001,11 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertTrue(diagnostics.containsIdentifier("app-window-diagnostics-code-log-text"))
         XCTAssertTrue(diagnostics.containsText("Copy log"))
         XCTAssertTrue(diagnostics.containsText("Shortcut monitor registered 7 bindings."))
+        XCTAssertEqual(
+            try XCTUnwrap(controller.diagnosticsLogHeightForTesting()),
+            InnosDesignTokens.Size.diagnosticsCodeLogHeight,
+            accuracy: 1
+        )
     }
 
     @MainActor
@@ -1174,7 +1225,7 @@ final class MenuBarStateTests: XCTestCase {
     @MainActor
     func testMenuBarPopoverWritesDesignSnapshotsWhenRequested() throws {
         let snapshotDirectory = ProcessInfo.processInfo.environment["INNOSDIMMER_SNAPSHOT_DIR"]
-            ?? "/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures"
+            ?? defaultPopoverCaptureDirectory()
 
         let directoryURL = URL(fileURLWithPath: snapshotDirectory, isDirectory: true)
         try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
@@ -1232,7 +1283,7 @@ final class MenuBarStateTests: XCTestCase {
     @MainActor
     func testAppDashboardWritesDesignSnapshotsWhenRequested() throws {
         let snapshotDirectory = ProcessInfo.processInfo.environment["INNOSDIMMER_SNAPSHOT_DIR"]
-            ?? "/Users/moonsoo/projects/InnosDimmer/docs/design/popover-redesign/captures"
+            ?? defaultPopoverCaptureDirectory()
 
         let directoryURL = URL(fileURLWithPath: snapshotDirectory, isDirectory: true)
         try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
@@ -1328,6 +1379,7 @@ final class MenuBarStateTests: XCTestCase {
             ("diagnostics", .diagnostics)
         ]
 
+        var expectedPixelSize: NSSize?
         for (name, target) in pages {
             let controller = UnifiedAppWindowController()
             controller.update(
@@ -1351,6 +1403,14 @@ final class MenuBarStateTests: XCTestCase {
                 continue
             }
             try data.write(to: directoryURL.appendingPathComponent("safe-app-window-\(name).png"))
+
+            let pixelSize = NSSize(width: representation.pixelsWide, height: representation.pixelsHigh)
+            if let expectedPixelSize {
+                XCTAssertEqual(pixelSize.width, expectedPixelSize.width, accuracy: 1, "Safe smoke width changed for \(name)")
+                XCTAssertEqual(pixelSize.height, expectedPixelSize.height, accuracy: 1, "Safe smoke height changed for \(name)")
+            } else {
+                expectedPixelSize = pixelSize
+            }
         }
     }
 
