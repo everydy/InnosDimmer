@@ -1,9 +1,25 @@
 import AppKit
 import CoreGraphics
 
+enum DisplayResolution: Equatable {
+    case selected(DisplayIdentity, source: DisplayResolutionSource)
+    case unavailable(DisplayResolutionFailure)
+}
+
+enum DisplayResolutionSource: Equatable {
+    case saved
+    case automatic
+    case fallback(saved: DisplayIdentity)
+}
+
+enum DisplayResolutionFailure: Equatable {
+    case noEligibleExternalDisplay
+    case multipleExternalDisplays(candidates: [DisplayIdentity])
+}
+
 protocol DisplayInventoryProviding {
     func activeDisplays() -> [DisplayIdentity]
-    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity?
+    func resolveDisplayResolution(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayResolution
 }
 
 final class DisplayInventory {
@@ -22,30 +38,52 @@ final class DisplayInventory {
     }
 
     func selectedDisplay(using targetStore: DisplayTargetStore) -> DisplayIdentity? {
-        Self.resolveSelectedDisplay(
+        let candidates = activeDisplays()
+        let resolution = Self.resolveSelectedDisplay(
             saved: targetStore.load().selectedDisplay,
-            candidates: activeDisplays(),
-            mainDisplayID: CGMainDisplayID()
+            candidates: candidates,
+            mainDisplayID: CGMainDisplayID(),
+            builtInDisplayIDs: builtInDisplayIDs(for: candidates)
         )
+
+        guard case .selected(let display, _) = resolution else {
+            return nil
+        }
+        return display
     }
 
     static func resolveSelectedDisplay(
         saved: DisplayIdentity?,
         candidates: [DisplayIdentity],
-        mainDisplayID: CGDirectDisplayID
-    ) -> DisplayIdentity? {
-        if let saved {
-            return DisplayTargetResolver.resolve(saved: saved, candidates: candidates)
+        mainDisplayID: CGDirectDisplayID,
+        builtInDisplayIDs: Set<CGDirectDisplayID>
+    ) -> DisplayResolution {
+        if let saved,
+           let match = DisplayTargetResolver.resolve(saved: saved, candidates: candidates) {
+            return .selected(match, source: .saved)
         }
 
-        return candidates.first { candidate in
+        let eligible = candidates.filter { candidate in
             candidate.cgDisplayID != mainDisplayID
+                && !builtInDisplayIDs.contains(candidate.cgDisplayID)
+        }.sorted { lhs, rhs in
+            if lhs.localizedName == rhs.localizedName {
+                return lhs.cgDisplayID < rhs.cgDisplayID
+            }
+            return lhs.localizedName.localizedStandardCompare(rhs.localizedName) == .orderedAscending
         }
-    }
 
-    func preferredExternalDisplay() -> DisplayIdentity? {
-        activeDisplays().first { identity in
-            CGDisplayIsMain(identity.cgDisplayID) == 0
+        switch eligible.count {
+        case 0:
+            return .unavailable(.noEligibleExternalDisplay)
+        case 1:
+            let display = eligible[0]
+            if let saved {
+                return .selected(display, source: .fallback(saved: saved))
+            }
+            return .selected(display, source: .automatic)
+        default:
+            return .unavailable(.multipleExternalDisplays(candidates: eligible))
         }
     }
 
@@ -86,14 +124,21 @@ final class DisplayInventory {
     private func optionalHardwareNumber(_ value: UInt32) -> UInt32? {
         value == 0 ? nil : value
     }
+
+    private func builtInDisplayIDs(for displays: [DisplayIdentity]) -> Set<CGDirectDisplayID> {
+        Set(displays.compactMap { display in
+            CGDisplayIsBuiltin(display.cgDisplayID) != 0 ? display.cgDisplayID : nil
+        })
+    }
 }
 
 extension DisplayInventory: DisplayInventoryProviding {
-    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+    func resolveDisplayResolution(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayResolution {
         Self.resolveSelectedDisplay(
             saved: saved,
             candidates: candidates,
-            mainDisplayID: CGMainDisplayID()
+            mainDisplayID: CGMainDisplayID(),
+            builtInDisplayIDs: builtInDisplayIDs(for: candidates)
         )
     }
 }

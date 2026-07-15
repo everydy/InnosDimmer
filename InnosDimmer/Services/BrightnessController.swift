@@ -51,10 +51,19 @@ final class BrightnessController {
             return
         }
 
+        if clearSoftwareState(for: display) {
+            state.activeMode = .unknown
+        } else {
+            state.activeMode = .platformBlocked
+        }
+    }
+
+    @discardableResult
+    func clearSoftwareState(for display: DisplayIdentity) -> Bool {
         do {
             try softwareStrategy.clear(display: display)
             lastSoftwareDimmingFailure = nil
-            state.activeMode = .unknown
+            return true
         } catch {
             let command = BrightnessCommand(
                 display: display,
@@ -66,7 +75,7 @@ final class BrightnessController {
                 command: command,
                 message: errorMessage(from: error)
             )
-            state.activeMode = .platformBlocked
+            return false
         }
     }
 

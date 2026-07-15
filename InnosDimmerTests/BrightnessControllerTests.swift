@@ -81,6 +81,32 @@ final class BrightnessControllerTests: XCTestCase {
         XCTAssertEqual(controller.state.activeMode, .unknown)
         XCTAssertNil(controller.lastSoftwareDimmingFailure)
     }
+
+    @MainActor
+    func testClearSoftwareStateForExplicitDisplayReturnsSuccess() {
+        let display = BrightnessCommand.fixture(source: .menuSlider).display
+        let software = RecordingPolicySoftwareDimmingStrategy()
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
+
+        let cleared = controller.clearSoftwareState(for: display)
+
+        XCTAssertTrue(cleared)
+        XCTAssertEqual(software.clearedDisplays, [display])
+        XCTAssertNil(controller.lastSoftwareDimmingFailure)
+    }
+
+    @MainActor
+    func testClearSoftwareStateForExplicitDisplayReturnsFailureWithRetryEvidence() {
+        let display = BrightnessCommand.fixture(source: .menuSlider).display
+        let software = RecordingPolicySoftwareDimmingStrategy()
+        software.clearError = SoftwareDimmingError.displayUnavailable(display.cgDisplayID)
+        let controller = BrightnessController(state: .defaultState(), softwareStrategy: software)
+
+        let cleared = controller.clearSoftwareState(for: display)
+
+        XCTAssertFalse(cleared)
+        XCTAssertEqual(controller.lastSoftwareDimmingFailure?.command.display, display)
+    }
 }
 
 @MainActor
@@ -88,12 +114,16 @@ private final class RecordingPolicySoftwareDimmingStrategy: SoftwareDimmingStrat
     private(set) var appliedCommands: [BrightnessCommand] = []
     private(set) var activeDisplayIDCalls: [Set<UInt32>] = []
     private(set) var clearedDisplays: [DisplayIdentity] = []
+    var clearError: Error?
 
     func apply(_ command: BrightnessCommand) throws {
         appliedCommands.append(command)
     }
 
     func clear(display: DisplayIdentity) throws {
+        if let clearError {
+            throw clearError
+        }
         clearedDisplays.append(display)
     }
 

@@ -34,6 +34,7 @@ final class MenuBarController: NSObject {
     private var scheduleEditorWindowController: ScheduleEditorWindowController?
     private var hotkeyManager: HotkeyManager?
     private var commandBeforeQuickDisable: BrightnessCommand?
+    private var displaysPendingCleanup: [UInt32: DisplayIdentity] = [:]
     private var scheduleReconciliationObservers: [(NotificationCenter, NSObjectProtocol)] = []
     private var runtimeBoundaryReconcileTask: Task<Void, Never>?
     private var hasStarted = false
@@ -102,7 +103,12 @@ final class MenuBarController: NSObject {
     }
 
     func stop() {
+        let currentDisplay = brightnessController.state.display
         brightnessController.clearCurrentSoftwareState()
+        for display in Array(displaysPendingCleanup.values)
+        where display.cgDisplayID != currentDisplay?.cgDisplayID {
+            _ = brightnessController.clearSoftwareState(for: display)
+        }
         stopHotkeys()
         scheduleTimerController.invalidate()
         runtimeBoundaryReconcileTask?.cancel()
@@ -266,12 +272,27 @@ final class MenuBarController: NSObject {
 
     private func quickDisable(source: BrightnessCommandSource = .menuSlider) {
         let state = brightnessController.state
-        commandBeforeQuickDisable = makeCommand(
+        guard let display = resolveFreshDisplay(updatesRuntimeState: false) else {
+            refreshPopover()
+            return
+        }
+
+        let previousCommand = BrightnessCommand(
+            display: display,
             brightness: state.targetBrightness,
             blueReduction: state.targetBlueReduction,
             source: source
         )
-        apply(brightness: 100, blueReduction: 0, source: source)
+        let disableCommand = BrightnessCommand(
+            display: display,
+            brightness: 100,
+            blueReduction: 0,
+            source: source
+        )
+
+        if applyCommand(disableCommand) {
+            commandBeforeQuickDisable = previousCommand
+        }
     }
 
     private func restorePrevious() {
@@ -281,8 +302,20 @@ final class MenuBarController: NSObject {
             return
         }
 
-        applyCommand(command)
-        commandBeforeQuickDisable = nil
+        guard let display = resolveFreshDisplay(updatesRuntimeState: false) else {
+            refreshPopover()
+            return
+        }
+
+        let restoredCommand = BrightnessCommand(
+            display: display,
+            brightness: command.brightness,
+            blueReduction: command.blueReduction,
+            source: command.source
+        )
+        if applyCommand(restoredCommand) {
+            commandBeforeQuickDisable = nil
+        }
     }
 
     func appWindowIsShownForTesting() -> Bool {
@@ -368,10 +401,6 @@ final class MenuBarController: NSObject {
     private func saveSelectedDisplay(_ display: DisplayIdentity?) -> Result<SettingsSnapshot, Error> {
         do {
             let snapshot = try displayTargetStore.saveSelectedDisplay(display)
-            var state = brightnessController.state
-            state.display = display
-            brightnessController.applyPreviewState(state)
-
             if display == nil {
                 _ = resolveSelectedDisplay()
             }
@@ -434,6 +463,14 @@ final class MenuBarController: NSObject {
         exportDiagnosticsData()
     }
 
+    func saveSelectedDisplayForTesting(_ display: DisplayIdentity?) -> Result<SettingsSnapshot, Error> {
+        saveSelectedDisplay(display)
+    }
+
+    func reconcileRuntimeBoundaryForTesting() {
+        reconcileScheduleAfterRuntimeBoundaryChange()
+    }
+
     private func exportDiagnosticsData() -> Result<Data, Error> {
         do {
             record(.appLifecycle, "Prepared diagnostics export")
@@ -465,9 +502,27 @@ final class MenuBarController: NSObject {
         reschedulesBoundaryTimer: Bool = true,
         refreshesPopover: Bool = true
     ) -> Bool {
+        let previousDisplay = brightnessController.state.display
         let previousMode = brightnessController.state.activeMode
         brightnessController.apply(command)
         let softwareFailed = brightnessController.lastSoftwareDimmingFailure?.command == command
+        if !softwareFailed {
+            displaysPendingCleanup.removeValue(forKey: command.display.cgDisplayID)
+        }
+        if !softwareFailed,
+           previousMode != .unknown,
+           let previousDisplay,
+           previousDisplay.cgDisplayID != command.display.cgDisplayID {
+            clearAbandonedSoftwareState(from: previousDisplay)
+        }
+        if !softwareFailed {
+            let pendingDisplays = Array(displaysPendingCleanup.values)
+            for display in pendingDisplays
+            where display.cgDisplayID != command.display.cgDisplayID
+                && display.cgDisplayID != previousDisplay?.cgDisplayID {
+                clearAbandonedSoftwareState(from: display)
+            }
+        }
         if !softwareFailed && updatesManualOverride {
             pauseAutomationAfterManualCommandIfNeeded(command)
         }
@@ -482,8 +537,7 @@ final class MenuBarController: NSObject {
     }
 
     private func makeCommand(brightness: Int, blueReduction: Int, source: BrightnessCommandSource) -> BrightnessCommand? {
-        guard let display = resolveFreshDisplay() else {
-            record(.display, "Skipped dimming command because no display is selected", .warning)
+        guard let display = resolveFreshDisplay(updatesRuntimeState: false) else {
             return nil
         }
 
@@ -507,17 +561,27 @@ final class MenuBarController: NSObject {
     }
 
     @discardableResult
-    private func resolveFreshDisplay(activeDisplays: [DisplayIdentity]? = nil) -> DisplayIdentity? {
+    private func resolveFreshDisplay(
+        activeDisplays: [DisplayIdentity]? = nil,
+        updatesRuntimeState: Bool = true
+    ) -> DisplayIdentity? {
         let candidates = activeDisplays ?? displayInventory.activeDisplays()
         let snapshot = displayTargetStore.load()
-        let resolved = displayInventory.resolveSelectedDisplay(
+        let resolution = displayInventory.resolveDisplayResolution(
             saved: snapshot.selectedDisplay,
             candidates: candidates
         )
 
+        guard case .selected(let resolved, let source) = resolution else {
+            if case .unavailable(let failure) = resolution {
+                handleUnavailableResolution(failure, saved: snapshot.selectedDisplay)
+            }
+            return nil
+        }
+
         if let current = brightnessController.state.display,
            let activeCurrent = candidates.first(where: { $0.cgDisplayID == current.cgDisplayID }),
-           resolved?.cgDisplayID == activeCurrent.cgDisplayID {
+           resolved.cgDisplayID == activeCurrent.cgDisplayID {
             if activeCurrent != current {
                 var state = brightnessController.state
                 state.display = activeCurrent
@@ -526,19 +590,94 @@ final class MenuBarController: NSObject {
             return activeCurrent
         }
 
-        guard let display = resolved else {
+        recordSelection(resolved, source: source)
+
+        if updatesRuntimeState,
+           brightnessController.state.display == nil || brightnessController.state.activeMode == .unknown {
             var state = brightnessController.state
-            state.display = nil
+            state.display = resolved
             brightnessController.applyPreviewState(state)
-            record(.display, "No eligible external display found", .warning)
-            return nil
+        }
+        return resolved
+    }
+
+    private func handleUnavailableResolution(
+        _ failure: DisplayResolutionFailure,
+        saved: DisplayIdentity?
+    ) {
+        let currentState = brightnessController.state
+        if let current = currentState.display,
+           currentState.activeMode != .unknown,
+           !clearAbandonedSoftwareState(from: current) {
+            recordResolutionFailure(failure, saved: saved)
+            return
         }
 
         var state = brightnessController.state
-        state.display = display
+        state.display = nil
+        state.activeMode = .unknown
         brightnessController.applyPreviewState(state)
-        record(.display, "Selected display \(display.localizedName)")
-        return display
+        recordResolutionFailure(failure, saved: saved)
+    }
+
+    @discardableResult
+    private func clearAbandonedSoftwareState(from display: DisplayIdentity) -> Bool {
+        guard brightnessController.clearSoftwareState(for: display) else {
+            displaysPendingCleanup[display.cgDisplayID] = display
+            let detail = brightnessController.lastSoftwareDimmingFailure?.message ?? "Unknown cleanup error"
+            record(
+                .softwareDimming,
+                "Could not clear software dimming from \(display.localizedName): \(detail)",
+                .error
+            )
+            return false
+        }
+
+        displaysPendingCleanup.removeValue(forKey: display.cgDisplayID)
+        return true
+    }
+
+    private func recordSelection(_ display: DisplayIdentity, source: DisplayResolutionSource) {
+        switch source {
+        case .saved, .automatic:
+            record(.display, "Selected display \(display.localizedName)")
+        case .fallback(let saved):
+            record(
+                .display,
+                "Saved display \(saved.localizedName) is unavailable; using external display \(display.localizedName)",
+                .warning
+            )
+        }
+    }
+
+    private func recordResolutionFailure(
+        _ failure: DisplayResolutionFailure,
+        saved: DisplayIdentity?
+    ) {
+        switch failure {
+        case .noEligibleExternalDisplay:
+            record(.display, "No eligible external display found", .warning)
+        case .multipleExternalDisplays(let candidates):
+            let names = candidates.sorted {
+                if $0.localizedName == $1.localizedName {
+                    return $0.cgDisplayID < $1.cgDisplayID
+                }
+                return $0.localizedName.localizedStandardCompare($1.localizedName) == .orderedAscending
+            }.map(\.localizedName).joined(separator: ", ")
+            if let saved {
+                record(
+                    .display,
+                    "Saved display \(saved.localizedName) is unavailable; select one of \(candidates.count) external displays in the Display page: \(names)",
+                    .warning
+                )
+            } else {
+                record(
+                    .display,
+                    "Select one of \(candidates.count) external displays in the Display page: \(names)",
+                    .warning
+                )
+            }
+        }
     }
 
     private func refreshPopover() {
@@ -706,8 +845,20 @@ final class MenuBarController: NSObject {
         let activeDisplays = displayInventory.activeDisplays()
         let activeDisplayIDs = Set(activeDisplays.map(\.cgDisplayID))
         brightnessController.clearStaleSoftwarePanels(activeDisplayIDs: activeDisplayIDs)
-        _ = resolveFreshDisplay(activeDisplays: activeDisplays)
-        brightnessController.reapplyCurrentSoftwareState()
+        if let display = resolveFreshDisplay(activeDisplays: activeDisplays, updatesRuntimeState: false) {
+            let state = brightnessController.state
+            _ = applyCommand(
+                BrightnessCommand(
+                    display: display,
+                    brightness: state.targetBrightness,
+                    blueReduction: state.targetBlueReduction,
+                    source: state.lastAppliedCommandSource ?? .startupRestore
+                ),
+                updatesManualOverride: false,
+                reschedulesBoundaryTimer: false,
+                refreshesPopover: false
+            )
+        }
         applyScheduleDecision()
         scheduleNextBoundaryTimer()
     }

@@ -1708,6 +1708,329 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
+    func testMenuBarControllerAppliesSingleFallbackWithoutOverwritingSavedTarget() throws {
+        let saved = DisplayIdentity(
+            cgDisplayID: 10,
+            localizedName: "Preferred",
+            vendorNumber: 10,
+            modelNumber: 20,
+            serialNumber: 30,
+            frameDescription: "2560x1440"
+        )
+        let fallback = DisplayIdentity(
+            cgDisplayID: 20,
+            localizedName: "Fallback",
+            vendorNumber: 40,
+            modelNumber: 50,
+            serialNumber: 60,
+            frameDescription: "3840x2160"
+        )
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1),
+            displayTargetStore: store,
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback, fallback])
+        XCTAssertEqual(brightnessController.state.display, fallback)
+        XCTAssertEqual(store.load().selectedDisplay, saved)
+        XCTAssertEqual(diagnosticsStore.events.filter { event in
+            event.message == "Saved display Preferred is unavailable; using external display Fallback"
+        }.count, 1)
+    }
+
+    @MainActor
+    func testMenuBarControllerBlocksAmbiguousFallbackWithSortedActionableDiagnostic() throws {
+        let saved = makeMenuBarDisplay(cgDisplayID: 10, localizedName: "Preferred")
+        let zebra = makeMenuBarDisplay(cgDisplayID: 30, localizedName: "Zebra")
+        let alpha = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Alpha")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [zebra, alpha], mainDisplayID: 1),
+            displayTargetStore: store,
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertNil(brightnessController.state.display)
+        XCTAssertEqual(
+            diagnosticsStore.latestEvent?.message,
+            "Saved display Preferred is unavailable; select one of 2 external displays in the Display page: Alpha, Zebra"
+        )
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
+    }
+
+    @MainActor
+    func testMenuBarControllerBlocksAmbiguousAutomaticSelectionWithoutSavedTarget() throws {
+        let zebra = makeMenuBarDisplay(cgDisplayID: 30, localizedName: "Zebra")
+        let alpha = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Alpha")
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [zebra, alpha], mainDisplayID: 1),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertNil(brightnessController.state.display)
+        XCTAssertEqual(
+            diagnosticsStore.latestEvent?.message,
+            "Select one of 2 external displays in the Display page: Alpha, Zebra"
+        )
+        XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
+    }
+
+    @MainActor
+    func testSelectingDisplayKeepsFallbackOwnedUntilReplacementApplies() throws {
+        let saved = makeMenuBarDisplay(cgDisplayID: 10, localizedName: "Preferred")
+        let fallback = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Fallback")
+        let replacement = makeMenuBarDisplay(cgDisplayID: 30, localizedName: "Replacement")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store
+        )
+
+        menuBarController.perform(.brightnessDown)
+        inventory.displays = [replacement]
+        _ = menuBarController.saveSelectedDisplayForTesting(replacement)
+
+        XCTAssertEqual(brightnessController.state.display, fallback)
+
+        menuBarController.perform(.blueReductionUp)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback, replacement])
+        XCTAssertEqual(software.clearedDisplays, [fallback])
+        XCTAssertEqual(brightnessController.state.display, replacement)
+    }
+
+    @MainActor
+    func testConsecutiveCleanupFailuresRetainEveryDisplayForStopRetry() throws {
+        let saved = makeMenuBarDisplay(cgDisplayID: 10, localizedName: "Preferred")
+        let first = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "First Fallback")
+        let second = makeMenuBarDisplay(cgDisplayID: 30, localizedName: "Second")
+        let third = makeMenuBarDisplay(cgDisplayID: 40, localizedName: "Third")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [first], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store
+        )
+
+        menuBarController.perform(.brightnessDown)
+        software.clearError = SoftwareDimmingError.displayUnavailable(first.cgDisplayID)
+
+        inventory.displays = [second]
+        _ = menuBarController.saveSelectedDisplayForTesting(second)
+        menuBarController.perform(.blueReductionUp)
+
+        inventory.displays = [third]
+        _ = menuBarController.saveSelectedDisplayForTesting(third)
+        menuBarController.perform(.blueReductionUp)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [first, second, third])
+
+        software.clearError = nil
+        menuBarController.stop()
+
+        XCTAssertEqual(Set(software.clearedDisplays.map(\.cgDisplayID)), [first, second, third])
+    }
+
+    @MainActor
+    func testRuntimeReconciliationReturnsFromFallbackToReconnectedSavedDisplayAndClearsFallback() throws {
+        let saved = DisplayIdentity(
+            cgDisplayID: 10,
+            localizedName: "Preferred",
+            vendorNumber: 10,
+            modelNumber: 20,
+            serialNumber: 30,
+            frameDescription: "2560x1440"
+        )
+        let reconnected = DisplayIdentity(
+            cgDisplayID: 99,
+            localizedName: "Preferred Reconnected",
+            vendorNumber: saved.vendorNumber,
+            modelNumber: saved.modelNumber,
+            serialNumber: saved.serialNumber,
+            frameDescription: "2560x1440@0,0"
+        )
+        let fallback = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Fallback")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store,
+            scheduleEntries: []
+        )
+
+        menuBarController.perform(.brightnessDown)
+        inventory.displays = [fallback, reconnected]
+        menuBarController.reconcileRuntimeBoundaryForTesting()
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback, reconnected])
+        XCTAssertEqual(software.clearedDisplays, [fallback])
+        XCTAssertEqual(brightnessController.state.display, reconnected)
+        XCTAssertEqual(store.load().selectedDisplay, saved)
+    }
+
+    @MainActor
+    func testMenuBarControllerRetainsFallbackOwnershipWhenUnavailableCleanupFails() throws {
+        let saved = makeMenuBarDisplay(cgDisplayID: 10, localizedName: "Preferred")
+        let fallback = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Fallback")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 20)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store,
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.brightnessDown)
+        inventory.displays = []
+        software.clearError = SoftwareDimmingError.displayUnavailable(fallback.cgDisplayID)
+        menuBarController.perform(.blueReductionUp)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback])
+        XCTAssertEqual(brightnessController.state.display, fallback)
+        XCTAssertTrue(diagnosticsStore.events.contains { event in
+            event.message.contains("Could not clear software dimming from Fallback")
+        })
+
+        software.clearError = nil
+        menuBarController.perform(.blueReductionUp)
+
+        XCTAssertEqual(software.clearedDisplays, [fallback])
+        XCTAssertNil(brightnessController.state.display)
+    }
+
+    @MainActor
+    func testMenuBarControllerClearsFallbackWhenResolutionBecomesAmbiguous() throws {
+        let saved = makeMenuBarDisplay(cgDisplayID: 10, localizedName: "Preferred")
+        let fallback = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Fallback")
+        let first = makeMenuBarDisplay(cgDisplayID: 30, localizedName: "First")
+        let second = makeMenuBarDisplay(cgDisplayID: 40, localizedName: "Second")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store
+        )
+
+        menuBarController.perform(.brightnessDown)
+        inventory.displays = [second, first]
+        menuBarController.perform(.blueReductionUp)
+
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback])
+        XCTAssertEqual(software.clearedDisplays, [fallback])
+        XCTAssertNil(brightnessController.state.display)
+    }
+
+    @MainActor
+    func testQuickDisableResolvesOnceAndRestoreUsesFreshDisplay() throws {
+        let saved = DisplayIdentity(
+            cgDisplayID: 10,
+            localizedName: "Preferred",
+            vendorNumber: 10,
+            modelNumber: 20,
+            serialNumber: 30,
+            frameDescription: "2560x1440"
+        )
+        let reconnected = DisplayIdentity(
+            cgDisplayID: 99,
+            localizedName: "Preferred Reconnected",
+            vendorNumber: saved.vendorNumber,
+            modelNumber: saved.modelNumber,
+            serialNumber: saved.serialNumber,
+            frameDescription: "2560x1440@0,0"
+        )
+        let fallback = makeMenuBarDisplay(cgDisplayID: 20, localizedName: "Fallback")
+        let store = DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        try store.saveSelectedDisplay(saved)
+        let inventory = RecordingDisplayInventory(displays: [fallback], mainDisplayID: 1)
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: inventory,
+            displayTargetStore: store
+        )
+
+        menuBarController.perform(.quickDisable)
+
+        XCTAssertEqual(inventory.resolutionCallCount, 1)
+        inventory.displays = [reconnected]
+        menuBarController.perform(.restorePrevious)
+
+        XCTAssertEqual(inventory.resolutionCallCount, 2)
+        XCTAssertEqual(software.appliedCommands.map(\.display), [fallback, reconnected])
+        XCTAssertEqual(software.appliedCommands.map(\.brightness), [100, 80])
+        XCTAssertEqual(software.appliedCommands.map(\.blueReduction), [0, 12])
+    }
+
+    @MainActor
+    func testQuickDisableCachesPreviousValuesOnlyAfterSuccessfulDisable() throws {
+        let software = RecordingSoftwareDimmingStrategy(error: SoftwareDimmingError.displayUnavailable(1))
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let diagnosticsStore = DiagnosticsStore(maxEvents: 10)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(displays: [.menuBarTestDisplay], mainDisplayID: 999),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay"),
+            diagnosticsStore: diagnosticsStore
+        )
+
+        menuBarController.perform(.quickDisable)
+        software.error = nil
+        menuBarController.perform(.restorePrevious)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Restore previous requested without saved state")
+    }
+
+    @MainActor
     func testMenuBarControllerDoesNotApplyCommandToMainDisplayWhenExternalTargetIsMissing() throws {
         let mainDisplay = DisplayIdentity(
             cgDisplayID: 1,
@@ -1735,7 +2058,29 @@ final class MenuBarStateTests: XCTestCase {
         XCTAssertNil(brightnessController.state.display)
         XCTAssertEqual(diagnosticsStore.latestEvent?.category, .display)
         XCTAssertEqual(diagnosticsStore.latestEvent?.severity, .warning)
-        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "Skipped dimming command because no display is selected")
+        XCTAssertEqual(diagnosticsStore.latestEvent?.message, "No eligible external display found")
+    }
+
+    @MainActor
+    func testMenuBarControllerDoesNotApplyCommandToNonMainBuiltInDisplay() throws {
+        let mainExternal = makeMenuBarDisplay(cgDisplayID: 1, localizedName: "Main External")
+        let builtIn = makeMenuBarDisplay(cgDisplayID: 2, localizedName: "Built-in Display")
+        let software = RecordingSoftwareDimmingStrategy()
+        let brightnessController = BrightnessController(state: .defaultState(), softwareStrategy: software)
+        let menuBarController = MenuBarController(
+            brightnessController: brightnessController,
+            displayInventory: RecordingDisplayInventory(
+                displays: [mainExternal, builtIn],
+                mainDisplayID: mainExternal.cgDisplayID,
+                builtInDisplayIDs: [builtIn.cgDisplayID]
+            ),
+            displayTargetStore: DisplayTargetStore(defaults: try makeTemporaryDefaults(), key: "SelectedDisplay")
+        )
+
+        menuBarController.perform(.brightnessDown)
+
+        XCTAssertEqual(software.appliedCommands, [])
+        XCTAssertNil(brightnessController.state.display)
     }
 
     @MainActor
@@ -1863,6 +2208,7 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     private(set) var appliedCommands: [BrightnessCommand] = []
     private(set) var clearedDisplays: [DisplayIdentity] = []
     var error: Error?
+    var clearError: Error?
 
     init(error: Error? = nil) {
         self.error = error
@@ -1876,6 +2222,9 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
     }
 
     func clear(display: DisplayIdentity) throws {
+        if let clearError {
+            throw clearError
+        }
         clearedDisplays.append(display)
     }
 }
@@ -1883,21 +2232,26 @@ private final class RecordingSoftwareDimmingStrategy: SoftwareDimmingStrategy {
 private final class RecordingDisplayInventory: DisplayInventoryProviding {
     var displays: [DisplayIdentity]
     var mainDisplayID: UInt32
+    var builtInDisplayIDs: Set<UInt32>
+    private(set) var resolutionCallCount = 0
 
-    init(displays: [DisplayIdentity], mainDisplayID: UInt32) {
+    init(displays: [DisplayIdentity], mainDisplayID: UInt32, builtInDisplayIDs: Set<UInt32> = []) {
         self.displays = displays
         self.mainDisplayID = mainDisplayID
+        self.builtInDisplayIDs = builtInDisplayIDs
     }
 
     func activeDisplays() -> [DisplayIdentity] {
         displays
     }
 
-    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
-        DisplayInventory.resolveSelectedDisplay(
+    func resolveDisplayResolution(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayResolution {
+        resolutionCallCount += 1
+        return DisplayInventory.resolveSelectedDisplay(
             saved: saved,
             candidates: candidates,
-            mainDisplayID: mainDisplayID
+            mainDisplayID: mainDisplayID,
+            builtInDisplayIDs: builtInDisplayIDs
         )
     }
 }
@@ -1918,4 +2272,15 @@ private func makeTemporaryDefaults() throws -> UserDefaults {
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
     defaults.removePersistentDomain(forName: suiteName)
     return defaults
+}
+
+private func makeMenuBarDisplay(cgDisplayID: UInt32, localizedName: String) -> DisplayIdentity {
+    DisplayIdentity(
+        cgDisplayID: cgDisplayID,
+        localizedName: localizedName,
+        vendorNumber: cgDisplayID,
+        modelNumber: cgDisplayID + 1,
+        serialNumber: cgDisplayID + 2,
+        frameDescription: "2560x1440"
+    )
 }

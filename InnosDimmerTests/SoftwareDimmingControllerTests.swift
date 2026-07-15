@@ -74,29 +74,111 @@ final class SoftwareDimmingControllerTests: XCTestCase {
         XCTAssertFalse(controller.hasOriginalTableForTesting(displayID: display.cgDisplayID))
     }
 
-    func testDisplayInventoryFallsBackToFirstNonMainDisplayWhenNoSavedTarget() {
+    func testDisplayInventorySelectsOnlyEligibleExternalWhenNoSavedTarget() {
         let main = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Built-in Display")
         let external = DisplayIdentity.fixture(cgDisplayID: 2, localizedName: "INNOS 27QA100M")
 
-        let selected = DisplayInventory.resolveSelectedDisplay(
+        let resolution = DisplayInventory.resolveSelectedDisplay(
             saved: nil,
             candidates: [main, external],
-            mainDisplayID: main.cgDisplayID
+            mainDisplayID: main.cgDisplayID,
+            builtInDisplayIDs: [main.cgDisplayID]
         )
 
-        XCTAssertEqual(selected, external)
+        XCTAssertEqual(resolution, .selected(external, source: .automatic))
     }
 
     func testDisplayInventoryDoesNotSilentlyChooseMainDisplayWithoutExternalTarget() {
         let main = DisplayIdentity.fixture(cgDisplayID: 1, localizedName: "Built-in Display")
 
-        let selected = DisplayInventory.resolveSelectedDisplay(
+        let resolution = DisplayInventory.resolveSelectedDisplay(
             saved: nil,
             candidates: [main],
-            mainDisplayID: main.cgDisplayID
+            mainDisplayID: main.cgDisplayID,
+            builtInDisplayIDs: [main.cgDisplayID]
         )
 
-        XCTAssertNil(selected)
+        XCTAssertEqual(resolution, .unavailable(.noEligibleExternalDisplay))
+    }
+
+    func testDisplayInventoryPrefersSavedHardwareMatchWithChangedRuntimeID() {
+        let saved = DisplayIdentity.topologyFixture(cgDisplayID: 10, localizedName: "Preferred")
+        let reconnected = DisplayIdentity(
+            cgDisplayID: 99,
+            localizedName: "Preferred Reconnected",
+            vendorNumber: saved.vendorNumber,
+            modelNumber: saved.modelNumber,
+            serialNumber: saved.serialNumber,
+            frameDescription: "3840x2160@0,0"
+        )
+        let alternate = DisplayIdentity.topologyFixture(cgDisplayID: 20, localizedName: "Alternate")
+
+        let resolution = DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: [alternate, reconnected],
+            mainDisplayID: 1,
+            builtInDisplayIDs: [1]
+        )
+
+        XCTAssertEqual(resolution, .selected(reconnected, source: .saved))
+    }
+
+    func testDisplayInventoryUsesSingleExternalFallbackWhenSavedTargetIsMissing() {
+        let saved = DisplayIdentity.topologyFixture(cgDisplayID: 10, localizedName: "Preferred")
+        let fallback = DisplayIdentity.topologyFixture(cgDisplayID: 20, localizedName: "Fallback")
+
+        let resolution = DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: [fallback],
+            mainDisplayID: 1,
+            builtInDisplayIDs: [1]
+        )
+
+        XCTAssertEqual(resolution, .selected(fallback, source: .fallback(saved: saved)))
+    }
+
+    func testDisplayInventoryExcludesNonMainBuiltInDisplayFromFallback() {
+        let saved = DisplayIdentity.topologyFixture(cgDisplayID: 10, localizedName: "Preferred")
+        let mainExternal = DisplayIdentity.topologyFixture(cgDisplayID: 20, localizedName: "Main External")
+        let builtIn = DisplayIdentity.topologyFixture(cgDisplayID: 30, localizedName: "Built-in Display")
+
+        let resolution = DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: [mainExternal, builtIn],
+            mainDisplayID: mainExternal.cgDisplayID,
+            builtInDisplayIDs: [builtIn.cgDisplayID]
+        )
+
+        XCTAssertEqual(resolution, .unavailable(.noEligibleExternalDisplay))
+    }
+
+    func testDisplayInventoryReportsAmbiguousFallbackCandidates() {
+        let saved = DisplayIdentity.topologyFixture(cgDisplayID: 10, localizedName: "Preferred")
+        let first = DisplayIdentity.topologyFixture(cgDisplayID: 20, localizedName: "First")
+        let second = DisplayIdentity.topologyFixture(cgDisplayID: 30, localizedName: "Second")
+
+        let resolution = DisplayInventory.resolveSelectedDisplay(
+            saved: saved,
+            candidates: [first, second],
+            mainDisplayID: 1,
+            builtInDisplayIDs: [1]
+        )
+
+        XCTAssertEqual(resolution, .unavailable(.multipleExternalDisplays(candidates: [first, second])))
+    }
+
+    func testDisplayInventoryReportsAmbiguityWithoutSavedTarget() {
+        let first = DisplayIdentity.topologyFixture(cgDisplayID: 20, localizedName: "Alpha")
+        let second = DisplayIdentity.topologyFixture(cgDisplayID: 30, localizedName: "Zebra")
+
+        let resolution = DisplayInventory.resolveSelectedDisplay(
+            saved: nil,
+            candidates: [second, first],
+            mainDisplayID: 1,
+            builtInDisplayIDs: [1]
+        )
+
+        XCTAssertEqual(resolution, .unavailable(.multipleExternalDisplays(candidates: [first, second])))
     }
 
     @MainActor
@@ -321,6 +403,17 @@ private extension DisplayIdentity {
             vendorNumber: 1,
             modelNumber: 2,
             serialNumber: 3,
+            frameDescription: "2560x1440"
+        )
+    }
+
+    static func topologyFixture(cgDisplayID: UInt32, localizedName: String) -> DisplayIdentity {
+        DisplayIdentity(
+            cgDisplayID: cgDisplayID,
+            localizedName: localizedName,
+            vendorNumber: cgDisplayID,
+            modelNumber: cgDisplayID + 1,
+            serialNumber: cgDisplayID + 2,
             frameDescription: "2560x1440"
         )
     }

@@ -384,11 +384,12 @@ private final class RecordingHotkeyDisplayInventory: DisplayInventoryProviding {
         displays
     }
 
-    func resolveSelectedDisplay(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayIdentity? {
+    func resolveDisplayResolution(saved: DisplayIdentity?, candidates: [DisplayIdentity]) -> DisplayResolution {
         DisplayInventory.resolveSelectedDisplay(
             saved: saved,
             candidates: candidates,
-            mainDisplayID: 999
+            mainDisplayID: 999,
+            builtInDisplayIDs: []
         )
     }
 }
