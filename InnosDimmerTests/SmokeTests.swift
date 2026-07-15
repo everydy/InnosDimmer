@@ -6,10 +6,12 @@ final class SmokeTests: XCTestCase {
     @MainActor
     func testAppDelegateConfiguresAccessoryMenuBarShell() {
         let previousMainMenu = NSApp.mainMenu
+        let previousActivationPolicy = NSApp.activationPolicy()
         let delegate = AppDelegate()
         defer {
             delegate.applicationWillTerminate(Notification(name: NSApplication.willTerminateNotification))
             NSApp.mainMenu = previousMainMenu
+            _ = NSApp.setActivationPolicy(previousActivationPolicy)
         }
 
         delegate.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
@@ -40,10 +42,12 @@ final class SmokeTests: XCTestCase {
     @MainActor
     func testRepeatedStartupInstallsExactlyOneQuitItem() {
         let previousMainMenu = NSApp.mainMenu
+        let previousActivationPolicy = NSApp.activationPolicy()
         let delegate = AppDelegate()
         defer {
             delegate.applicationWillTerminate(Notification(name: NSApplication.willTerminateNotification))
             NSApp.mainMenu = previousMainMenu
+            _ = NSApp.setActivationPolicy(previousActivationPolicy)
         }
         NSApp.mainMenu = NSMenu(title: "Sentinel")
 

@@ -467,10 +467,6 @@ final class MenuBarController: NSObject {
         saveSelectedDisplay(display)
     }
 
-    func reconcileRuntimeBoundaryForTesting() {
-        reconcileScheduleAfterRuntimeBoundaryChange()
-    }
-
     private func exportDiagnosticsData() -> Result<Data, Error> {
         do {
             record(.appLifecycle, "Prepared diagnostics export")

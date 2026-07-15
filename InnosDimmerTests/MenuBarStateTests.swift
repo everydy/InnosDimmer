@@ -1867,7 +1867,7 @@ final class MenuBarStateTests: XCTestCase {
     }
 
     @MainActor
-    func testRuntimeReconciliationReturnsFromFallbackToReconnectedSavedDisplayAndClearsFallback() throws {
+    func testScreenChangeNotificationReturnsFromFallbackToReconnectedSavedDisplayAndClearsFallback() async throws {
         let saved = DisplayIdentity(
             cgDisplayID: 10,
             localizedName: "Preferred",
@@ -1896,10 +1896,13 @@ final class MenuBarStateTests: XCTestCase {
             displayTargetStore: store,
             scheduleEntries: []
         )
+        menuBarController.start()
+        defer { menuBarController.stop() }
 
         menuBarController.perform(.brightnessDown)
         inventory.displays = [fallback, reconnected]
-        menuBarController.reconcileRuntimeBoundaryForTesting()
+        NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        try await Task.sleep(nanoseconds: 400_000_000)
 
         XCTAssertEqual(software.appliedCommands.map(\.display), [fallback, reconnected])
         XCTAssertEqual(software.clearedDisplays, [fallback])
