@@ -33,6 +33,15 @@ Manual changes pause automation until the next schedule boundary.
 | Quick disable overlay | Option + Shift + 0 |
 | Restore previous dimming | Option + Shift + R |
 
+## Display Fallback And Quit Recovery
+
+- If the saved display is unavailable and exactly one eligible external display remains, InnosDimmer uses that display temporarily without overwriting the saved preference.
+- The main display and every built-in display are excluded from automatic fallback.
+- If multiple eligible external displays are available, InnosDimmer does not guess. Select the intended display from the Display page.
+- When the saved display reconnects, runtime reconciliation gives it priority again and clears dimming left on the temporary fallback.
+- While InnosDimmer is active and responsive, `Command-Q` uses the standard `Quit InnosDimmer` application command and runs the normal termination cleanup. Relaunch the app normally afterward.
+- A fully frozen event loop cannot process `Command-Q`; use macOS Force Quit in that case, then relaunch InnosDimmer.
+
 ## Local QA
 
 1. Run the Debug verification command from the README.

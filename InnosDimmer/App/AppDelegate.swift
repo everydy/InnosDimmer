@@ -25,8 +25,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         didStart = true
         terminateOtherRunningInstances()
         NSApp.setActivationPolicy(.accessory)
+        NSApp.mainMenu = Self.makeApplicationMenu(for: NSApp)
         menuBarController = MenuBarController()
         menuBarController?.start()
+    }
+
+    static func makeApplicationMenu(for application: NSApplication) -> NSMenu {
+        let mainMenu = NSMenu(title: "InnosDimmer")
+        let applicationItem = NSMenuItem(title: "InnosDimmer", action: nil, keyEquivalent: "")
+        let applicationMenu = NSMenu(title: "InnosDimmer")
+        let quitItem = NSMenuItem(
+            title: "Quit InnosDimmer",
+            action: #selector(NSApplication.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        quitItem.keyEquivalentModifierMask = [.command]
+        quitItem.target = application
+        applicationMenu.addItem(quitItem)
+        applicationItem.submenu = applicationMenu
+        mainMenu.addItem(applicationItem)
+        return mainMenu
     }
 
     private func terminateOtherRunningInstances() {
